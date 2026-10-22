@@ -1,17 +1,15 @@
 name: update-data
 
-# 定时采集 JBIS + Racing Post（经 Sporting Life）→ 有变化 commit 回 main → 本 workflow 自己发布 Pages。
-# 为什么自己发布：GitHub 规定「用 GITHUB_TOKEN 做的 push 不会触发其它 workflow」，
-# 所以 update-data 提交数据后 deploy.yml 不会自动跑；这里在同一 workflow 内完成 build + Pages 发布
-#（push-to-main 的 deploy.yml 仍负责代码变更/首次部署）。
-# 前置要求：仓库 Settings → Pages → Source = GitHub Actions；
+# 每日一次采集 JBIS + Racing Post（经 Sporting Life）→ 构建 → 落库 data/ → 重新部署静态页面（Pages）。
+# 结构对齐 yunji-web 的 update-data.yml（采集→构建→提交数据→运行日志 artifact）；
+# 差异：GitHub 规定 GITHUB_TOKEN 的 push 不触发其它 workflow，故部署不能依赖 deploy.yml 被 push 触发，
+#       由本 workflow 在提交后直接 build + 发布 Pages。
+# 前置要求：Settings → Pages → Source = GitHub Actions；
 #           Settings → Actions → General → Workflow permissions = Read and write permissions
 on:
   schedule:
-    # UTC 22:00 = 北京 06:00 = JST 07:00：中央枠順確定后的早盘窗口（当日+3 天）
+    # UTC 22:00 = 北京 06:00 = JST 07:00（中央枠順確定后的早盘窗口，一次覆盖当日+3 天）
     - cron: '0 22 * * *'
-    # UTC 11:00 = 北京 19:00 = JST 20:00 = 英国午间：地方前日出表 + 英国当日 racecards
-    - cron: '0 11 * * *'
   workflow_dispatch:
 
 permissions:
@@ -38,16 +36,18 @@ jobs:
           node-version: 22
 
       - name: Collect JBIS racecards
-        run: node src/collect-races.js
+        run: |
+          mkdir -p test-logs
+          node src/collect-races.js 2>&1 | tee test-logs/jbis.log
 
       # Sporting Life 对数据中心 IP 的容忍度未验证 → 失败只告警，不阻断 JBIS 数据落库
       - name: Collect Racing Post (via Sporting Life)
         continue-on-error: true
-        run: node src/collect-sources.js --source racingpost
+        run: node src/collect-sources.js --source racingpost 2>&1 | tee test-logs/rp.log
 
       # 构建：数据归一 + _site 产出（_site 本身不入库）
       - name: Build site
-        run: node src/build.js
+        run: node src/build.js 2>&1 | tee test-logs/build.log
 
       - name: Commit data changes
         run: |
@@ -65,7 +65,7 @@ jobs:
             echo "::notice::无变化，跳过提交"
           fi
 
-      # 数据落库后由本 workflow 直接发布（GITHUB_TOKEN push 不会触发 deploy.yml）
+      # 更新完必须重新部署静态页面：由本 workflow 直接发布（不依赖 push 触发 deploy.yml）
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
@@ -77,3 +77,12 @@ jobs:
       - name: Deploy to Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # 运行日志（对齐 yunji-web：always 上传，便于排查采集失败/为空）
+      - name: Upload run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-log-${{ github.run_id }}
+          path: test-logs/
+          retention-days: 14
