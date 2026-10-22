@@ -14,6 +14,7 @@
 // ## 时区（见 normalize.js 头注）
 // time = 英国当地时间；date = 场地当地比赛日；两者口径都写进卡片。
 import { get, nextData } from "./http.js";
+import { pedCache } from "../lib/ped-cache.js";
 import {
   courseTzOf,
   colourOf,
@@ -55,20 +56,11 @@ function racePageUrl(race, courseId, courseName, hrefMap) {
   return `${SL}/racing/racecards/${race.date}/${slugify(courseName)}/racecard/${race.race_summary_reference?.id}/${slugify(race.name)}`;
 }
 
-// ---------- 血统缓存（马匹档案：父 / 母 / 母父） ----------
-function readJson(fs, file) {
-  try {
-    return JSON.parse(fs.readFileSync(file, "utf8"));
-  } catch {
-    return null;
-  }
-}
-
-async function pedigreeOf(horseId, { fs, path, delayMs, useCache = true, log = () => {} }) {
+// ---------- 血统缓存（单文件包 data/pedigree/rp-horse.json，入库供 CI 增量复用） ----------
+async function pedigreeOf(horseId, { store, delayMs, useCache = true, log = () => {} }) {
   if (!horseId) return null;
-  const file = path.resolve("data", "pedigree", "rp", "horse", `${horseId}.json`);
   if (useCache) {
-    const cached = readJson(fs, file);
+    const cached = store.get(horseId);
     if (cached && "sire" in cached) return cached;
   }
   const r = await get(`${SL}/racing/profiles/horse/${horseId}`).catch(() => null);
@@ -90,8 +82,7 @@ async function pedigreeOf(horseId, { fs, path, delayMs, useCache = true, log = (
     foaled: prof.foaled ?? null,
     capturedAt: new Date().toISOString(),
   };
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(rec));
+  store.set(horseId, rec);
   log(`[ped] ${prof.name} ← ${rec.sire} / ${rec.damsire}`);
   return rec;
 }
@@ -182,6 +173,9 @@ export async function collect({
     ? null
     : countries.flatMap((c) => COUNTRY_GROUP[String(c).toUpperCase()] ?? [String(c).toUpperCase()]);
 
+  // 血统缓存单文件包（入库 → CI 增量复用，见 lib/ped-cache.js）
+  const store = pedCache(path.resolve("data", "pedigree", "rp-horse.json"));
+
   // 1) 当日 index：会议 + 场次 meta + 单场链接
   const page = await get(INDEX_URL);
   await sleep(delayMs);
@@ -229,7 +223,7 @@ export async function collect({
       const runners = [];
       for (const ride of rides) {
         const horseId = ride.horse?.horse_reference?.id;
-        const ped = pedigree && horseId ? await pedigreeOf(horseId, { fs, path, delayMs, log }) : null;
+        const ped = pedigree && horseId ? await pedigreeOf(horseId, { store, delayMs, log }) : null;
         runners.push(runnerOf(ride, ped));
       }
 
@@ -288,7 +282,9 @@ export async function collect({
     if (limit && fetched >= limit) break;
   }
 
-  // 3) 展开为落盘单元
+  // 3) 展开为落盘单元（血统缓存包落盘）
+  store.save();
+  log(`[ped-cache] rp-horse ${store.size()} 匹 → data/pedigree/rp-horse.json`);
   const out = [];
   for (const [date, courses] of byDate) {
     for (const doc of courses.values()) {

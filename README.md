@@ -71,6 +71,8 @@ node src/collect-sources.js --source racingpost --countries all
 
 一次性设置：仓库 Settings → Pages → Source 选 **GitHub Actions**；Settings → Actions → Workflow permissions 勾选 **Read and write permissions**（update-data 需要写权限提交数据）。
 
+数据落库范围：`data/races/`（源文档 `.json.gz`）+ `data/pedigree/`（血统缓存**单文件包** `jbis-sire.json` / `jbis-horse.json` / `rp-horse.json`，文件数恒定、体积线性增长）——CI 每次运行增量复用缓存，不为已抓过的马重复请求上游。
+
 ## 已知限制
 
 - 出馬表只在开赛前 1–2 日存在，赛后由结果页替换，错过窗口无法补抓当时状态。

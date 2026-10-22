@@ -5,6 +5,7 @@ import path from "node:path";
 import { SITE } from "./config.js";
 import { fetchHtml, fetchHtmlSoft } from "./lib/fetch.js";
 import { readGz, writeGz } from "./lib/bundle.js";
+import { pedCache } from "./lib/ped-cache.js";
 import { parseCalendar, parseDayPage, parseEntryPage, parsePedigree } from "./lib/parse-race.js";
 import { venueName, scopeOf } from "./race-config.js";
 
@@ -92,18 +93,13 @@ async function calendarOf(monthKey) {
   return entries;
 }
 
-// ---------- 血统缓存 ----------
-function sireCacheFile(id) {
-  return path.join(PED_DIR, "sire", `${id}.json`);
-}
-function horseCacheFile(id) {
-  return path.join(PED_DIR, "horse", `${id}.json`);
-}
+// ---------- 血统缓存（单文件包，入库供 CI 增量复用） ----------
+const sireStore = pedCache(path.join(PED_DIR, "jbis-sire.json"));
+const horseStore = pedCache(path.join(PED_DIR, "jbis-horse.json"));
 
 async function resolveSireSire(sire) {
   if (!sire?.id) return null;
-  const file = sireCacheFile(sire.id);
-  const cached = readJson(file);
+  const cached = sireStore.get(sire.id);
   if (cached && "sire" in cached) return cached.sire;
   const html = await fetchHtmlSoft(`https://www.jbis.or.jp/horse/${sire.id}/`);
   await sleep(DELAY_MS);
@@ -115,15 +111,13 @@ async function resolveSireSire(sire) {
     sire: ped?.sire ?? null,
     capturedAt: at(jstToday()),
   };
-  ensureDir(path.dirname(file));
-  fs.writeFileSync(file, JSON.stringify(rec));
+  sireStore.set(sire.id, rec);
   return rec.sire;
 }
 
 async function resolveHorsePedigree(horse) {
   if (!horse?.id) return null;
-  const file = horseCacheFile(horse.id);
-  const cached = readJson(file);
+  const cached = horseStore.get(horse.id);
   if (cached && cached.dam) return cached;
   const html = await fetchHtmlSoft(`https://www.jbis.or.jp/horse/${horse.id}/`);
   await sleep(DELAY_MS);
@@ -136,8 +130,7 @@ async function resolveHorsePedigree(horse) {
     ...ped,
     capturedAt: at(jstToday()),
   };
-  ensureDir(path.dirname(file));
-  fs.writeFileSync(file, JSON.stringify(rec));
+  horseStore.set(horse.id, rec);
   return rec;
 }
 
@@ -252,8 +245,12 @@ for (const date of DATES) {
           ])
         );
       const same = !FORCE && existing && fp(existing) === fp(doc);
+      // 防截断：--limit/--tracks 部分采集时，若已存文档更完整（头数更多）则不覆盖
+      const partial = LIMIT > 0 || !!TRACK_ARG;
+      const runnersOf = (d) => (d?.races ?? []).reduce((n, r) => n + (r.runners?.length ?? 0), 0);
+      const keepExisting = partial && existing && runnersOf(existing) > runnersOf(doc);
 
-      if (same) {
+      if (same || keepExisting) {
         console.log(`[same] ${date} ${e.track} ${doc.venue}: ${summarize(doc).runners} 頭`);
       } else {
         ensureDir(path.dirname(file));
@@ -282,4 +279,6 @@ for (const date of DATES) {
 manifest.updatedAt = at(jstToday());
 ensureDir(DATA_DIR);
 fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2));
-console.log("manifest ->", manifestFile);
+sireStore.save();
+horseStore.save();
+console.log(`manifest -> ${manifestFile}（血统缓存 sire=${sireStore.size()} / horse=${horseStore.size()}，已入库 data/pedigree/）`);

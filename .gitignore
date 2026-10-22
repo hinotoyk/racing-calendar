@@ -7,8 +7,9 @@ node_modules/
 # 站点构建产物（src/build.js 生成，Pages 部署时上传 _site/）
 _site/
 
-# 血统缓存（采集用，可由上游重抓；避免仓库膨胀）
-data/pedigree/
+# 血统缓存：已改为单文件包（jbis-sire / jbis-horse / rp-horse.json）并入库，
+# CI（GitHub Actions）增量复用，避免每次重抓全部血统页；不要重新忽略。
+# （历史逐 id 小文件 data/pedigree/<source>/horse/{id}.json 由迁移脚本合并）
 
 # 日志
 *.log

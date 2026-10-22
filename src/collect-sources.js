@@ -72,7 +72,11 @@ for (const { date, file, doc } of units) {
   const base = path.join(DATA_DIR, date, file);          // .../rp-{trackId}.json
   const file2 = `${base}.gz`;                            // 压缩落盘
   const existing = readDoc(base);
-  const same = !FORCE && existing && fingerprint(existing) === fingerprint(doc);
+  // 防截断：--limit/--tracks 部分采集时，已存文档更完整（头数更多）则不覆盖
+  const runnersOf = (d) => (d?.races ?? []).reduce((n, r) => n + (r.runners?.length ?? 0), 0);
+  const partial = LIMIT > 0 || !!TRACKS;
+  const keepExisting = partial && existing && runnersOf(existing) > runnersOf(doc);
+  const same = !FORCE && existing && (fingerprint(existing) === fingerprint(doc) || keepExisting);
 
   const key = doc.sourceKey;
   manifest.dates[date] = manifest.dates[date] || {};
