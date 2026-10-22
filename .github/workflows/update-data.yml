@@ -1,8 +1,11 @@
 name: update-data
 
-# 定时采集 JBIS + Racing Post（经 Sporting Life）→ 有变化 commit 回 main → push 触发 deploy.yml 重新发布
-# 模式同 yunji-web：数据落仓库（data/races/），Pages 只做静态发布。
-# 前置要求：仓库 Settings → Actions → General → Workflow permissions → 勾选 "Read and write permissions"
+# 定时采集 JBIS + Racing Post（经 Sporting Life）→ 有变化 commit 回 main → 本 workflow 自己发布 Pages。
+# 为什么自己发布：GitHub 规定「用 GITHUB_TOKEN 做的 push 不会触发其它 workflow」，
+# 所以 update-data 提交数据后 deploy.yml 不会自动跑；这里在同一 workflow 内完成 build + Pages 发布
+#（push-to-main 的 deploy.yml 仍负责代码变更/首次部署）。
+# 前置要求：仓库 Settings → Pages → Source = GitHub Actions；
+#           Settings → Actions → General → Workflow permissions = Read and write permissions
 on:
   schedule:
     # UTC 22:00 = 北京 06:00 = JST 07:00：中央枠順確定后的早盘窗口（当日+3 天）
@@ -11,14 +14,22 @@ on:
     - cron: '0 11 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write   # 提交数据（data/races、data/pedigree）
+  pages: write      # 发布 Pages
+  id-token: write
+
 concurrency:
-  group: update-data
+  group: pages      # 与 deploy.yml 共用 pages 组，避免两个发布并发
   cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,8 +45,8 @@ jobs:
         continue-on-error: true
         run: node src/collect-sources.js --source racingpost
 
-      # 构建自检：数据能归一、_site 能产出（_site 本身不入库，deploy.yml 会重建）
-      - name: Build site (sanity)
+      # 构建：数据归一 + _site 产出（_site 本身不入库）
+      - name: Build site
         run: node src/build.js
 
       - name: Commit data changes
@@ -46,10 +57,23 @@ jobs:
           git add data/races/ data/pedigree/
           if ! git diff --cached --quiet; then
             git commit -m "data: auto collect $(date -u +%Y-%m-%dT%H:%MZ)"
-            # 运行期间 main 可能被 deploy 推进 → push 前 rebase；冲突则放弃本次（下次调度自动重算）
+            # 运行期间 main 可能被推进 → push 前 rebase；冲突则放弃本次（下次调度自动重算）
             git pull --rebase origin main || { git rebase --abort; echo "::error::远端冲突，本次数据提交放弃"; exit 1; }
             git push origin "HEAD:$GITHUB_REF_NAME"
-            echo "::notice::data/races 已更新并推送"
+            echo "::notice::data 已更新并推送"
           else
             echo "::notice::无变化，跳过提交"
           fi
+
+      # 数据落库后由本 workflow 直接发布（GITHUB_TOKEN push 不会触发 deploy.yml）
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
