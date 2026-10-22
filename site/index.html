@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>出走表 · RACE ENTRIES</title>
+<link rel="stylesheet" href="fonts/noto-sc.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="page">
+  <div class="page-title">出走表 · RACE ENTRIES</div>
+
+  <div class="filter-card">
+    <div class="filter-head">
+      <span class="filter-title">筛选 · FILTER</span>
+      <button id="reset" class="f-reset" type="button">清空条件</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">日期</span>
+      <div class="filter-chips">
+        <button id="d-prev" class="d-nav" type="button" title="更早 5 天">‹</button>
+        <span class="filter-chips" id="date-tabs"></span>
+        <button id="d-next" class="d-nav" type="button" title="更晚 5 天">›</button>
+        <button id="d-today" class="d-nav" type="button">今天</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">场地</span>
+      <div class="filter-chips" id="scope-chips"></div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">场</span>
+      <div class="filter-chips" id="venue-chips"></div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">级别</span>
+      <div class="filter-chips" id="klass-chips"></div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">血统</span>
+      <div class="filter-chips selects">
+        <span class="sel-mount" id="m-sire"></span>
+        <span class="sel-mount" id="m-siresire"></span>
+        <span class="sel-mount" id="m-bms"></span>
+        <input id="f-q" type="search" placeholder="馬名 / 騎手 / 生産牧場 / 馬主">
+        <select id="group-by">
+          <option value="">不分组</option>
+          <option value="sire">按 父</option>
+          <option value="sireSire">按 父父</option>
+          <option value="bms">按 母父</option>
+          <option value="jockey">按 騎手</option>
+          <option value="trainer">按 調教師</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <span id="count" class="count"></span>
+  </div>
+
+  <div class="table-wrap card">
+    <table id="entry-table" class="yj-lib">
+      <thead><tr>
+        <th class="c-left">当地比赛时间</th><th>北京时间</th><th class="c-left">比赛名</th><th>距离</th>
+        <th>枠</th><th>番</th><th class="c-left">馬名</th><th>性齢</th><th>斤量</th>
+        <th class="c-left">騎手</th><th class="c-left">調教師</th>
+        <th class="c-left">父</th><th class="c-left">父父</th><th class="c-left">母</th><th class="c-left">母父</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty" id="empty" hidden></div>
+  </div>
+
+  <footer>
+    <span>数据来源 JBIS、Racing Post  ·  数据仅供分享交流</span>
+  </footer>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

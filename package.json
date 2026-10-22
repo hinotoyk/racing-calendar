@@ -1,0 +1,14 @@
+{
+  "name": "racing-calendar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "JBIS 出走表（中央/地方 × 场 × 父 / 父父 / 母父 / 比赛格）采集、筛选与每周 Excel",
+  "scripts": {
+    "collect": "node src/collect-races.js",
+    "collect:rp": "node src/collect-sources.js --source racingpost",
+    "build": "node src/build.js",
+    "serve": "node src/server.js",
+    "start": "node src/collect-races.js && node src/build.js && node src/server.js"
+  }
+}

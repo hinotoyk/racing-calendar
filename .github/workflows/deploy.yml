@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+# push main（含 update-data 的数据落库提交）→ 构建静态站点 → 发布 Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # 零依赖（纯 node:std ESM），无需 npm ci
+          node-version: 22
+
+      - name: Build static site
+        run: node src/build.js
+
+      # build.js 同时会写 _site/.nojekyll（双保险）；全站相对路径，任意 base path 可用
+      - name: Verify nojekyll
+        run: test -f _site/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

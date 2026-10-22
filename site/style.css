@@ -1,0 +1,211 @@
+/* ============================================================
+ * 出走表 · 主题（参考 yunji-web 方案 F：青绿 #0aa7a0 × shadcn Neutral 底色，仅亮色）
+ * 零依赖手写 CSS；token 与组件规范对齐 yunji-web front/pages/theme.css
+ * ============================================================ */
+
+@font-face {
+  font-family: 'Geist';
+  src: url('fonts/geist-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --primary: #0aa7a0;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #e6f6f5;
+  --accent-foreground: #0b6b64;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Noto Sans SC', 'Noto Sans CJK SC', 'Geist', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 16px;
+  line-height: 1.40;
+  letter-spacing: 0.10px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
+}
+a { color: var(--primary); text-decoration: none; }
+
+#page { width: 90%; max-width: 1920px; margin: 0 auto; padding: 22px 0 60px; }
+@media (max-width: 768px) { #page { width: 100%; padding: 10px 14px 40px; } }
+
+/* ---------- 页头标题（青绿条 + 大写标题，同 yunji .page-title） ---------- */
+.page-title {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 28px;
+  font-size: 14px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--secondary-foreground);
+}
+.page-title::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--primary); flex: none; }
+
+/* ---------- 筛选卡（同 yunji races.html .filter-card / .filter-row / .filter-chip） ---------- */
+.filter-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.filter-title { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+.filter-title::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--primary); }
+.f-reset {
+  margin-left: auto; border: 1px solid var(--border); border-radius: 8px; padding: 4px 12px;
+  font-size: 12px; color: var(--muted-foreground); background: #fff; cursor: pointer; transition: all .15s;
+}
+.f-reset:hover { border-color: rgba(239, 68, 68, .55); color: #ef4444; background: #fef2f2; }
+
+.filter-card { background: #fff; border: 1px solid #ececec; border-radius: 12px; padding: 14px 16px 10px; box-shadow: 0 1px 3px rgba(16, 24, 40, .04); }
+.filter-row { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; }
+.filter-label { flex: none; width: 64px; padding-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #8a8a8a; text-transform: uppercase; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; align-items: center; }
+
+.filter-chip {
+  display: inline-flex; align-items: center; height: 26px; padding: 0 11px;
+  border: 1px solid #e3e3e3; border-radius: 7px; background: #fff; color: #444;
+  font-size: 12px; line-height: 1; cursor: pointer; user-select: none; white-space: nowrap;
+  transition: border-color .15s, color .15s, background .15s, box-shadow .15s;
+}
+.filter-chip:hover { border-color: rgba(10, 167, 160, .55); color: var(--accent-foreground); background: #f7fdfd; }
+.filter-chip.on { border-color: var(--primary); background: var(--accent); color: var(--accent-foreground); font-weight: 600; box-shadow: inset 0 0 0 1px var(--primary); }
+.filter-chip.on:hover { background: #d9f1ef; }
+.filter-chip small { margin-left: 6px; font-size: 10px; font-weight: 400; color: #9aa0a6; }
+.filter-chip.on small { color: var(--accent-foreground); opacity: .75; }
+.filter-chip.off { opacity: .45; cursor: default; }
+.filter-chip.off:hover { border-color: #e3e3e3; background: #fff; color: #444; }
+
+select, input {
+  height: 28px; border: 1px solid #e3e3e3; border-radius: 7px; background: #fff;
+  padding: 0 9px; font-size: 12.5px; color: var(--foreground); font-family: inherit;
+}
+select:hover, input:hover { border-color: rgba(10, 167, 160, .55); }
+select:focus, input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(10, 167, 160, .18); }
+#f-q { width: 210px; }
+
+/* ---------- 汇总条 ---------- */
+.summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 14px 2px 10px; font-size: 13px; color: var(--secondary-foreground); }
+.summary .count b { font-size: 16px; color: var(--primary); }
+
+/* ---------- 表格（dense，同 yunji race-rows lib 视图：居中窄列 + 10px 表头） ---------- */
+.table-wrap { overflow-x: auto; }
+.card { border: 1px solid #ececec; border-radius: 10px; background: #fff; box-shadow: 0 1px 3px rgba(16, 24, 40, .04); }
+table.yj-lib { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+table.yj-lib th {
+  white-space: nowrap; padding: 8px 4px; text-align: center;
+  background: rgba(245, 245, 245, .55); border-bottom: 1px solid var(--border);
+  font-size: 10px; font-weight: 600; letter-spacing: .5px; color: var(--secondary-foreground);
+  position: sticky; top: 0; z-index: 2;
+}
+table.yj-lib td {
+  white-space: nowrap; padding: 6px 5px; text-align: center;
+  border-bottom: 1px solid #f0f0f0; font-variant-numeric: tabular-nums;
+}
+table.yj-lib tbody tr:hover td { background: #fafdfc; }
+table.yj-lib tbody tr:last-child td { border-bottom: 0; }
+td.c-left, th.c-left { text-align: left; padding-left: 10px; padding-right: 10px; }
+td.muted, .muted { color: var(--muted-foreground); }
+td.name { font-weight: 600; }
+td.name a { color: var(--foreground); }
+td.name a:hover { color: var(--primary); }
+td.race .rname { max-width: 300px; display: inline-block; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+td.race a.rlink { color: inherit; }
+td.race a.rlink:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+td.ped { color: #444; }
+td.loc .v { color: var(--muted-foreground); margin-right: 6px; }
+td.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- 分组行（父 / 父父 / 母父 组头，同 yunji tbody tr.sub） ---------- */
+table.yj-lib tbody tr.sub td {
+  background: rgba(245, 245, 245, .55); color: var(--muted-foreground);
+  font-size: 12px; text-align: left; padding: 7px 10px;
+}
+table.yj-lib tbody tr.sub td b { color: var(--accent-foreground); margin-right: 6px; }
+
+/* ---------- 血统选择器（移植 yunji-web selector.js compact 模式） ---------- */
+.sel-mount { display: inline-flex; }
+.yj-sel { position: relative; width: 190px; }
+.yj-sel .box {
+  display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px;
+  border: 1px solid #e3e3e3; border-radius: 7px; background: #fff; transition: border-color .15s, box-shadow .15s;
+}
+.yj-sel .box:hover { border-color: rgba(10, 167, 160, .55); }
+.yj-sel .box:focus-within { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(10, 167, 160, .18); }
+.yj-sel input { flex: 1; min-width: 0; height: auto; padding: 0; border: none; border-radius: 0; background: transparent; font-size: 12px; }
+.yj-sel input:hover { border: none; }
+.yj-sel input:focus { outline: none; border: none; box-shadow: none; }
+.yj-sel .clear {
+  flex: none; width: 16px; height: 16px; padding: 0; border: none; border-radius: 4px;
+  background: var(--muted); color: var(--muted-foreground); font-size: 10px; line-height: 1; cursor: pointer;
+}
+.yj-sel .clear:hover { background: #e5e5e5; color: var(--foreground); }
+.yj-sel .drop {
+  display: none; position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 50;
+  max-height: 250px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px;
+  background: #fff; box-shadow: 0 16px 40px rgba(0, 0, 0, .12), 0 4px 12px rgba(0, 0, 0, .05);
+}
+.yj-sel .drop.open { display: block; }
+.yj-sel .dhead {
+  position: sticky; top: 0; padding: 6px 12px 5px; border-bottom: 1px solid var(--border);
+  background: rgba(245, 245, 245, .92); font-size: 10.5px; letter-spacing: .5px; color: var(--muted-foreground); z-index: 1;
+}
+.yj-sel .dhead b { color: var(--primary); font-weight: 700; }
+.yj-sel .row {
+  display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  border-bottom: 1px solid #f0f0f0; cursor: pointer;
+}
+.yj-sel .row:last-child { border-bottom: none; }
+.yj-sel .row:hover, .yj-sel .row.hl { background: rgba(245, 245, 245, .5); box-shadow: inset 2px 0 0 var(--primary); }
+.yj-sel .nblock {
+  display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 1px 8px; border-radius: 6px; background: #e0f5f4; color: #0b6b64;
+  font-size: 12.5px; font-weight: 600; line-height: 1.7;
+}
+.yj-sel .mt { margin-left: auto; flex: none; font-size: 11px; color: var(--muted-foreground); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.yj-sel .empty-row { padding: 14px 12px; text-align: center; font-size: 12px; color: var(--muted-foreground); }
+
+/* ---------- 等级徽章（JBIS 配色，同 yunji .yj-grade / .yj-g*） ---------- */
+.yj-grade {
+  display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px;
+  font-size: 10.5px; font-weight: 700; line-height: 1.5; color: #fff; vertical-align: 1px;
+}
+.yj-g1 { background-color: #d5302a; }
+.yj-g2 { background-color: #0a3b7e; }
+.yj-g3 { background-color: #087220; }
+.yj-listed { background-color: #dca026; }
+.yj-open { background-color: rgba(10, 167, 160, .15); color: #0a7a75; }
+.yj-nar { background-color: #c2318e; }
+
+/* ---------- 日期窗口导航（‹ › 今天） ---------- */
+.d-nav {
+  height: 26px; padding: 0 10px; border: 1px solid #e3e3e3; border-radius: 7px;
+  background: #fff; color: var(--muted-foreground); font-size: 13px; line-height: 1;
+  cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+}
+.d-nav:hover { border-color: rgba(10, 167, 160, .55); color: var(--accent-foreground); background: #f7fdfd; }
+.d-nav:disabled { opacity: .35; cursor: default; border-color: #e3e3e3; color: var(--muted-foreground); background: #fff; }
+
+/* ---------- 空态 / 页脚 / 滚动条 ---------- */
+.empty { padding: 56px 20px; text-align: center; font-size: 13px; color: var(--muted-foreground); }
+footer { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: center; font-size: 11.5px; color: #a3a3a3; }
+
+.table-wrap { scrollbar-width: thin; scrollbar-color: #e5e5e5 transparent; }
+.yj-drop-scroll { scrollbar-width: thin; scrollbar-color: #e5e5e5 transparent; }
+.table-wrap::-webkit-scrollbar { height: 8px; }
+.yj-drop-scroll::-webkit-scrollbar { width: 8px; }
+.table-wrap::-webkit-scrollbar-thumb, .yj-drop-scroll::-webkit-scrollbar-thumb { background: #e5e5e5; border-radius: 99px; border: 2px solid #fff; }
+.table-wrap::-webkit-scrollbar-thumb:hover, .yj-drop-scroll::-webkit-scrollbar-thumb:hover { background: rgba(115, 115, 115, .5); }
+.table-wrap::-webkit-scrollbar-track, .yj-drop-scroll::-webkit-scrollbar-track { background: transparent; }
+.yj-drop { animation: yjDropIn .15s ease; }
+@keyframes yjDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .yj-drop { animation: none; } }
+
+@media (max-width: 1180px) { table.yj-lib { font-size: 10.5px; } }

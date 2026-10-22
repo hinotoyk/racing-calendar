@@ -1,0 +1,18 @@
+# 依赖与临时产物
+node_modules/
+
+# IDE
+.idea/
+
+# 站点构建产物（src/build.js 生成，Pages 部署时上传 _site/）
+_site/
+
+# 血统缓存（采集用，可由上游重抓；避免仓库膨胀）
+data/pedigree/
+
+# 日志
+*.log
+.tmp-fixture/
+
+# 服务重定向日志（本地起服务时的 stdout/stderr）
+*.err

@@ -1,0 +1,511 @@
+// 出走表展示（docs/DESIGN.md §7）— yunji-web 风格
+// 数据：_site/derived/index.json + {date}.json（按日懒加载；{date}.json 为字典包，经 codec.mjs 解包）
+// 约定（用户定稿 2026-10-22，均以北京时间为基准日）：
+//   - 日期标签每次加载按「今天」现算：默认窗口 = 今天±2 共 5 天，‹ › 翻页，可选任意有数据日
+//   - 场地 scope = JRA / NAR / 国家组码（GB、IRE、FR、USA…，来自 Racing Post 源）
+//   - 场 chips 常驻展示名单 17 场 + 有数据的海外场；级别 = 13 桶（index.levels，半角标签）
+//   - 表列：当地比赛时间（日付+発走，附场馆）/ 北京时间（由 startTimeInstant 换算）/ 比赛名 / 距离 /
+//           枠 / 番 / 馬名 / 性齢 / 斤量 / 騎手 / 調教師 / 父 / 父父 / 母 / 母父
+import { unpackRows } from "./codec.mjs";
+
+const $ = (s) => document.querySelector(s);
+const JBIS = "https://www.jbis.or.jp";
+
+let sireSel, sireSireSel, bmsSel;   // 血统选择器实例（main 中创建）
+
+const state = {
+  index: null,
+  cache: new Map(),
+  dates: new Set(),
+  winStart: "",        // 日期窗口起点（winStart + 4 = 窗口末日）
+  scope: new Set(["JRA", "NAR"]),   // 场地多选（默认 JRA+NAR；空 = 全部）
+  venues: new Set(),   // 场馆名（中央/地方名单 + 海外）
+  levels: new Set(),   // 13 桶级别
+  sire: "",
+  sireSire: "",
+  bms: "",
+  q: "",
+  group: "",
+  rows: [],
+};
+
+const esc = (s) =>
+  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// 马匹链接：JBIS（10位数字 id）→ jbis.or.jp；RP 源（rp: 前缀）→ Sporting Life 档案
+const horseLink = (id, name) => {
+  if (!id) return esc(name ?? "");
+  const href = id.startsWith("rp:")
+    ? `https://www.sportinglife.com/racing/profiles/horse/${id.slice(3)}`
+    : `${JBIS}/horse/${id}/`;
+  return `<a href="${href}" target="_blank" rel="noopener">${esc(name)}</a>`;
+};
+
+// ---------- 时间（全部现算） ----------
+const addDays = (date, n) => {
+  const d = new Date(date + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+// 今天的北京日期（YYYY-MM-DD；不依赖浏览器时区设置）
+const todayBJ = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
+// 绝对时刻 → 北京「MM-dd HH:mm」
+function bjTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(+d)) return "";
+  const t = new Date(+d + 8 * 3600e3);
+  const md = `${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
+  const hm = `${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`;
+  return `${md} ${hm}`;
+}
+// date（YYYY-MM-DD）→ MM-dd（不带星期）
+const dateLabelOf = (date) => `${date.slice(5, 7)}-${date.slice(8, 10)}`;
+
+// ---------- 展示辅助（口径同 yunji race-rows.js；级别标签半角） ----------
+const SURF_SHORT = { 芝: "草", ダ: "泥", 障: "障", AW: "AW" };   // 距离合并列：草1400 / 泥1400
+const LEVEL_CLS = {
+  G1: "g1", Jpn1: "g1", JG1: "g1",
+  G2: "g2", Jpn2: "g2", JG2: "g2",
+  G3: "g3", Jpn3: "g3", JG3: "g3",
+  L: "listed", OP: "open", 地方重赏: "nar",
+};
+const levelBadge = (level) => {
+  const c = LEVEL_CLS[level];
+  return c ? `<span class="yj-grade yj-${c}">${esc(level)}</span>` : "";
+};
+
+async function json(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url} -> ${r.status}`);
+  return r.json();
+}
+
+async function ensure(date) {
+  if (state.cache.has(date)) return state.cache.get(date);
+  const d = await json(`derived/${date}.json`);
+  const rows = d.v === 1 ? unpackRows(d) : d.rows;   // v1 = 字典包；旧版明文兜底
+  state.cache.set(date, rows);
+  return rows;
+}
+
+function allRows() {
+  return [...state.dates].sort().flatMap((d) => state.cache.get(d) ?? []);
+}
+
+// ---------- 筛选条 ----------
+function chip(label, value, on, key, count) {
+  const badge = count != null ? `<small>${count}</small>` : "";
+  const off = count === 0 && !on ? " off" : "";   // 已选中的 0 头 chip 不置灰（默认 JRA 今日无赛仍可选）
+  return `<button data-k="${key}" data-v="${esc(value)}" class="filter-chip${on ? " on" : ""}${off}">${esc(label)}${badge}</button>`;
+}
+
+// 日期窗口：winStart 起 5 天；无数据日也展示并可点击（选中后表格为空态）
+function renderDateTabs() {
+  const byDate = new Map(state.index.dates.map((d) => [d.date, d]));
+  const chips = [];
+  for (let i = 0; i < 5; i++) {
+    const date = addDays(state.winStart, i);
+    const info = byDate.get(date);
+    chips.push(
+      `<button data-d="${date}" class="filter-chip${state.dates.has(date) ? " on" : ""}">` +
+      `${esc(dateLabelOf(date))}<small>${info?.runners ?? 0}頭</small></button>`,
+    );
+  }
+  $("#date-tabs").innerHTML = chips.join("");
+  // ‹ 在数据起点处禁用（更早日期从未采集）
+  const { first } = dataRange();
+  $("#d-prev").disabled = !!first && state.winStart <= first;
+  $("#d-prev").title = $("#d-prev").disabled ? "已是最早数据日" : "更早 5 天";
+}
+
+// 场地 chips：全部 / JRA / NAR / 数据里出现的国家组码（动态，多选、带头数）
+function renderScopes() {
+  const counts = new Map();
+  for (const r of allRows()) counts.set(r.scope, (counts.get(r.scope) ?? 0) + 1);
+  const rank = (s) => (s === "JRA" ? 0 : s === "NAR" ? 1 : 2);
+  const scopes = [...new Set(state.index.venues.map((v) => v.scope))].sort(
+    (a, b) => rank(a) - rank(b) || a.localeCompare(b)
+  );
+  $("#scope-chips").innerHTML =
+    chip("全部", "", state.scope.size === 0, "scope", null) +
+    scopes.map((sc) => chip(sc, sc, state.scope.has(sc), "scope", counts.get(sc) ?? 0)).join("");
+}
+
+// 场：固定名单常驻（中央10 + 地方7）+ 有数据的海外场
+function renderVenues() {
+  const counts = new Map();
+  for (const r of allRows()) counts.set(r.venue, (counts.get(r.venue) ?? 0) + 1);
+  const names = [
+    ...state.index.tracks.central,
+    ...state.index.tracks.local,
+    ...state.index.venues.filter((v) => v.scope !== "JRA" && v.scope !== "NAR").map((v) => v.venue).sort(),
+  ];
+  const seen = new Set();
+  const list = names.filter((n) => (seen.has(n) ? false : seen.add(n)));
+  $("#venue-chips").innerHTML = list
+    .map((n) => chip(n, n, state.venues.has(n), "venue", counts.get(n) ?? 0))
+    .join("");
+}
+
+function renderLevels() {
+  const counts = new Map();
+  for (const r of allRows()) counts.set(r.level, (counts.get(r.level) ?? 0) + 1);
+  $("#klass-chips").innerHTML = state.index.levels
+    .map((k) => chip(k.level, k.level, state.levels.has(k.level), "level", counts.get(k.level) ?? 0))
+    .join("");
+}
+
+// ---------- 血统选择器（移植自 yunji-web public/selector.js 的 items + compact 模式） ----------
+// 搜索下拉：聚焦展开全列表 / 输入即过滤 / ↑↓+Enter 键盘导航 / 点击外部关闭 / ✕ 清空（空 = 全部）
+const selRegistry = [];
+document.addEventListener("click", (e) => {
+  for (const s of selRegistry) if (!s.wrap.contains(e.target)) s.close();
+});
+
+function makeSelector({ mount, placeholder, onPick }) {
+  mount.innerHTML =
+    '<div class="yj-sel"><div class="box">' +
+    '<input type="text" placeholder="' + esc(placeholder) + '" autocomplete="off">' +
+    '<button class="clear" type="button" aria-label="清空" hidden>✕</button>' +
+    '</div><div class="drop yj-drop yj-drop-scroll"></div></div>';
+  const wrap = mount.firstElementChild;
+  const input = wrap.querySelector("input");
+  const clear = wrap.querySelector(".clear");
+  const drop = wrap.querySelector(".drop");
+  let items = [];        // [{v, n}]
+  let list = [];
+  let hl = -1;
+  let selected = "";
+
+  const close = () => drop.classList.remove("open");
+
+  function render(q) {
+    q = (q ?? "").trim().toLowerCase();
+    clear.hidden = !q && !selected;
+    list = items.filter((it) => !q || it.v.toLowerCase().includes(q));
+    if (!list.length) {
+      drop.innerHTML = '<div class="empty-row">未找到匹配选项</div>';
+      return;
+    }
+    drop.innerHTML =
+      '<div class="dhead">' + (q ? "匹配" : "共") + ' <b>' + list.length + '</b> 项</div>' +
+      list
+        .map((it, i) =>
+          '<div class="row" data-i="' + i + '"><span class="nblock">' + esc(it.v) + '</span><span class="mt">' + it.n + '頭</span></div>')
+        .join("");
+    hl = -1;
+  }
+
+  function markHl() {
+    [...drop.querySelectorAll(".row")].forEach((el, i) => el.classList.toggle("hl", i === hl));
+  }
+  function choose(i) {
+    const it = list[i];
+    if (!it) return;
+    selected = it.v;
+    input.value = it.v;
+    close();
+    onPick(it.v);
+  }
+
+  input.addEventListener("focus", () => {
+    if (selected) { selected = ""; input.value = ""; onPick(""); }   // 同 yunji：聚焦即清空已选、展示全列表
+    render(input.value);
+    drop.classList.add("open");
+  });
+  input.addEventListener("input", () => {
+    if (selected) { selected = ""; onPick(""); }
+    render(input.value);
+    drop.classList.add("open");
+  });
+  clear.addEventListener("click", (e) => {
+    e.stopPropagation();
+    selected = ""; input.value = ""; onPick("");
+    render(""); input.focus();
+  });
+  input.addEventListener("keydown", (e) => {
+    if (!drop.classList.contains("open") || !list.length) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); hl = (hl + 1) % list.length; markHl(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); hl = (hl - 1 + list.length) % list.length; markHl(); }
+    else if (e.key === "Enter") { e.preventDefault(); if (hl >= 0) choose(hl); }
+    else if (e.key === "Escape") { drop.classList.remove("open"); input.blur(); }
+  });
+  drop.addEventListener("mousedown", (e) => {
+    const it = e.target.closest(".row");
+    if (it) { e.preventDefault(); choose(parseInt(it.dataset.i, 10)); }
+  });
+  selRegistry.push({ wrap, close });
+
+  return {
+    setItems(next) {
+      items = next;
+      if (drop.classList.contains("open")) render(input.value);
+    },
+    setValue(v) {
+      selected = v || "";
+      input.value = v || "";
+      clear.hidden = !selected && !input.value;
+    },
+    open() {
+      render(input.value);
+      drop.classList.add("open");
+    },
+  };
+}
+
+// key 行的选项列表（按头数降序，取前 400）
+function optionsOf(rows, key) {
+  const m = new Map();
+  for (const r of rows) {
+    const v = r[key];
+    if (v) m.set(v, (m.get(v) ?? 0) + 1);
+  }
+  return [...m.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
+    .slice(0, 400)
+    .map(([v, n]) => ({ v, n }));
+}
+
+// ---------- 过滤 ----------
+function apply() {
+  const q = state.q.trim().toLowerCase();
+  state.rows = allRows().filter((r) => {
+    if (state.scope.size && !state.scope.has(r.scope)) return false;
+    if (state.venues.size && !state.venues.has(r.venue)) return false;
+    if (state.levels.size && !state.levels.has(r.level)) return false;
+    if (state.sire && r.sire !== state.sire) return false;
+    if (state.sireSire && r.sireSire !== state.sireSire) return false;
+    if (state.bms && r.bms !== state.bms) return false;
+    if (q) {
+      const hay = [r.horseName, r.jockey, r.breeder, r.trainer, r.owner, r.raceName].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  render();
+}
+
+// ---------- 渲染 ----------
+function rowHtml(r) {
+  const dist = r.distance ? `${SURF_SHORT[r.surface] ?? r.surface ?? ""}${r.distance}` : "";
+  const distTitle = [r.surface, r.distance ? `${r.distance}m` : ""].filter(Boolean).join(" ");
+  const name = r.raceUrl
+    ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener" title="${esc(r.raceName ?? "")}">${esc(r.raceName ?? "")}</a>`
+    : `<span title="${esc(r.raceName ?? "")}">${esc(r.raceName ?? "")}</span>`;
+  return `<tr>
+    <td class="c-left loc" title="${esc(r.startTimeInstant ?? "")}"><span class="v">${esc(r.venue)}${r.raceNo}R</span>${esc(r.dateLabel ?? "")} ${esc(r.startTime ?? "")}</td>
+    <td class="num">${esc(bjTime(r.startTimeInstant))}</td>
+    <td class="c-left race"><span class="rname">${name}</span>${levelBadge(r.level)}</td>
+    <td class="num" title="${esc(distTitle)}">${esc(dist)}</td>
+    <td class="num">${r.frame ?? ""}</td>
+    <td class="num">${r.num ?? ""}</td>
+    <td class="c-left name">${horseLink(r.horseId, r.horseName)}</td>
+    <td class="num">${esc((r.sex ?? "") + (r.age ?? ""))}</td>
+    <td class="num">${r.weight ?? ""}</td>
+    <td class="c-left">${esc(r.jockey ?? "")}</td>
+    <td class="c-left">${esc(r.trainer ?? "")}</td>
+    <td class="c-left ped">${esc(r.sire ?? "")}</td>
+    <td class="c-left ped">${esc(r.sireSire ?? "")}</td>
+    <td class="c-left ped">${esc(r.dam ?? "")}</td>
+    <td class="c-left ped">${esc(r.bms ?? "")}</td>
+  </tr>`;
+}
+
+const COLSPAN = 15;
+
+// 分块渲染：大周（数万行）先出首屏，不阻塞主线程；renderToken 取消过期块
+let renderToken = 0;
+function renderChunked(parts) {
+  const body = $("#entry-table tbody");
+  const token = ++renderToken;
+  body.innerHTML = "";
+  let i = 0;
+  const CH = 4000;
+  const step = () => {
+    if (token !== renderToken || i >= parts.length) return;
+    body.insertAdjacentHTML("beforeend", parts.slice(i, i + CH).join(""));
+    i += CH;
+    if (i < parts.length) setTimeout(step, 0);
+  };
+  step();
+}
+
+function render() {
+  const rows = state.rows;
+  const races = new Set(rows.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
+  $("#count").innerHTML = `共 <b>${rows.length}</b> 頭 · <b>${races}</b> R`;
+
+  $("#empty").hidden = rows.length > 0;
+  $("#empty").textContent = rows.length ? "" : "当前条件下没有出走马（中央出馬表约开赛前 2 日公开，地方约前日，海外为英国当日）";
+
+  if (!state.group) {
+    renderChunked(rows.map(rowHtml));
+    return;
+  }
+
+  const key = state.group;
+  const groups = new Map();
+  for (const r of rows) {
+    const k = r[key] || "—";
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  }
+  const label = { sire: "父", sireSire: "父父", bms: "母父", jockey: "騎手", trainer: "調教師" }[key] ?? key;
+  const parts = [];
+  for (const [k, list] of [...groups.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ja"))) {
+    const gr = new Set(list.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
+    parts.push(`<tr class="sub"><td colspan="${COLSPAN}"><b>${label}：${esc(k)}</b>${list.length} 頭 / ${gr} R</td></tr>`);
+    parts.push(...list.map(rowHtml));
+  }
+  renderChunked(parts);
+}
+
+// 数据实际覆盖范围（采集窗口从 JST 当天起，更早日期从未采集）
+const dataRange = () => {
+  const ds = state.index.dates.map((d) => d.date);
+  return { first: ds[0] ?? null, last: ds.at(-1) ?? null };
+};
+
+// 日期默认：只选「今天」；窗口起点钳到最早数据日（之前日期不展示）；今天无数据则取最近有数据日
+function defaultDates() {
+  const today = todayBJ();
+  const { first } = dataRange();
+  const dataDates = state.index.dates.map((d) => d.date);
+  state.winStart = addDays(today, -2);
+  if (first && state.winStart < first) state.winStart = first;   // 10-20/10-21 这类空日不再占位
+  if (dataDates.includes(today)) {
+    state.dates = new Set([today]);
+    return;
+  }
+  const nearest = dataDates.reduce((a, b) =>
+    Math.abs(new Date(b + "T00:00:00Z") - new Date(today + "T00:00:00Z")) <
+    Math.abs(new Date(a + "T00:00:00Z") - new Date(today + "T00:00:00Z")) ? b : a,
+  );
+  state.winStart = addDays(nearest, -2);
+  if (first && state.winStart < first) state.winStart = first;
+  state.dates = new Set([nearest]);
+}
+
+// ---------- 初始化 ----------
+// 只加载 index 里有数据的天；选中的无数据日（历史/未来空日）直接视为 0 行，不请求 404
+async function loadDates() {
+  const have = new Set(state.index.dates.map((d) => d.date));
+  for (const d of state.dates) {
+    if (have.has(d) && !state.cache.has(d)) await ensure(d);
+  }
+}
+
+async function refresh() {
+  await loadDates();
+  const rows = allRows();
+  sireSel.setItems(optionsOf(rows, "sire"));
+  sireSireSel.setItems(optionsOf(rows, "sireSire"));
+  bmsSel.setItems(optionsOf(rows, "bms"));
+  renderScopes();
+  renderVenues();
+  renderLevels();
+  renderDateTabs();
+  apply();
+}
+
+function resetFilters() {
+  state.scope = new Set(["JRA", "NAR"]);
+  state.venues.clear();
+  state.levels.clear();
+  state.sire = state.sireSire = state.bms = "";
+  state.q = "";
+  state.group = "";
+  $("#f-q").value = "";
+  sireSel?.setValue("");
+  sireSireSel?.setValue("");
+  bmsSel?.setValue("");
+  $("#group-by").value = "";
+  defaultDates();
+  refresh();
+}
+
+async function main() {
+  state.index = await json("derived/index.json");
+  if (!state.index.dates.length) {
+    $("#count").textContent = "尚无出走表数据";
+    $("#empty").hidden = false;
+    $("#empty").textContent = "尚无数据：运行 npm run collect 后重新构建站点";
+    return;
+  }
+  defaultDates();
+
+  // 血统选择器（参考 yunji selector.js：搜索下拉 + 键盘导航 + 点击外部关闭）
+  sireSel = makeSelector({ mount: $("#m-sire"), placeholder: "父", onPick: (v) => { state.sire = v || ""; apply(); } });
+  sireSireSel = makeSelector({ mount: $("#m-siresire"), placeholder: "父父", onPick: (v) => { state.sireSire = v || ""; apply(); } });
+  bmsSel = makeSelector({ mount: $("#m-bms"), placeholder: "母父", onPick: (v) => { state.bms = v || ""; apply(); } });
+
+  // 事件
+  $("#reset").onclick = resetFilters;
+  $("#d-prev").onclick = () => {
+    const { first } = dataRange();
+    const next = addDays(state.winStart, -5);
+    state.winStart = first && next < first ? first : next;
+    renderDateTabs();
+  };
+  $("#d-next").onclick = () => { state.winStart = addDays(state.winStart, 5); renderDateTabs(); };
+  $("#d-today").onclick = () => {
+    const { first } = dataRange();
+    state.winStart = addDays(todayBJ(), -2);
+    if (first && state.winStart < first) state.winStart = first;
+    renderDateTabs();
+  };
+  $("#scope-chips").onclick = (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const v = b.dataset.v;
+    if (v === "") state.scope.clear();
+    else if (state.scope.has(v)) state.scope.delete(v);
+    else state.scope.add(v);
+    state.venues.clear();
+    refresh();
+  };
+  $("#venue-chips").onclick = (e) => {
+    const b = e.target.closest("button");
+    if (!b || b.classList.contains("off")) return;
+    const v = b.dataset.v;
+    state.venues.has(v) ? state.venues.delete(v) : state.venues.add(v);
+    b.classList.toggle("on");
+    apply();
+  };
+  $("#klass-chips").onclick = (e) => {
+    const b = e.target.closest("button");
+    if (!b || b.classList.contains("off")) return;
+    const v = b.dataset.v;
+    state.levels.has(v) ? state.levels.delete(v) : state.levels.add(v);
+    b.classList.toggle("on");
+    apply();
+  };
+  $("#date-tabs").onclick = (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const d = b.dataset.d;
+    if (state.dates.has(d) && state.dates.size > 1) state.dates.delete(d);
+    else state.dates.add(d);
+    b.classList.toggle("on");
+    refresh();
+  };
+  $("#group-by").onchange = (e) => { state.group = e.target.value; render(); };
+  $("#f-q").oninput = (e) => { state.q = e.target.value; apply(); };
+
+  // 深链：?group=sire|sireSire|bms|jockey|trainer；?_demo= 展开第一个血统下拉（视觉自检用）
+  const qp = new URLSearchParams(location.search);
+  const g = qp.get("group");
+  if (["sire", "sireSire", "bms", "jockey", "trainer"].includes(g)) {
+    state.group = g;
+    $("#group-by").value = g;
+  }
+
+  await refresh();
+  if (qp.has("_demo")) sireSel.open();
+}
+
+main().catch((e) => {
+  $("#count").textContent = "加载失败：" + e.message;
+  console.error(e);
+});
