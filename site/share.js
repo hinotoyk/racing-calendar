@@ -325,6 +325,8 @@ function draw(scale, races, extras) {
     */
     ctx.font = font(600, 12.5); ctx.fillStyle = T.tealInk; ctx.textAlign = 'right';
     ctx.fillText(SHARE_URL, R - PAD, fy + 38);   // 完整打印链接
+    ctx.font = font(400, 10.5); ctx.fillStyle = T.mut2; ctx.textAlign = 'center';
+    ctx.fillText('power by ディープ求索', R / 2, fy + 38);   // 页脚正中
     ctx.textAlign = 'left';
   }
   ctx.restore();
