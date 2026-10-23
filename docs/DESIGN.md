@@ -104,6 +104,7 @@ XLSX 由 `src/lib/xlsx.js` 零依赖写出（ZIP store + inlineStr），Excel / 
 - 区分 / 场 / 比赛格 chips（计数，无数据置灰）；
 - 父 / 父父 / 母父 下拉（按入头数排序，取前 400）；
 - 关键字过滤；分组视图（父 / 父父 / 母父）；
+- 前端内存分页：PC 一页 100 条、mb（<768px）一页 20 条，每页条数按设备固定不可选；页码按钮式分页条（移植 yunji-web races.html `.pager`），768px 断点 matchMedia 实时切换（老 Safari addListener 兜底）；筛选条件变化归第 1 页；分组视图整组分页——页内按整组装填，装不下整组移到下一页（最后一组不截断），单组超过一页容量才组内截断，跨页组自动重复组头，组头 `tr.sub` 不占条数；
 - CSV 导出（UTF-8 BOM）与每周 Excel 下载；
 - 深链：`?group=sire|sireSire|bms`。
 
@@ -191,3 +192,19 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 - 只覆盖英国当天卡片；赛前 1-2 日的未来卡片在 RP 站有但被 WAF 挡。
 - 无 枠番 / 生産牧場 / 父父 / 胜负用时；体重为英石-磅换算值。
 - US 场的 Woodbine 实际在加拿大（SL 标 USA），时区覆写为 America/Toronto。
+
+## 9. 出馬表分享卡（`site/share.js`）
+
+主表「勾选比赛」→ 浮动条「生成分享卡」（或「完成勾选」）→ canvas 渲染的分享卡页（新开一页数据、从顶部开始；返回列表保留勾选）。
+
+- **选择（行级）**：`#pick-mode` 开启勾选模式，复选框按行（馬）勾选，行键 = 比赛 + 馬番（`rowKeyOf`）；分享卡只包含勾选的行，同一场比赛的勾选行归入同一块（不整场塞入）。勾选框绝对定位在首格左侧预留区，不影响行内容排版。浮动条：已选 N 頭（点击展开上拉预览列表：馬名 · 场R · 比赛名，逐条可取消）+ 生成分享卡 + 清空；「完成勾选」在有勾选时直接进分享卡页。`?pick=demo` / `?share=demo` 为视觉自检深链（demoPick 按级别优先 G1→地方重赏→G2→G3→L 各取一场并展开为行级勾选）。
+- **编辑**：块可删除 / 上下移；「＋ 手动添加比赛」表单（日期 / 场 / R / 比赛名 / 级别 / 芝ダ / 距离 / 当地时间 / 时区 + 出走馬文本区每行 `枠 番 馬名 性齢 騎手`，性齢/騎手可省略，全角数字自动归一）；北京时间由 startTimeInstant 现算，跨日自动带 MM-dd。
+- **列配置**：附加列 chips（斤量 調教師 父 父父 母父 母 毛色 所属 馬主 生産牧場），默认斤量；列宽按内容实测，超限按余量收缩 + 单元格省略号。配置存 localStorage（`rc.share.cols` / `rc.share.scale`）。
+- **出图**：纯 canvas 零依赖（无 html2canvas），默认 2×（≈1976px 宽，可选 1×/3×），「导出 PNG」或「复制到剪贴板」（ClipboardItem，需安全上下文）。
+- **版式 v1.0.0**：报头「共 N 頭出走 M 场」（右上角不放日期信息）；卡内按 天 / 场地 分组标题（如「10月23日（金）」+ 场地小标题）；块头「场地NRR 比赛名」同行同字号 + **距离徽章**（ダ1900m，中性灰 chip）+ 级别徽章；页脚完整链接 https://hinotoyk.github.io/racing-calendar，QR 码暂注释（drawQR 保留随时可恢复）；附加列默认 斤量+父（偏好键 rc.share.cols.v2）。
+- **新标签页**：「生成分享卡」/「完成勾选」把载荷写 sessionStorage（`rc.share.payload`，新标签页自动复制 opener 的 sessionStorage）后 `window.open('?share=open')`；新页 main() 读取并渲染，返回列表即关窗。
+- **勾选数据源**：`rowsForPick()` 汇总**全部已加载日期**的行（不受当前筛选影响）——清空条件换场地继续勾选，之前勾的馬仍在卡里；卡片内比赛按日期升序、同日按数据序。
+- **品牌**：顶部 6px 青绿条；页脚 RACING CALENDAR 字标 + `hinotoyk.github.io/racing-calendar` + QR 码（`site/vendor/qrcode.js`，MIT · Kazuhiko Arase，typeNumber 自动 / ECC M，`isDark` 逐模块画进 canvas）。
+- **设计约定**：与主站 style.css 同 token（#0aa7a0 × shadcn Neutral，仅亮色）；枠番用 JRA 官方 8 枠色芯片（1白2黒3赤4青5黄6緑7橙8桃），级别徽章沿用主站 JBIS 配色；比赛名 / 距离 / 当地·北京时间编码进比赛块头（不逐行重复），行列为 枠 / 番 / 馬名 / 性齢 / 騎手（+ 附加列）。设计稿原型：`design/share-card.html`（样例数据由 `design/_extract.mjs` 生成）。
+
+> 实现教训：canvas 重设 `width/height` 会重置画布状态（含变换矩阵）——必须先设尺寸再 `setTransform(scale)`，否则导出 PNG 内容缩在左上角、其余全透明。

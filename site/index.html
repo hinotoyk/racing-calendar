@@ -14,6 +14,7 @@
   <div class="filter-card">
     <div class="filter-head">
       <span class="filter-title">筛选 · FILTER</span>
+      <button id="pick-mode" class="f-pick" type="button" title="勾选比赛，生成可分享的出馬表图片">勾选比赛</button>
       <button id="reset" class="f-reset" type="button">清空条件</button>
     </div>
     <div class="filter-row">
@@ -73,10 +74,78 @@
     <div class="empty" id="empty" hidden></div>
   </div>
 
+  <!-- 分页条挂载点（app.js 渲染；页码按钮式，移植 yunji-web races.html .pager） -->
+  <div id="pager-mount"></div>
+
   <footer>
     <span>数据来源 JBIS、Racing Post  ·  数据仅供分享交流</span>
+    <span class="ver">v1.0.0</span>
   </footer>
+
+  <!-- 勾选比赛浮动条（已选数字可点开上拉预览列表） -->
+  <div id="pick-bar" hidden>
+    <button id="pick-toggle" class="pb-count" type="button" aria-expanded="false" title="查看已勾选的马">已选 <b id="pick-n">0</b> 頭</button>
+    <button id="pick-go" class="pb-go" type="button">生成分享卡</button>
+    <button id="pick-clear" class="pb-clear" type="button">清空</button>
+    <div id="pick-list" hidden></div>
+  </div>
+
+  <!-- 出馬表分享卡视图（app.js 动态 import share.js 后展示） -->
+  <section id="share-view" hidden>
+    <div class="share-bar">
+      <span class="filter-title">出馬表分享卡 · <span id="share-count"></span></span>
+      <div class="tools">
+        <div id="share-cols" class="filter-chips"></div>
+        <label class="share-fld">倍率
+          <select id="share-scale"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option></select>
+        </label>
+        <button id="share-copy" class="sh-btn ghost" type="button">复制到剪贴板</button>
+        <button id="share-dl" class="sh-btn" type="button">导出 PNG</button>
+        <button id="share-back" class="sh-btn ghost" type="button">返回列表</button>
+      </div>
+    </div>
+    <div class="share-stage"><canvas id="share-canvas"></canvas></div>
+    <div class="share-editor">
+      <div class="se-head">
+        <span class="se-title">分享内容</span>
+        <button id="share-add" class="sh-btn ghost" type="button">＋ 手动添加比赛</button>
+      </div>
+      <div id="share-blocks"></div>
+      <form id="share-form" hidden>
+        <div class="sf-grid">
+          <label>日期<input type="date" id="sf-date"></label>
+          <label>场<input id="sf-venue" placeholder="如 京都" required></label>
+          <label>R<input type="number" id="sf-no" min="1" placeholder="11"></label>
+          <label>比赛名<input id="sf-name" placeholder="如 菊花賞" required></label>
+          <label>级别<select id="sf-level">
+            <option value="">无级别</option><option>G1</option><option>G2</option><option>G3</option>
+            <option>L</option><option>OP</option><option>地方重赏</option>
+          </select></label>
+          <label>场地<select id="sf-surface"><option>芝</option><option>ダ</option><option>障</option></select></label>
+          <label>距离<input type="number" id="sf-dist" placeholder="3000"></label>
+          <label>当地时间<input type="time" id="sf-time" required></label>
+          <label>时区<select id="sf-tz">
+            <option value="+09:00">JST 日本 (+9)</option>
+            <option value="+08:00">北京时间 (+8)</option>
+            <option value="+00:00">UTC±0</option>
+            <option value="+01:00">UTC+1</option>
+            <option value="-04:00">UTC-4</option>
+            <option value="-05:00">UTC-5</option>
+            <option value="+10:00">UTC+10</option>
+          </select></label>
+        </div>
+        <label class="sf-lines">出走馬（每行：枠 番 馬名 性齢 騎手，空格分隔，性齢/騎手可省略）
+          <textarea id="sf-runners" rows="4" placeholder="1 1 タイキミューズ 牡5 坂井瑠星&#10;2 3 サトノシャイーン 牡5 川田将雅"></textarea>
+        </label>
+        <div class="sf-actions">
+          <button type="submit" class="sh-btn">添加到分享卡</button>
+          <button type="button" id="sf-cancel" class="sh-btn ghost">取消</button>
+        </div>
+      </form>
+    </div>
+  </section>
 </div>
+<script src="vendor/qrcode.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

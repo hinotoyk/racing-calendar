@@ -195,7 +195,8 @@ table.yj-lib tbody tr.sub td b { color: var(--accent-foreground); margin-right: 
 
 /* ---------- 空态 / 页脚 / 滚动条 ---------- */
 .empty { padding: 56px 20px; text-align: center; font-size: 13px; color: var(--muted-foreground); }
-footer { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: center; font-size: 11.5px; color: #a3a3a3; }
+footer { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: center; align-items: center; font-size: 11.5px; color: #a3a3a3; }
+.ver { border: 1px solid #ececec; border-radius: 999px; padding: 1px 9px; font-size: 10.5px; color: #a3a3a3; font-family: Geist, sans-serif; }
 
 .table-wrap { scrollbar-width: thin; scrollbar-color: #e5e5e5 transparent; }
 .yj-drop-scroll { scrollbar-width: thin; scrollbar-color: #e5e5e5 transparent; }
@@ -209,3 +210,136 @@ footer { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 18px; justif
 @media (prefers-reduced-motion: reduce) { .yj-drop { animation: none; } }
 
 @media (max-width: 1180px) { table.yj-lib { font-size: 10.5px; } }
+
+/* ============================================================
+ * 勾选比赛（分享卡入口）与 出馬表分享卡视图
+ * ============================================================ */
+.f-pick {
+  margin-left: auto; border: 1px solid rgba(10, 167, 160, .55); border-radius: 8px; padding: 4px 12px;
+  font-size: 12px; color: var(--accent-foreground); background: #fff; cursor: pointer; transition: all .15s;
+}
+.f-pick:hover { background: #f7fdfd; }
+.f-pick.on { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+.f-pick + .f-reset { margin-left: 0; }
+
+/* 勾选框：绝对定位在首格左侧预留区内，不参与流式布局，避免行内容错位换行 */
+.pick-box { display: none; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0; accent-color: var(--primary); cursor: pointer; }
+body.picking .pick-box { display: inline-block; }
+body.picking td.loc { position: relative; padding-left: 28px; }
+body.picking table.yj-lib tbody tr:hover td { background: #f2fbfa; }
+
+/* 已选浮动条：胶囊造型 + 青绿主按钮 + 上拉预览列表 */
+#pick-bar {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 90;
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 18px;
+  border: 1px solid #ececec; border-radius: 999px; background: #fff;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, .16), 0 2px 8px rgba(16, 24, 40, .08);
+}
+#pick-bar[hidden] { display: none; }
+body.share-open #pick-bar { display: none; }
+.pb-count {
+  display: inline-flex; align-items: center; gap: 7px; border: none; background: none; padding: 0;
+  font-size: 13px; color: var(--secondary-foreground); font-family: inherit; cursor: pointer; white-space: nowrap;
+}
+.pb-count b {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px;
+  border-radius: 999px; background: var(--accent); color: var(--accent-foreground); font-size: 12.5px; font-weight: 700;
+}
+.pb-count::after { content: "▾"; font-size: 10px; color: #9aa0a6; transition: transform .15s; }
+.pb-count.open::after { transform: rotate(180deg); }
+.pb-go {
+  height: 34px; padding: 0 18px; border: none; border-radius: 999px; background: var(--primary); color: #fff;
+  font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(10, 167, 160, .35); transition: background .15s, transform .1s;
+}
+.pb-go:hover { background: #09928c; }
+.pb-go:active { transform: scale(.97); }
+.pb-clear {
+  height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; background: #fff;
+  color: var(--muted-foreground); font-size: 13px; font-family: inherit; cursor: pointer; transition: all .15s;
+}
+.pb-clear:hover { color: #ef4444; border-color: rgba(239, 68, 68, .55); background: #fef2f2; }
+/* 上拉预览：勾选行 → 馬名 · 场R · 比赛名，逐条可取消 */
+#pick-list {
+  position: absolute; right: 0; bottom: calc(100% + 10px); width: min(420px, 86vw); max-height: 340px; overflow: auto;
+  background: #fff; border: 1px solid #ececec; border-radius: 12px; padding: 6px;
+  box-shadow: 0 16px 40px rgba(16, 24, 40, .18); scrollbar-width: thin;
+}
+#pick-list[hidden] { display: none; }
+.pl-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; }
+.pl-item:hover { background: #f6f7f8; }
+.pl-h { flex: none; max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--foreground); }
+.pl-r { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted-foreground); }
+.pl-x { flex: none; margin-left: auto; width: 20px; height: 20px; border: none; border-radius: 6px; background: none; color: #c0c4cc; font-size: 11px; line-height: 1; cursor: pointer; }
+.pl-x:hover { background: #fef2f2; color: #ef4444; }
+
+.sh-btn {
+  height: 28px; padding: 0 14px; border: 1px solid var(--primary); border-radius: 7px;
+  background: var(--primary); color: #fff; font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: background .15s;
+}
+.sh-btn:hover { background: #09928c; }
+.sh-btn.ghost { background: #fff; color: var(--accent-foreground); }
+.sh-btn.ghost:hover { background: #f2fbfa; }
+.sh-btn:disabled { opacity: .4; cursor: default; }
+
+/* 分享视图：隐藏主列表，展示卡画布 + 编辑器 */
+body.share-open .filter-card, body.share-open .summary, body.share-open .table-wrap, body.share-open #pager-mount, body.share-open footer { display: none; }
+#share-view { margin-top: 4px; }
+.share-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  background: #fff; border: 1px solid #ececec; border-radius: 12px; padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .04);
+}
+.share-bar .tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.share-fld { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #8a8a8a; }
+.share-stage { display: flex; justify-content: center; padding: 22px 0 8px; }
+#share-canvas { width: min(928px, 100%); height: auto; }
+
+.share-editor {
+  max-width: 928px; margin: 14px auto 0; background: #fff; border: 1px solid #ececec; border-radius: 12px;
+  padding: 14px 16px; box-shadow: 0 1px 3px rgba(16, 24, 40, .04);
+}
+.se-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.se-title { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+.se-title::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--primary); }
+.se-head .sh-btn { margin-left: auto; }
+.sb {
+  display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-bottom: 1px solid #f0f0f0; font-size: 13px;
+}
+.sb:last-of-type { border-bottom: none; }
+.sb-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-t i { margin-left: 8px; font-style: normal; font-size: 11px; color: #9aa0a6; }
+.sb-b { margin-left: auto; flex: none; display: flex; gap: 6px; }
+.sb-b button {
+  width: 24px; height: 24px; padding: 0; border: 1px solid #e3e3e3; border-radius: 6px; background: #fff;
+  color: var(--muted-foreground); font-size: 12px; line-height: 1; cursor: pointer;
+}
+.sb-b button:hover:not(:disabled) { border-color: rgba(10, 167, 160, .55); color: var(--accent-foreground); background: #f7fdfd; }
+.sb-b button:disabled { opacity: .35; cursor: default; }
+.sb-empty { padding: 14px 10px; text-align: center; font-size: 12.5px; color: var(--muted-foreground); }
+
+#share-form { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+#share-form[hidden] { display: none; }
+.sf-grid { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.sf-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #8a8a8a; text-transform: uppercase; }
+.sf-grid input, .sf-grid select { width: auto; min-width: 96px; height: 28px; }
+.sf-lines { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #8a8a8a; text-transform: uppercase; }
+.sf-lines textarea {
+  width: 100%; border: 1px solid #e3e3e3; border-radius: 7px; padding: 7px 9px;
+  font-size: 12.5px; line-height: 1.6; font-family: inherit; color: var(--foreground); resize: vertical;
+}
+.sf-lines textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(10, 167, 160, .18); }
+.sf-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* ---------- 分页条（移植 yunji-web races.html .pager）---------- */
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:10px 12px;border:1px solid #ececec;border-radius:10px;background:#fff;font-size:12px}
+.pg-nav{height:28px;padding:0 12px;border:1px solid #e3e3e3;border-radius:7px;background:#fff;color:#444;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.pg-nav:hover:not(:disabled){border-color:rgba(10,167,160,.55);color:#0b6b64;background:#f7fdfd}
+.pg-nav:disabled{opacity:.4;cursor:not-allowed}
+.pg-btn{min-width:28px;height:28px;padding:0 6px;border:1px solid transparent;border-radius:7px;background:transparent;color:#444;font-size:12px;cursor:pointer;transition:all .15s}
+.pg-btn:hover{background:#f2f4f5}
+.pg-btn.on{border-color:#0aa7a0;background:#0aa7a0;color:#fff;font-weight:600}
+.pg-ell{color:#9aa0a6;padding:0 2px}
+.pg-info{margin:0 4px;color:#737373;white-space:nowrap}
+@media (max-width:768px){.pager{justify-content:center;gap:4px}.pg-btn{min-width:26px;height:26px}.pg-nav{padding:0 9px}}

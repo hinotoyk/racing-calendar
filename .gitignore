@@ -17,3 +17,6 @@ _site/
 
 # 服务重定向日志（本地起服务时的 stdout/stderr）
 *.err
+
+# design/ 下的 QA 截图（无头浏览器验证产物，下划线前缀）；设计稿 share-card.html / sample-data.js / _extract.mjs 照常入库
+design/_*.png

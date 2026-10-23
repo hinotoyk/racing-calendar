@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>出馬表分享卡 · 设计稿</title>
+<style>
+  :root { --teal:#0aa7a0; --teal-ink:#0b6b64; --ink:#0a0a0a; --mut:#737373; --bd:#e4e4e7; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; }
+  body { background:#eef0f2; color:var(--ink); font-family:'Noto Sans SC','Geist','Microsoft YaHei',sans-serif; font-size:14px; }
+
+  .bar {
+    position:sticky; top:0; z-index:10; display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px;
+    padding:10px 18px; background:#fff; border-bottom:1px solid var(--bd);
+  }
+  .brand { display:flex; align-items:center; gap:9px; font-weight:700; font-size:13.5px; letter-spacing:.5px; }
+  .brand .tick { width:4px; height:15px; border-radius:2px; background:var(--teal); }
+  .tools { margin-left:auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip {
+    display:inline-flex; align-items:center; height:26px; padding:0 11px; border:1px solid #e3e3e3; border-radius:7px;
+    background:#fff; color:#444; font-size:12px; line-height:1; cursor:pointer; user-select:none; white-space:nowrap;
+    transition:border-color .15s, color .15s, background .15s;
+  }
+  .chip:hover { border-color:rgba(10,167,160,.55); color:var(--teal-ink); background:#f7fdfd; }
+  .chip.on { border-color:var(--teal); background:#e6f6f5; color:var(--teal-ink); font-weight:600; box-shadow:inset 0 0 0 1px var(--teal); }
+  .fld { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--mut); }
+  select { height:26px; border:1px solid #e3e3e3; border-radius:7px; background:#fff; font-size:12.5px; font-family:inherit; }
+  .btn {
+    height:28px; padding:0 14px; border:1px solid var(--teal); border-radius:7px; background:var(--teal); color:#fff;
+    font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;
+  }
+  .btn:hover { background:#09928c; }
+  .btn.ghost { background:#fff; color:var(--teal-ink); }
+  .btn.ghost:hover { background:#f2fbfa; }
+  .btn:focus-visible, .chip:focus-visible, select:focus-visible { outline:2px solid rgba(10,167,160,.55); outline-offset:1px; }
+
+  #stage { padding:26px 16px 60px; display:flex; justify-content:center; }
+  #stage canvas { width:min(988px, 100%); height:auto; display:block; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><span class="tick"></span>出馬表分享卡 · 设计稿（canvas 渲染，即最终出图管线）</div>
+  <div class="tools">
+    <div id="cols" class="chips"></div>
+    <label class="fld">倍率
+      <select id="scale"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option></select>
+    </label>
+    <button id="copy" class="btn ghost" type="button">复制到剪贴板</button>
+    <button id="dl" class="btn" type="button">导出 PNG</button>
+  </div>
+</header>
+<main id="stage"></main>
+
+<script src="./sample-data.js"></script>
+<script>
+'use strict';
+
+/* ================= 设计 tokens（与主站 style.css 同源） ================= */
+const FONT = '"Geist","Noto Sans SC","Microsoft YaHei","PingFang SC",sans-serif';
+const C = {
+  backdrop: '#eef0f2',
+  paper: '#ffffff',
+  bar: '#0aa7a0', teal: '#0aa7a0', tealInk: '#0b6b64',
+  ink: '#0a0a0a', sub: '#3f3f46', mut2: '#737373', mut: '#a1a1aa',
+  line: '#e9e9ec', row: '#f2f2f4',
+  g1: '#d5302a', g2: '#0a3b7e', g3: '#087220', listed: '#dca026', nar: '#c2318e',
+};
+// 枠色（JRA 公式 1白2黒3赤4青5黄6緑7橙8桃）
+const WAKU = [null,
+  { bg:'#ffffff', bd:'#c9ccd1', fg:'#0a0a0a' },
+  { bg:'#26262a', fg:'#ffffff' },
+  { bg:'#d0342c', fg:'#ffffff' },
+  { bg:'#2b62b0', fg:'#ffffff' },
+  { bg:'#f2c500', fg:'#4a3b00' },
+  { bg:'#1e7d46', fg:'#ffffff' },
+  { bg:'#e8791e', fg:'#ffffff' },
+  { bg:'#ef8bab', fg:'#8c2748' },
+];
+const GRADE = {
+  G1:['GⅠ',C.g1], G2:['GⅡ',C.g2], G3:['GⅢ',C.g3],
+  Jpn1:['JpnⅠ',C.g1], Jpn2:['JpnⅡ',C.g2], Jpn3:['JpnⅢ',C.g3],
+  JG1:['JGⅠ',C.g1], JG2:['JGⅡ',C.g2], JG3:['JGⅢ',C.g3],
+  L:['L',C.listed], OP:['OP','#0aa7a0'], 地方重赏:['重賞',C.nar],
+};
+
+/* ================= 附加列（可在工具条勾选） ================= */
+const EXTRA_COLS = [
+  { k:'weight',  label:'斤量' },
+  { k:'trainer', label:'調教師' },
+  { k:'sire',    label:'父' },
+  { k:'sireSire',label:'父父' },
+  { k:'bms',     label:'母父' },
+  { k:'dam',     label:'母' },
+  { k:'color',   label:'毛色' },
+  { k:'belongs', label:'所属' },
+  { k:'owner',   label:'馬主' },
+  { k:'breeder', label:'生産牧場' },
+];
+
+/* ================= 工具 ================= */
+const RACES = window.__SAMPLE__.races;
+const esc = (s) => String(s ?? '');
+const surfStr = (r) => `${r.surface ?? ''}${r.distance ?? ''}`;
+const sexAge = (r) => `${r.sex ?? ''}${r.age ?? ''}`;
+
+function bjOf(race) {           // 绝对时刻 → 北京时间
+  if (!race.startTimeInstant) return null;
+  const d = new Date(race.startTimeInstant);
+  if (isNaN(+d)) return null;
+  return new Date(+d + 8 * 3600e3);
+}
+const p2 = (n) => String(n).padStart(2, '0');
+function bjText(race) {         // 跨日时带 MM-dd
+  const d = bjOf(race);
+  if (!d) return '';
+  const hm = `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`;
+  const md = `${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())}`;
+  return md === race.dateLabel ? hm : `${md} ${hm}`;
+}
+function tzTag(race) {          // 当地钟面的时区标
+  if (!race.startTimeTz || race.startTimeTz === 'Asia/Tokyo') return 'JST';
+  const m = /([+-])(\d{2}):(\d{2})$/.exec(race.startTimeInstant ?? '');
+  return m ? `UTC${m[1]}${+m[2]}` : race.startTimeTz;
+}
+function dateRange(races) {
+  const ds = races.map((r) => r.date).sort();
+  const one = ds[0] === ds[ds.length - 1];
+  const fmt = (d) => `${+d.slice(5, 7)}.${+d.slice(8, 10)}`;
+  return one
+    ? { text: `2026.${fmt(ds[0])}`, sub: `${['日','月','火','水','木','金','土'][new Date(ds[0] + 'T00:00:00Z').getUTCDay()]}曜` }
+    : { text: `2026.${fmt(ds[0])}–${fmt(ds[ds.length - 1])}`, sub: '多日精选' };
+}
+
+/* ================= canvas 绘制 ================= */
+const W = 880, M = 24, PAD = 32;
+const MAST_H = 100, HEAD_H = 66, COLH = 27, ROW_H = 36, FOOT_H = 62, GAP = 26;
+
+const stage = document.getElementById('stage');
+const canvas = document.createElement('canvas');
+stage.appendChild(canvas);
+const ctx = canvas.getContext('2d');
+
+const font = (w, s) => `${w} ${s}px ${FONT}`;
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function fit(s, maxW) {
+  s = esc(s);
+  if (ctx.measureText(s).width <= maxW) return s;
+  while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+  return s + '…';
+}
+const tw = (s) => ctx.measureText(esc(s)).width;
+
+function chipBox(x, y, text, size, weight, fg, bg, padX, h, r) {
+  ctx.font = font(weight, size);
+  const w = tw(text) + padX * 2;
+  ctx.fillStyle = bg; rr(x, y, w, h, r); ctx.fill();
+  ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + padX, y + h / 2 + .5);
+  return w;
+}
+
+function draw(scale, extras) {
+  const primary = dateRange(RACES);
+  const T = { ...C };
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.textBaseline = 'alphabetic';
+
+  // ---- 列宽（按各列自身字体实测，剩余宽度 6:4 分给 馬名/騎手，避免中部空洞）----
+  const demand = (k, weight, size, min, max) => {
+    ctx.font = font(weight, size);
+    let w = 0;
+    for (const r of RACES) for (const h of r.runners) w = Math.max(w, tw(h[k] ?? '–'));
+    return Math.min(max, Math.max(min, w + 24));
+  };
+  const cols = [
+    { k:'waku',  label:'枠番', w:48, align:'c' },
+    { k:'num',   label:'馬番', w:46, align:'c' },
+    { k:'horse', label:'馬名', demand:demand('horseName', 600, 16, 120, 340), min:120, align:'l' },
+    { k:'sexage',label:'性齢', w:58, align:'c', size:13.5, c:T.sub },
+    ...extras.map((k) => {
+      const e = EXTRA_COLS.find((c) => c.k === k);
+      return { k, label:e.label, w: k === 'weight' ? 50 : demand(k, 400, 13, 60, 158), min:60,
+               align: k === 'weight' ? 'c' : 'l', size:13, c:T.mut2 };
+    }),
+    { k:'jockey', label:'騎手', demand:demand('jockey', 400, 13.5, 72, 180), min:72, align:'l', size:13.5, c:T.sub },
+  ];
+  for (const c of cols) c.w = c.demand ?? c.w;
+  // 总宽超限 → 可收缩列按余量比例压缩（单元格内 fit() 截断兜底）；有余 → 6.5:3.5 分给 馬名/騎手
+  const content = W - PAD * 2;
+  const sum = cols.reduce((n, c) => n + c.w, 0) + (cols.length - 1) * 2;
+  if (sum > content) {
+    const pool = cols.reduce((n, c) => n + Math.max(0, c.w - (c.min ?? c.w)), 0);
+    const k = pool > 0 ? Math.min(1, (sum - content) / pool) : 0;
+    for (const c of cols) c.w -= Math.max(0, c.w - (c.min ?? c.w)) * k;
+  } else if (sum < content) {
+    const slack = content - sum;
+    const horse = cols.find((c) => c.k === 'horse'), jockey = cols.find((c) => c.k === 'jockey');
+    horse.w += slack * 0.65;
+    jockey.w += slack * 0.35;
+  }
+  let cx = PAD;
+  for (const c of cols) { c.x = cx; cx += c.w + 2; }
+
+  // ---- 高度 ----
+  let H = M + MAST_H + 8;
+  for (const r of RACES) H += HEAD_H + COLH + r.runners.length * ROW_H + GAP;
+  H += FOOT_H + M - GAP + 8;
+  // 注意：width/height 赋值会重置画布状态（含变换矩阵），必须先设尺寸再 setTransform
+  canvas.width = Math.round((W + M * 2) * scale);
+  canvas.height = Math.round(H * scale);
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.textBaseline = 'alphabetic';
+
+  // ---- 背景 + 卡片 ----
+  ctx.fillStyle = T.backdrop; ctx.fillRect(0, 0, W + M * 2, H);
+  ctx.save();
+  ctx.shadowColor = 'rgba(10,10,10,.13)'; ctx.shadowBlur = 34; ctx.shadowOffsetY = 10;
+  ctx.fillStyle = T.paper; rr(M, M, W, H - M * 2, 16); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  rr(M, M, W, H - M * 2, 16); ctx.clip();
+  const L = M, R = M + W;
+
+  // 顶部品牌条
+  ctx.fillStyle = T.bar; ctx.fillRect(L, M, W, 6);
+
+  // ---- Masthead ----
+  {
+    const top = M;
+    const heads = RACES.reduce((n, r) => n + r.runners.length, 0);
+    ctx.fillStyle = T.teal; ctx.fillRect(L + PAD, top + 24, 4, 62);
+    ctx.font = font(700, 10.5);
+    ctx.letterSpacing = '3px';
+    ctx.fillStyle = T.tealInk; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('RACE CARD', L + PAD + 14, top + 38);
+    ctx.letterSpacing = '0px';
+    ctx.font = font(700, 25);
+    ctx.fillStyle = T.ink;
+    ctx.fillText('出走表', L + PAD + 14, top + 67);
+    ctx.font = font(400, 11.5);
+    ctx.fillStyle = T.mut2;
+    ctx.fillText(`精选 ${RACES.length} 场 · ${heads}頭 · 北京时间基准`, L + PAD + 14, top + 87);
+    // 右侧日期
+    ctx.textAlign = 'right';
+    ctx.font = font(700, 21);
+    ctx.fillStyle = T.ink;
+    ctx.fillText(primary.text, R - PAD, top + 62);
+    ctx.font = font(500, 11);
+    ctx.fillStyle = T.mut;
+    ctx.fillText(primary.sub, R - PAD, top + 81);
+    ctx.textAlign = 'left';
+  }
+
+  // ---- 比赛块 ----
+  let y = M + MAST_H + 8;
+  for (const race of RACES) {
+    // 头部：R 徽章 + 赛名 + 级别 + meta + 双时钟
+    const by = y;
+    ctx.font = font(700, 15);
+    const rNo = `${race.raceNo}R`;
+    const bw = Math.max(46, tw(rNo) + 20);
+    ctx.fillStyle = T.teal; rr(PAD, by + 12, bw, 30, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(rNo, PAD + bw / 2, by + 27.5);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+    let nx = PAD + bw + 12;
+    ctx.font = font(700, 19.5);
+    ctx.fillStyle = T.ink;
+    ctx.fillText(race.raceName ?? '', nx, by + 40);
+    nx += tw(race.raceName ?? '') + 9;
+    const g = GRADE[race.level];
+    if (g) nx += chipBox(nx, by + 22.5, g[0], 11, 700, '#fff', g[1], 6.5, 19, 4.5) + 4;
+
+    // meta 行
+    const metaBits = [surfStr(race), `${race.runners.length}頭`];
+    if (race.date !== RACES[0].date) metaBits.unshift(race.dateLabel);
+    metaBits.push(race.venue);
+    ctx.font = font(400, 12.5);
+    ctx.fillStyle = T.mut2;
+    ctx.fillText(metaBits.join(' · '), PAD, by + 58);
+
+    // 双时钟（右对齐）：当地 → 北京
+    ctx.textAlign = 'right';
+    ctx.font = font(500, 11.5);
+    ctx.fillStyle = T.mut;
+    ctx.fillText(`当地 ${race.startTime ?? ''} ${tzTag(race)}`, R - PAD, by + 26);
+    ctx.font = font(700, 16);
+    ctx.fillStyle = T.tealInk;
+    ctx.fillText(`北京 ${bjText(race)}`, R - PAD, by + 50);
+    ctx.textAlign = 'left';
+
+    // 表头
+    y += HEAD_H;
+    ctx.font = font(600, 10);
+    ctx.fillStyle = T.mut; ctx.textBaseline = 'middle';
+    for (const c of cols) {
+      ctx.textAlign = c.align === 'l' ? 'left' : 'center';
+      ctx.fillText(c.label, c.align === 'l' ? c.x : c.x + c.w / 2, y + COLH / 2);
+    }
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    ctx.strokeStyle = T.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD, y + COLH + .5); ctx.lineTo(R - PAD, y + COLH + .5); ctx.stroke();
+
+    // 行
+    y += COLH;
+    race.runners.forEach((h, i) => {
+      const ry = y + i * ROW_H;
+      if (i) { ctx.strokeStyle = T.row; ctx.beginPath(); ctx.moveTo(PAD, ry + .5); ctx.lineTo(R - PAD, ry + .5); ctx.stroke(); }
+      const mid = ry + ROW_H / 2 + 1;
+      for (const c of cols) {
+        if (c.k === 'waku') {
+          const fr = h.frame;
+          if (fr >= 1 && fr <= 8) {
+            const wk = WAKU[fr], s = 23;
+            const wx = c.x + c.w / 2 - s / 2, wy = ry + (ROW_H - s) / 2;
+            ctx.fillStyle = wk.bg; rr(wx, wy, s, s, 6); ctx.fill();
+            if (wk.bd) { ctx.strokeStyle = wk.bd; ctx.lineWidth = 1; ctx.stroke(); }
+            ctx.font = font(700, 12); ctx.fillStyle = wk.fg;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(String(fr), wx + s / 2, wy + s / 2 + .5);
+            ctx.textBaseline = 'alphabetic';
+          } else {
+            ctx.font = font(500, 12); ctx.fillStyle = T.mut;
+            ctx.textAlign = 'center'; ctx.fillText('–', c.x + c.w / 2, mid + 4); ctx.textAlign = 'left';
+          }
+          continue;
+        }
+        if (c.k === 'num') {
+          ctx.font = font(700, 15.5); ctx.fillStyle = T.ink;
+          ctx.textAlign = 'center'; ctx.fillText(String(h.num ?? '–'), c.x + c.w / 2, mid + 5); ctx.textAlign = 'left';
+          continue;
+        }
+        if (c.k === 'horse') {
+          ctx.font = font(600, 16); ctx.fillStyle = T.ink;
+          ctx.fillText(fit(h.horseName ?? '', c.w - 6), c.x, mid + 5);
+          continue;
+        }
+        const v = c.k === 'sexage' ? sexAge(h) : h[c.k];
+        ctx.font = font(c.k === 'sexage' ? 400 : 400, c.size ?? 13);
+        ctx.fillStyle = c.c ?? T.sub;
+        const s = v == null || v === '' ? '–' : String(v);
+        ctx.textAlign = c.align === 'l' ? 'left' : 'center';
+        ctx.fillText(c.align === 'l' ? fit(s, c.w - 6) : s, c.align === 'l' ? c.x : c.x + c.w / 2, mid + 4.5);
+        ctx.textAlign = 'left';
+      }
+    });
+    y += race.runners.length * ROW_H + GAP;
+  }
+
+  // ---- Footer ----
+  {
+    const fy = y - GAP + 10;
+    ctx.strokeStyle = T.line;
+    ctx.beginPath(); ctx.moveTo(PAD, fy + .5); ctx.lineTo(R - PAD, fy + .5); ctx.stroke();
+    const fc = fy + 38;
+    ctx.fillStyle = T.teal; ctx.fillRect(PAD, fc - 15, 4, 20);
+    ctx.font = font(800, 13.5);
+    ctx.fillStyle = T.ink; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('RACING CALENDAR', PAD + 13, fc);
+    const uw = tw('RACING CALENDAR');
+    ctx.font = font(400, 11.5); ctx.fillStyle = T.mut;
+    ctx.fillText('出走表分享', PAD + 13 + uw + 10, fc);
+    ctx.font = font(600, 13); ctx.fillStyle = T.tealInk; ctx.textAlign = 'right';
+    ctx.fillText('hinotoyk.github.io/racing-calendar', R - PAD, fc);
+    ctx.textAlign = 'left';
+  }
+  ctx.restore();
+}
+
+/* ================= 工具条 / 导出 ================= */
+const qp = new URLSearchParams(location.search);          // 设计稿自检：?cols=trainer,sire,bms
+const extraState = new Set((qp.get('cols') ?? 'weight').split(',').filter(Boolean));
+const colsMount = document.getElementById('cols');
+colsMount.innerHTML = EXTRA_COLS.map((c) =>
+  `<button type="button" class="chip${extraState.has(c.k) ? ' on' : ''}" data-k="${c.k}">${c.label}</button>`
+).join('');
+colsMount.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = b.dataset.k;
+  extraState.has(k) ? extraState.delete(k) : extraState.add(k);
+  b.classList.toggle('on');
+  render();
+});
+const scaleSel = document.getElementById('scale');
+function render() { draw(+scaleSel.value, [...extraState]); }
+scaleSel.onchange = render;
+
+async function blob() {
+  return new Promise((res) => canvas.toBlob(res, 'image/png'));
+}
+document.getElementById('dl').onclick = async () => {
+  const url = URL.createObjectURL(await blob());
+  const a = document.createElement('a');
+  a.href = url; a.download = `racecard-${RACES.map((r) => r.date).sort()[0]}.png`;
+  a.click(); URL.revokeObjectURL(url);
+};
+document.getElementById('copy').onclick = async (e) => {
+  const btn = e.currentTarget;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': await blob() })]);
+    btn.textContent = '已复制 ✓';
+  } catch { btn.textContent = '复制失败（请用导出）'; }
+  setTimeout(() => (btn.textContent = '复制到剪贴板'), 1600);
+};
+
+/* 字体就绪后再画（Geist/Noto 子集 + CJK 兜底） */
+(async () => {
+  try {
+    await Promise.all([
+      document.fonts.load('700 25px "Noto Sans SC"', '出走表菊花賞牝5高知星'),
+      document.fonts.load('400 13px "Noto Sans SC"', '出走表菊花賞牝5高知星'),
+      document.fonts.load('800 14px "Geist"', '0123456789RACECARD'),
+      document.fonts.load('700 21px "Geist"', '0123456789.'),
+    ]);
+  } catch {}
+  render();
+})();
+</script>
+</body>
+</html>

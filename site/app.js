@@ -26,8 +26,27 @@ const state = {
   bms: "",
   q: "",
   group: "",
+  selectMode: false,          // 勾选模式（分享卡入口）
+  selected: new Set(),        // 已勾选行键（行级勾选：同一场比赛的勾选行在分享卡里归入同一块）
   rows: [],
 };
+
+// ---------- 设备判定（yunji-web front/public/device.js 精简版）与分页状态 ----------
+// 断点 768px：matchMedia 实时响应（与 CSS 同源），不支持时退回 innerWidth
+const MB_MQL = window.matchMedia ? window.matchMedia("(max-width: 767px)") : null;
+function isMb() {
+  if (MB_MQL) return MB_MQL.matches;
+  return (window.innerWidth || document.documentElement.clientWidth) < 768;
+}
+
+/* 分页：每页条数按设备固定（PC 100 / mb 20，不允许用户选择），页码按钮式（移植 yunji-web races.html） */
+const PG = { page: 1, size: 0 };
+const pgSizeDef = () => (isMb() ? 20 : 100);
+
+// 比赛唯一键（raceKey 缺失时兜底）
+const rkOf = (r) => r.raceKey ?? `${r.date}|${r.track}|${r.raceNo}`;
+// 行唯一键 = 比赛 + 馬番（未確定用馬名兜底）：勾选与分享卡都以行为单位
+const rowKeyOf = (r) => `${rkOf(r)}|${r.num ?? "x"}|${r.horseId ?? r.horseName ?? ""}`;
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -91,6 +110,11 @@ async function ensure(date) {
 
 function allRows() {
   return [...state.dates].sort().flatMap((d) => state.cache.get(d) ?? []);
+}
+
+// 勾选数据源：所有已加载日期的行（不受当前筛选影响）——清空条件换场地勾选后，之前勾的行仍然在卡里
+function rowsForPick() {
+  return [...state.cache.keys()].sort().flatMap((d) => state.cache.get(d) ?? []);
 }
 
 // ---------- 筛选条 ----------
@@ -269,6 +293,7 @@ function optionsOf(rows, key) {
 
 // ---------- 过滤 ----------
 function apply() {
+  PG.page = 1;   // 筛选条件变化 → 归第 1 页
   const q = state.q.trim().toLowerCase();
   state.rows = allRows().filter((r) => {
     if (state.scope.size && !state.scope.has(r.scope)) return false;
@@ -286,6 +311,87 @@ function apply() {
   render();
 }
 
+// ---------- 勾选行 → 分享卡 ----------
+function updatePickBar() {
+  const n = state.selected.size;
+  $("#pick-n").textContent = n;
+  $("#pick-bar").hidden = !n || document.body.classList.contains("share-open");
+  if (!n) {
+    $("#pick-list").hidden = true;
+    $("#pick-toggle").classList.remove("open");
+    return;
+  }
+  // 上拉预览：按 rowsForPick 顺序列出勾选行（馬名 · 场R · 比赛名），逐条可取消
+  const items = [];
+  for (const r of rowsForPick()) {
+    const k = rowKeyOf(r);
+    if (!state.selected.has(k)) continue;
+    items.push(`<div class="pl-item"><span class="pl-h">${esc(r.horseName ?? "")}</span>` +
+      `<span class="pl-r">${esc(r.venue)}${r.raceNo}R · ${esc(r.raceName ?? "")}</span>` +
+      `<button type="button" class="pl-x" data-k="${esc(k)}" title="取消勾选">✕</button></div>`);
+  }
+  $("#pick-list").innerHTML = items.join("");
+}
+
+// 已勾选行 → 分享卡 race 对象：同一场比赛的勾选行归入同一块，只带勾选的馬（数据源为全部已加载日期）
+function collectShareRaces() {
+  const groups = new Map();
+  for (const r of rowsForPick()) {
+    if (!state.selected.has(rowKeyOf(r))) continue;
+    const rk = rkOf(r);
+    if (!groups.has(rk)) groups.set(rk, []);
+    groups.get(rk).push(r);
+  }
+  return [...groups.values()].map((rows) => {
+    const h = rows[0];
+    return {
+      raceKey: rkOf(h), date: h.date, dateLabel: h.dateLabel, weekday: h.weekday,
+      scope: h.scope, country: h.country, venue: h.venue, raceNo: h.raceNo,
+      raceName: h.raceName, level: h.level, surface: h.surface, distance: h.distance,
+      heads: h.heads ?? rows.length, startTime: h.startTime, startTimeTz: h.startTimeTz,
+      startTimeInstant: h.startTimeInstant,
+      runners: rows.map((r) => ({
+        frame: r.frame, num: r.num, horseName: r.horseName, sex: r.sex, age: r.age,
+        color: r.color, jockey: r.jockey, weight: r.weight, trainer: r.trainer, belongs: r.belongs,
+        owner: r.owner, breeder: r.breeder, sire: r.sire, sireSire: r.sireSire, dam: r.dam, bms: r.bms,
+      })),
+    };
+  });
+}
+
+// 进入分享卡（新标签页）：载荷经 sessionStorage 复制给新页，?share=open 读取后渲染
+function goShare() {
+  const races = collectShareRaces();
+  if (!races.length) return;
+  $("#pick-list").hidden = true;
+  $("#pick-toggle").classList.remove("open");
+  try {
+    sessionStorage.setItem("rc.share.payload", JSON.stringify(races));
+  } catch (e) {
+    console.error(e);
+    return;
+  }
+  window.open("?share=open", "_blank");
+}
+
+// ?pick=demo / ?share=demo：视觉自检（按级别优先各取一场并展开为行级勾选，并按需打开分享卡）
+function demoPick(open) {
+  const picked = [];
+  for (const lvl of ["G1", "地方重赏", "G2", "G3", "L", "OP"]) {
+    if (picked.length >= 3) break;
+    for (const r of allRows()) {
+      if (r.level !== lvl) continue;
+      const rk = rkOf(r);
+      if (!picked.includes(rk)) { picked.push(rk); break; }
+    }
+  }
+  const pickSet = new Set(picked);
+  for (const r of allRows()) if (pickSet.has(rkOf(r))) state.selected.add(rowKeyOf(r));
+  apply();
+  updatePickBar();
+  if (open) import("./share.js").then((m) => m.show(collectShareRaces())).catch((e) => console.error(e));   // 自检：页内直开
+}
+
 // ---------- 渲染 ----------
 function rowHtml(r) {
   const dist = r.distance ? `${SURF_SHORT[r.surface] ?? r.surface ?? ""}${r.distance}` : "";
@@ -294,7 +400,7 @@ function rowHtml(r) {
     ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener" title="${esc(r.raceName ?? "")}">${esc(r.raceName ?? "")}</a>`
     : `<span title="${esc(r.raceName ?? "")}">${esc(r.raceName ?? "")}</span>`;
   return `<tr>
-    <td class="c-left loc" title="${esc(r.startTimeInstant ?? "")}"><span class="v">${esc(r.venue)}${r.raceNo}R</span>${esc(r.dateLabel ?? "")} ${esc(r.startTime ?? "")}</td>
+    <td class="c-left loc" title="${esc(r.startTimeInstant ?? "")}"><input type="checkbox" class="pick-box" data-k="${esc(rowKeyOf(r))}"${state.selected.has(rowKeyOf(r)) ? " checked" : ""} aria-label="勾选 ${esc(r.horseName ?? "")}"><span class="v">${esc(r.venue)}${r.raceNo}R</span>${esc(r.dateLabel ?? "")} ${esc(r.startTime ?? "")}</td>
     <td class="num">${esc(bjTime(r.startTimeInstant))}</td>
     <td class="c-left race"><span class="rname">${name}</span>${levelBadge(r.level)}</td>
     <td class="num" title="${esc(distTitle)}">${esc(dist)}</td>
@@ -314,51 +420,101 @@ function rowHtml(r) {
 
 const COLSPAN = 15;
 
-// 分块渲染：大周（数万行）先出首屏，不阻塞主线程；renderToken 取消过期块
-let renderToken = 0;
-function renderChunked(parts) {
-  const body = $("#entry-table tbody");
-  const token = ++renderToken;
-  body.innerHTML = "";
-  let i = 0;
-  const CH = 4000;
-  const step = () => {
-    if (token !== renderToken || i >= parts.length) return;
-    body.insertAdjacentHTML("beforeend", parts.slice(i, i + CH).join(""));
-    i += CH;
-    if (i < parts.length) setTimeout(step, 0);
-  };
-  step();
+// ---------- 分页条（页码按钮式，移植 yunji-web races.html pageSeq / pagerHTML） ----------
+// 页码序列：首尾页 + 当前页 ±2 窗口，间断处用 null 表示省略号
+function pageSeq(cur, total) {
+  const set = new Set([1, total]);
+  for (let i = cur - 2; i <= cur + 2; i++) if (i >= 1 && i <= total) set.add(i);
+  const pages = [...set].sort((a, b) => a - b);
+  const out = [];
+  for (let j = 0; j < pages.length; j++) {
+    if (j > 0 && pages[j] - pages[j - 1] > 1) out.push(null);
+    out.push(pages[j]);
+  }
+  return out;
 }
 
+function pagerHTML(page, pages, total) {
+  const btns = pageSeq(page, pages).map((p) =>
+    p === null ? '<span class="pg-ell">…</span>'
+      : `<button type="button" class="pg-btn${p === page ? " on" : ""}" data-page="${p}">${p}</button>`
+  ).join("");
+  return `<div class="pager">` +
+    `<button type="button" class="pg-nav" data-page="${page - 1}"${page <= 1 ? " disabled" : ""}>‹ 上一页</button>` +
+    btns +
+    `<button type="button" class="pg-nav" data-page="${page + 1}"${page >= pages ? " disabled" : ""}>下一页 ›</button>` +
+    `<span class="pg-info">第 ${page} / ${pages} 页 · 共 ${total} 頭</span>` +
+    `</div>`;
+}
+
+// 分页条挂载：pages<=1 时清空挂载点（不渲染）
+function renderPager(pages, total) {
+  $("#pager-mount").innerHTML = pages > 1 ? pagerHTML(PG.page, pages, total) : "";
+}
+
+// 渲染当前视图：前端内存分页，每页最多 PG.size 条数据行；≤100 行直接 innerHTML，无需分块
 function render() {
+  PG.size ||= pgSizeDef();   // 首次惰性初始化（PC 100 / mb 20）
   const rows = state.rows;
   const races = new Set(rows.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
-  $("#count").innerHTML = `共 <b>${rows.length}</b> 頭 · <b>${races}</b> R`;
 
   $("#empty").hidden = rows.length > 0;
   $("#empty").textContent = rows.length ? "" : "当前条件下没有出走马（中央出馬表约开赛前 2 日公开，地方约前日，海外为英国当日）";
 
+  const body = $("#entry-table tbody");
+  let pages = 1, shown = 0;
+
   if (!state.group) {
-    renderChunked(rows.map(rowHtml));
-    return;
+    // 不分组：数据行等宽切片
+    pages = Math.max(1, Math.ceil(rows.length / PG.size));
+    PG.page = Math.min(Math.max(PG.page, 1), pages);   // 页码越界修正
+    const start = (PG.page - 1) * PG.size;
+    shown = Math.min(rows.length - start, PG.size);   // 本页数据行数（末页为余数）
+    body.innerHTML = rows.slice(start, start + PG.size).map(rowHtml).join("");
+  } else {
+    // 分组视图：整组分页——页内按整组装填，装不下整组就整组移到下一页（最后一组不截断）；
+    // 单组超过一页容量时才组内截断，跨页组在新页自动重复组头；组头 tr.sub 不占条数
+    const key = state.group;
+    const groups = new Map();
+    for (const r of rows) {
+      const k = r[key] || "—";
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    }
+    const label = { sire: "父", sireSire: "父父", bms: "母父", jockey: "騎手", trainer: "調教師" }[key] ?? key;
+    const segs = [...groups.entries()]
+      .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ja"))
+      .map(([k, list]) => ({ k, list }));
+    const packed = [];   // 每页 = [{k, list, a, b}]，a..b 为该组在本页包含的行区间
+    let cur = [], curN = 0;
+    for (const seg of segs) {
+      const L = seg.list.length;
+      if (L > PG.size) {   // 单组超页 → 独占若干页（组内截断不可避免）
+        if (cur.length) { packed.push(cur); cur = []; curN = 0; }
+        for (let i = 0; i < L; i += PG.size) packed.push([{ k: seg.k, list: seg.list, a: i, b: Math.min(L, i + PG.size) }]);
+        continue;
+      }
+      if (curN + L > PG.size) { packed.push(cur); cur = []; curN = 0; }
+      cur.push({ k: seg.k, list: seg.list, a: 0, b: L });
+      curN += L;
+    }
+    if (cur.length) packed.push(cur);
+
+    pages = Math.max(1, packed.length);
+    PG.page = Math.min(Math.max(PG.page, 1), pages);
+    const parts = [];
+    for (const seg of packed[PG.page - 1] ?? []) {
+      const gr = new Set(seg.list.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
+      parts.push(`<tr class="sub"><td colspan="${COLSPAN}"><b>${label}：${esc(seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
+      parts.push(...seg.list.slice(seg.a, seg.b).map(rowHtml));
+      shown += seg.b - seg.a;
+    }
+    body.innerHTML = parts.join("");
   }
 
-  const key = state.group;
-  const groups = new Map();
-  for (const r of rows) {
-    const k = r[key] || "—";
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k).push(r);
-  }
-  const label = { sire: "父", sireSire: "父父", bms: "母父", jockey: "騎手", trainer: "調教師" }[key] ?? key;
-  const parts = [];
-  for (const [k, list] of [...groups.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ja"))) {
-    const gr = new Set(list.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
-    parts.push(`<tr class="sub"><td colspan="${COLSPAN}"><b>${label}：${esc(k)}</b>${list.length} 頭 / ${gr} R</td></tr>`);
-    parts.push(...list.map(rowHtml));
-  }
-  renderChunked(parts);
+  $("#count").innerHTML = `共 <b>${rows.length}</b> 頭 · <b>${races}</b> R` +
+    (pages > 1 ? ` <span class="muted">当前第 ${PG.page} / ${pages} 页 · 显示 ${shown} 条</span>` : "");
+  renderPager(pages, rows.length);
 }
 
 // 数据实际覆盖范围（采集窗口从 JST 当天起，更早日期从未采集）
@@ -493,6 +649,64 @@ async function main() {
   $("#group-by").onchange = (e) => { state.group = e.target.value; render(); };
   $("#f-q").oninput = (e) => { state.q = e.target.value; apply(); };
 
+  // 分页交互：#pager-mount 上事件委托，重渲染后仍生效（disabled 与缺 data-page 跳过）
+  $("#pager-mount").addEventListener("click", (e) => {
+    const btn = e.target.closest(".pg-btn, .pg-nav");
+    if (!btn || btn.disabled || !btn.dataset.page) return;
+    const p = parseInt(btn.dataset.page, 10);
+    if (!(p >= 1)) return;
+    PG.page = p;
+    render();
+    // 表格顶已滚出视口上方时，翻页后回到 summary，避免停在长页尾部看不清新页开头
+    if ($(".table-wrap").getBoundingClientRect().top < 0) $(".summary").scrollIntoView({ block: "start" });
+  });
+
+  // 断点切换：每页条数按设备重算（PC 100 / mb 20）并重渲染当前视图；页码越界由 render() 钳制
+  // （老 Safari 无 addEventListener，退回 addListener）
+  const onBreakpoint = () => {
+    if (!state.index) return;   // 首次 render() 惰性初始化，加载完成前不响应
+    PG.size = pgSizeDef();
+    render();
+  };
+  if (MB_MQL) {
+    if (typeof MB_MQL.addEventListener === "function") MB_MQL.addEventListener("change", onBreakpoint);
+    else if (typeof MB_MQL.addListener === "function") MB_MQL.addListener(onBreakpoint);
+  }
+
+  // 勾选比赛（分享卡入口）
+  $("#pick-mode").onclick = () => {
+    state.selectMode = !state.selectMode;
+    document.body.classList.toggle("picking", state.selectMode);
+    $("#pick-mode").textContent = state.selectMode ? "完成勾选" : "勾选比赛";
+    $("#pick-mode").classList.toggle("on", state.selectMode);
+    // 完成勾选：已有勾选 → 直接进分享卡页（新开一页数据）；没有则仅退出勾选模式
+    if (!state.selectMode && state.selected.size) goShare();
+  };
+  $("#entry-table").addEventListener("change", (e) => {
+    const b = e.target.closest(".pick-box");
+    if (!b) return;
+    b.checked ? state.selected.add(b.dataset.k) : state.selected.delete(b.dataset.k);
+    updatePickBar();
+  });
+  $("#pick-clear").onclick = () => { state.selected.clear(); apply(); updatePickBar(); };
+  $("#pick-go").onclick = goShare;
+  // 已选预览：上拉列表开合
+  $("#pick-toggle").onclick = () => {
+    const list = $("#pick-list");
+    list.hidden = !list.hidden;
+    $("#pick-toggle").classList.toggle("open", !list.hidden);
+    $("#pick-toggle").setAttribute("aria-expanded", String(!list.hidden));
+  };
+  // 预览列表逐条取消勾选
+  $("#pick-bar").addEventListener("click", (e) => {
+    const x = e.target.closest(".pl-x");
+    if (!x) return;
+    state.selected.delete(x.dataset.k);
+    const box = document.querySelector(`#entry-table .pick-box[data-k="${CSS.escape(x.dataset.k)}"]`);
+    if (box) box.checked = false;
+    updatePickBar();
+  });
+
   // 深链：?group=sire|sireSire|bms|jockey|trainer；?_demo= 展开第一个血统下拉（视觉自检用）
   const qp = new URLSearchParams(location.search);
   const g = qp.get("group");
@@ -502,6 +716,27 @@ async function main() {
   }
 
   await refresh();
+  if (qp.get("share") === "open") {            // 新标签页分享卡：读取 opener 复制来的 sessionStorage 载荷
+    try {
+      const picked = JSON.parse(sessionStorage.getItem("rc.share.payload") ?? "null");
+      if (Array.isArray(picked) && picked.length) {
+        const m = await import("./share.js");
+        m.show(picked);
+      }
+    } catch (e) { console.error(e); }
+    sessionStorage.removeItem("rc.share.payload");
+  } else if (qp.get("share") === "demo") {     // 自检：全部日期 → 级别赛 → 直接打开分享卡（本页内）
+    state.dates = new Set(state.index.dates.map((d) => d.date));
+    await refresh();
+    demoPick(true);
+  } else if (qp.get("pick") === "demo") {      // 自检：勾选模式 + 已选浮动条（&list=1 顺带展开上拉预览）
+    state.selectMode = true;
+    document.body.classList.add("picking");
+    $("#pick-mode").textContent = "完成勾选";
+    $("#pick-mode").classList.add("on");
+    demoPick(false);
+    if (qp.has("list")) { $("#pick-list").hidden = false; $("#pick-toggle").classList.add("open"); }
+  }
   if (qp.has("_demo")) sireSel.open();
 }
 
