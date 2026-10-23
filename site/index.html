@@ -77,6 +77,13 @@
   <!-- 分页条挂载点（app.js 渲染；页码按钮式，移植 yunji-web races.html .pager） -->
   <div id="pager-mount"></div>
 
+  <!-- 「站群导航」四站互跳（yunji / kzn / jbis / rc；方案说明 = docs/友情跳转方案.md）：
+       页脚收尾区挂载点（表格之后、colophon 之前 = 读完内容自然到达的出口，不占首屏）。
+       挂载点由 friend-links.js 渲染（data-site 排除自身，皮肤 jbis 与 jbis 站共用），
+       颜色经归一化变量取本站 token（--border/--muted-foreground/--primary/--accent/--foreground/
+       --card），脚本缺失/渲染失败时挂载点保持空白，无占位观感。 -->
+  <div data-friend-links data-site="rc" data-skin="jbis"></div>
+
   <footer>
     <span>数据来源 JBIS、Racing Post · 版权归原数据方所有</span>
     <span>仅供个人学习、研究 · 赛马应援 · 非商业用途 · 请以官方发布为准</span>
@@ -148,6 +155,7 @@
   </section>
 </div>
 <script src="vendor/qrcode.js"></script>
+<script src="friend-links.js" defer></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>
