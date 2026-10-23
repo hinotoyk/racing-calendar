@@ -31,7 +31,7 @@
       <div class="filter-chips" id="scope-chips"></div>
     </div>
     <div class="filter-row">
-      <span class="filter-label">场</span>
+      <span class="filter-label">竞马场</span>
       <div class="filter-chips" id="venue-chips"></div>
     </div>
     <div class="filter-row">
@@ -45,14 +45,7 @@
         <span class="sel-mount" id="m-siresire"></span>
         <span class="sel-mount" id="m-bms"></span>
         <input id="f-q" type="search" placeholder="馬名 / 騎手 / 生産牧場 / 馬主">
-        <select id="group-by">
-          <option value="">不分组</option>
-          <option value="sire">按 父</option>
-          <option value="sireSire">按 父父</option>
-          <option value="bms">按 母父</option>
-          <option value="jockey">按 騎手</option>
-          <option value="trainer">按 調教師</option>
-        </select>
+        <span class="sel-mount" id="m-group"></span>
       </div>
     </div>
   </div>
@@ -123,11 +116,11 @@
       <form id="share-form" hidden>
         <div class="sf-grid">
           <label>日期<input type="date" id="sf-date"></label>
-          <label>场<input id="sf-venue" placeholder="如 京都" required></label>
+          <label>竞马场<input id="sf-venue" placeholder="如 京都" required></label>
           <label>R<input type="number" id="sf-no" min="1" placeholder="11"></label>
           <label>比赛名<input id="sf-name" placeholder="如 菊花賞" required></label>
           <label>级别<select id="sf-level">
-            <option value="">无级别</option><option>G1</option><option>G2</option><option>G3</option>
+            <option value="">普通比赛</option><option>G1</option><option>G2</option><option>G3</option>
             <option>L</option><option>OP</option><option>地方重赏</option>
           </select></label>
           <label>场地<select id="sf-surface"><option>芝</option><option>ダ</option><option>障</option></select></label>

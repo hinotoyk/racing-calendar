@@ -133,6 +133,7 @@ table.yj-lib tbody tr.sub td b { color: var(--accent-foreground); margin-right: 
 /* ---------- 血统选择器（移植 yunji-web selector.js compact 模式） ---------- */
 .sel-mount { display: inline-flex; }
 .yj-sel { position: relative; width: 190px; }
+#m-group .yj-sel { width: 136px; }   /* 分组下拉：选项短，收窄不挤行 */
 .yj-sel .box {
   display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px;
   border: 1px solid #e3e3e3; border-radius: 7px; background: #fff; transition: border-color .15s, box-shadow .15s;
