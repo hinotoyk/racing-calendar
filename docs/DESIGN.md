@@ -199,9 +199,9 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 
 - **选择（行级）**：`#pick-mode` 开启勾选模式，复选框按行（馬）勾选，行键 = 比赛 + 馬番（`rowKeyOf`）；分享卡只包含勾选的行，同一场比赛的勾选行归入同一块（不整场塞入）。勾选框绝对定位在首格左侧预留区，不影响行内容排版。浮动条：已选 N 頭（点击展开上拉预览列表：馬名 · 场R · 比赛名，逐条可取消）+ 生成分享卡 + 清空；「完成勾选」在有勾选时直接进分享卡页。`?pick=demo` / `?share=demo` 为视觉自检深链（demoPick 按级别优先 G1→地方重赏→G2→G3→L 各取一场并展开为行级勾选）。
 - **编辑**：块可删除 / 上下移；「＋ 手动添加比赛」表单（日期 / 场 / R / 比赛名 / 级别 / 芝ダ / 距离 / 当地时间 / 时区 + 出走馬文本区每行 `枠 番 馬名 性齢 騎手`，性齢/騎手可省略，全角数字自动归一）；北京时间由 startTimeInstant 现算，跨日自动带 MM-dd。
-- **列配置**：附加列 chips（斤量 調教師 父 父父 母父 母 毛色 所属 馬主 生産牧場），默认斤量；列宽按内容实测，超限按余量收缩 + 单元格省略号。配置存 localStorage（`rc.share.cols` / `rc.share.scale`）。
+- **列配置**：附加列 chips（斤量 調教師 父 父父 母父 母 毛色 所属 馬主 生産牧場），默认斤量+父+母父；列宽按内容实测（每场独立），余量均摊占满行宽，超限按余量收缩 + 单元格省略号。配置存 localStorage（`rc.share.cols.v3` / `rc.share.scale`），追加列顺序恒按 EXTRA_COLS 排列。
 - **出图**：纯 canvas 零依赖（无 html2canvas），默认 2×（≈1976px 宽，可选 1×/3×），「导出 PNG」或「复制到剪贴板」（ClipboardItem，需安全上下文）。
-- **版式 v1.0.0**：报头「共 N 頭出走 M 场」（右上角不放日期信息）；卡内按 天 / 场地 分组标题（如「10月23日（金）」+ 场地小标题）；块头「场地NRR 比赛名」同行同字号 + **距离徽章**（ダ1900m，中性灰 chip）+ 级别徽章；页脚完整链接 https://hinotoyk.github.io/racing-calendar，QR 码暂注释（drawQR 保留随时可恢复）；附加列默认 斤量+父（偏好键 rc.share.cols.v2）。
+- **版式 v1.0.0**：报头「共 N 頭出走 M 场」（右上角不放日期信息）；卡内按 天 / 场地 分组标题（如「10月23日（金）」+ 场地小标题）；块头「场地NRR 比赛名」同行同字号 + **距离徽章**（ダ1900m）+ 级别徽章，标题与徽章实测避让右侧双时钟（海外 UTC+1 时区标更宽，放不下徽章则不画）；页脚左下两行（RACING CALENDAR / 「数据仅供个人学习、研究 · 赛马应援 · 非商业用途 · v1.0.0」）+ 右侧完整链接，QR 码暂注释（drawQR 保留随时可恢复）；附加列默认 斤量+父+母父（偏好键 rc.share.cols.v3），騎手在性齢后、追加列前。
 - **新标签页**：「生成分享卡」/「完成勾选」把载荷写 sessionStorage（`rc.share.payload`，新标签页自动复制 opener 的 sessionStorage）后 `window.open('?share=open')`；新页 main() 读取并渲染，返回列表即关窗。
 - **勾选数据源**：`rowsForPick()` 汇总**全部已加载日期**的行（不受当前筛选影响）——清空条件换场地继续勾选，之前勾的馬仍在卡里；卡片内比赛按日期升序、同日按数据序。
 - **品牌**：顶部 6px 青绿条；页脚 RACING CALENDAR 字标 + `hinotoyk.github.io/racing-calendar` + QR 码（`site/vendor/qrcode.js`，MIT · Kazuhiko Arase，typeNumber 自动 / ECC M，`isDark` 逐模块画进 canvas）。

@@ -48,7 +48,7 @@ const GRADE = {
 
 /* ================= 布局常量 ================= */
 const W = 880, M = 24, PAD = 32;
-const MAST_H = 100, HEAD_H = 58, COLH = 27, ROW_H = 36, FOOT_H = 62, GAP = 26;
+const MAST_H = 100, HEAD_H = 58, COLH = 27, ROW_H = 36, FOOT_H = 70, GAP = 26;
 const DATE_H = 42, VEN_H = 30;   // 日期 / 场地分组标题行高
 
 const esc = (s) => String(s ?? "");
@@ -225,18 +225,20 @@ function draw(scale, races, extras) {
     }
 
     const by = y;
-    // 块头：场地+R 与 比赛名同字号同行；随后 距离徽章 + 级别徽章
+    // 块头：场地+R 与 比赛名同字号同行；随后 距离徽章 + 级别徽章（标题、徽章都实测避让右侧双时钟）
     const title = `${race.venue ?? ''}${race.raceNo ?? ''}R　${race.raceName ?? ''}`;
-    const titleMax = R - PAD - 130;   // 右侧留双时钟
+    ctx.font = font(500, 11.5);
+    const clockW = tw(`当地 ${race.startTime ?? ''} ${tzTag(race)}`);   // 海外含 UTC+1 等时区标，比 130px 固定留白更宽
+    const clockStart = R - PAD - clockW;
     ctx.font = font(700, 19.5);
-    const tText = fit(title, titleMax);
+    const tText = fit(title, clockStart - PAD - 14);
     ctx.fillStyle = T.ink; ctx.textAlign = 'left';
     ctx.fillText(tText, PAD, by + 33);
     let nx = PAD + tw(tText) + 8;
     const dist = subStr(race);
-    if (dist && nx < R - PAD - 60) nx += chipBox(nx, by + 16.5, dist, 11, 600, T.sub, '#f4f4f5', 6.5, 19, 4.5) + 5;
+    if (dist && nx + 64 < clockStart - 8) nx += chipBox(nx, by + 16.5, dist, 11, 600, T.sub, '#f4f4f5', 6.5, 19, 4.5) + 5;
     const g = GRADE[race.level];
-    if (g && nx < R - PAD - 60) nx += chipBox(nx, by + 16.5, g[0], 11, 700, '#fff', g[1], 6.5, 19, 4.5) + 4;
+    if (g && nx + 52 < clockStart - 8) nx += chipBox(nx, by + 16.5, g[0], 11, 700, '#fff', g[1], 6.5, 19, 4.5) + 4;
 
     // 双时钟：当地 → 北京
     ctx.textAlign = 'right';
@@ -307,25 +309,22 @@ function draw(scale, races, extras) {
     y += race.runners.length * ROW_H + GAP;
   }
 
-  // ---- Footer（品牌 + 链接 + QR）----
+  // ---- Footer（品牌两行 + 免责文案 + 完整链接；QR 暂注释）----
   {
     const fy = y - GAP + 10;
     ctx.strokeStyle = T.line;
     ctx.beginPath(); ctx.moveTo(PAD, fy + .5); ctx.lineTo(R - PAD, fy + .5); ctx.stroke();
-    const fc = fy + 38;
-    ctx.fillStyle = T.teal; ctx.fillRect(PAD, fc - 15, 4, 20);
-    ctx.font = font(800, 13.5);
-    ctx.fillStyle = T.ink;
-    ctx.fillText('RACING CALENDAR', PAD + 13, fc);
-    const uw = tw('RACING CALENDAR');
-    ctx.font = font(400, 11.5); ctx.fillStyle = T.mut;
-    ctx.fillText('出走表分享', PAD + 13 + uw + 10, fc);
+    ctx.fillStyle = T.teal; ctx.fillRect(PAD, fy + 13, 4, 30);
+    ctx.font = font(800, 13.5); ctx.fillStyle = T.ink; ctx.textAlign = 'left';
+    ctx.fillText('RACING CALENDAR', PAD + 13, fy + 26);
+    ctx.font = font(400, 10.5); ctx.fillStyle = T.mut;
+    ctx.fillText('数据仅供个人学习、研究 · 赛马应援 · 非商业用途 · v1.0.0', PAD + 13, fy + 44);
     const qs = 40;
     /* QR 码暂不生成（drawQR 与 vendor/qrcode.js 都保留，需要时取消注释即可恢复）
     drawQR(R - PAD - qs, fy + (FOOT_H - qs) / 2, qs);
     */
     ctx.font = font(600, 12.5); ctx.fillStyle = T.tealInk; ctx.textAlign = 'right';
-    ctx.fillText(SHARE_URL, R - PAD, fc - 2);   // 完整打印链接
+    ctx.fillText(SHARE_URL, R - PAD, fy + 38);   // 完整打印链接
     ctx.textAlign = 'left';
   }
   ctx.restore();

@@ -197,6 +197,7 @@ table.yj-lib tbody tr.sub td b { color: var(--accent-foreground); margin-right: 
 .empty { padding: 56px 20px; text-align: center; font-size: 13px; color: var(--muted-foreground); }
 footer { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: center; align-items: center; font-size: 11.5px; color: #a3a3a3; }
 .ver { border: 1px solid #ececec; border-radius: 999px; padding: 1px 9px; font-size: 10.5px; color: #a3a3a3; font-family: Geist, sans-serif; }
+.powered { margin-top: 8px; text-align: center; font-size: 11px; color: #c4c8cd; letter-spacing: .5px; }
 
 .table-wrap { scrollbar-width: thin; scrollbar-color: #e5e5e5 transparent; }
 .yj-drop-scroll { scrollbar-width: thin; scrollbar-color: #e5e5e5 transparent; }
@@ -284,7 +285,7 @@ body.share-open #pick-bar { display: none; }
 .sh-btn:disabled { opacity: .4; cursor: default; }
 
 /* 分享视图：隐藏主列表，展示卡画布 + 编辑器 */
-body.share-open .filter-card, body.share-open .summary, body.share-open .table-wrap, body.share-open #pager-mount, body.share-open footer { display: none; }
+body.share-open .filter-card, body.share-open .summary, body.share-open .table-wrap, body.share-open #pager-mount, body.share-open footer, body.share-open .powered { display: none; }
 #share-view { margin-top: 4px; }
 .share-bar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
