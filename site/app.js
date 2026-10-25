@@ -210,6 +210,76 @@ function canonOf(raw) {
 }
 const displayOf = (canon) => state.alias?.display?.[canon] ?? canon;
 
+// ---------- 血统快捷标签（点击 → 对应下拉自动选中；本地存储，自由增删） ----------
+// 未保存过时用默认值；保存过则完全以本地为准（清空也是合法状态）。「＋当前」把下拉当前选择存为标签。
+const PED_TAGS_KEY = "rc.ped.tags.v1";
+const PED_TAGS_DEFAULT = {
+  sire: ["コントレイル", "キズナ", "シルバーステート", "リアルスティール"],
+  sireSire: ["ディープインパクト"],
+  bms: ["ディープインパクト"],
+};
+const PED_TAG_KEYS = ["sire", "sireSire", "bms"];
+const PED_TAG_LABEL = { sire: "父", sireSire: "父父", bms: "母父" };
+let pedTags = loadPedTags();
+
+function loadPedTags() {
+  try {
+    const j = JSON.parse(localStorage.getItem(PED_TAGS_KEY));
+    if (j && typeof j === "object" && !Array.isArray(j)) {
+      const out = {};
+      for (const k of PED_TAG_KEYS) {
+        out[k] = Array.isArray(j[k]) ? j[k].filter((x) => typeof x === "string" && x).slice(0, 12) : [];
+      }
+      return out;
+    }
+  } catch {}
+  return JSON.parse(JSON.stringify(PED_TAGS_DEFAULT));   // structuredClone 兜底：省事直接 JSON 往返
+}
+const savePedTags = () => {
+  try {
+    localStorage.setItem(PED_TAGS_KEY, JSON.stringify(pedTags));
+  } catch {}
+};
+
+function renderPedTags() {
+  const wrap = $("#ped-tags");
+  if (!wrap) return;
+  const selOf = { sire: sireSel, sireSire: sireSireSel, bms: bmsSel };
+  const group = (key) => {
+    const tags = pedTags[key] ?? [];
+    const cur = state[key];
+    const chips = tags.map((t) => {
+      const on = cur && canonOf(t) === cur;
+      return (
+        `<span class="filter-chip qt${on ? " on" : ""}" data-k="${key}" data-t="${esc(t)}" role="button" tabindex="0" title="点击选中 / 再点取消">` +
+        `${esc(t)}<i class="qt-x" data-k="${key}" data-t="${esc(t)}" title="移除此标签">✕</i></span>`
+      );
+    });
+    const add = cur
+      ? `<button class="filter-chip qt-add" data-add="${key}" title="把下拉当前选择（${esc(displayOf(cur))}）存为快捷标签">＋当前</button>`
+      : "";
+    const hint = tags.length || cur ? "" : '<i class="qt-empty">下拉选中后点「＋当前」保存</i>';
+    return `<span class="qt-group"><b class="qt-k">${PED_TAG_LABEL[key]}</b>${chips.join("")}${add}${hint}</span>`;
+  };
+  wrap.innerHTML =
+    PED_TAG_KEYS.map(group).join("") +
+    `<button class="qt-reset" id="qt-reset" title="恢复默认快捷标签（父：コントレイル / キズナ / シルバーステート / リアルスティール；父父·母父：ディープインパクト）">恢复默认</button>`;
+}
+
+function pickPedTag(key, tag) {
+  const sel = { sire: sireSel, sireSire: sireSireSel, bms: bmsSel }[key];
+  const c = canonOf(tag);
+  if (state[key] === c) {
+    state[key] = "";            // 再点一次已选中的 = 取消
+    sel?.setValue("");
+  } else {
+    state[key] = c;             // 下拉按 canonical 选中（展示名用标签原文，行内匹配走别名）
+    sel?.setValue(c, tag);
+  }
+  apply();
+  renderPedTags();
+}
+
 // ---------- 血统选择器（移植自 yunji-web public/selector.js 的 items + compact 模式） ----------
 // 搜索下拉：聚焦展开全列表 / 输入即过滤 / ↑↓+Enter 键盘导航 / 点击外部关闭 / ✕ 清空（空 = 全部）
 const selRegistry = [];
@@ -306,10 +376,10 @@ function makeSelector({ mount, placeholder, onPick }) {
       items = next;
       if (drop.classList.contains("open")) render(input.value);
     },
-    setValue(v) {
+    setValue(v, labelOverride) {
       selected = v || "";
       const it = items.find((x) => x.v === selected);
-      input.value = it ? labelOf(it) : (v || "");
+      input.value = it ? labelOf(it) : (labelOverride ?? v ?? "");
       clear.hidden = !selected && !input.value;
     },
     open() {
@@ -343,22 +413,39 @@ function optionsOf(rows, key) {
 }
 
 // ---------- 过滤 ----------
+// 北京时间升序（早的发走排上面）；北京时间 = UTC+8 固定偏移，按绝对时刻排序等价。
+// 同时刻并列时按 场次R / 竞马场 兜底；无时刻行（理论上没有）按原序殿后。
+const bjSortKey = (r) => {
+  const t = r.startTimeInstant ? Date.parse(r.startTimeInstant) : NaN;
+  return Number.isNaN(t) ? null : t;
+};
+function cmpBjTime(a, b) {
+  const ta = bjSortKey(a), tb = bjSortKey(b);
+  if (ta !== null && tb !== null)
+    return ta - tb || (a.raceNo ?? 0) - (b.raceNo ?? 0) || String(a.venue ?? "").localeCompare(String(b.venue ?? ""), "ja");
+  if (ta !== null) return -1;
+  if (tb !== null) return 1;
+  return 0;
+}
+
 function apply() {
   PG.page = 1;   // 筛选条件变化 → 归第 1 页
   const q = state.q.trim().toLowerCase();
-  state.rows = allRows().filter((r) => {
-    if (state.scope.size && !state.scope.has(r.scope)) return false;
-    if (state.venues.size && !state.venues.has(r.venue)) return false;
-    if (state.levels.size && !state.levels.has(r.level)) return false;
-    if (state.sire && canonOf(r.sire) !== state.sire) return false;
-    if (state.sireSire && canonOf(r.sireSire) !== state.sireSire) return false;
-    if (state.bms && canonOf(r.bms) !== state.bms) return false;
-    if (q) {
-      const hay = [r.horseName, r.jockey, r.breeder, r.trainer, r.owner, r.raceName].join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+  state.rows = allRows()
+    .filter((r) => {
+      if (state.scope.size && !state.scope.has(r.scope)) return false;
+      if (state.venues.size && !state.venues.has(r.venue)) return false;
+      if (state.levels.size && !state.levels.has(r.level)) return false;
+      if (state.sire && canonOf(r.sire) !== state.sire) return false;
+      if (state.sireSire && canonOf(r.sireSire) !== state.sireSire) return false;
+      if (state.bms && canonOf(r.bms) !== state.bms) return false;
+      if (q) {
+        const hay = [r.horseName, r.jockey, r.breeder, r.trainer, r.owner, r.raceName].join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    })
+    .sort(cmpBjTime);   // 全局按北京时间从小到大（跨日期交叉排）
   render();
 }
 
@@ -372,11 +459,11 @@ function updatePickBar() {
     $("#pick-toggle").classList.remove("open");
     return;
   }
-  // 上拉预览：按 rowsForPick 顺序列出勾选行（馬名 · 场R · 比赛名），逐条可取消
+  // 上拉预览：按北京时间升序列出勾选行（馬名 · 场R · 比赛名），逐条可取消（与分享卡块序一致）
   const items = [];
-  for (const r of rowsForPick()) {
+  const selRows = rowsForPick().filter((r) => state.selected.has(rowKeyOf(r))).sort(cmpBjTime);
+  for (const r of selRows) {
     const k = rowKeyOf(r);
-    if (!state.selected.has(k)) continue;
     items.push(`<div class="pl-item"><span class="pl-h">${esc(r.horseName ?? "")}</span>` +
       `<span class="pl-r">${esc(r.venue)}${r.raceNo}R · ${esc(r.raceName ?? "")}</span>` +
       `<button type="button" class="pl-x" data-k="${esc(k)}" title="取消勾选">✕</button></div>`);
@@ -385,6 +472,7 @@ function updatePickBar() {
 }
 
 // 已勾选行 → 分享卡 race 对象：同一场比赛的勾选行归入同一块，只带勾选的馬（数据源为全部已加载日期）
+// 卡内比赛块按北京时间升序（跨日交叉排；同刻按 场次R/竞马场 兜底），画布按数组顺序换天/换场地画标题
 function collectShareRaces() {
   const groups = new Map();
   for (const r of rowsForPick()) {
@@ -393,21 +481,27 @@ function collectShareRaces() {
     if (!groups.has(rk)) groups.set(rk, []);
     groups.get(rk).push(r);
   }
-  return [...groups.values()].map((rows) => {
-    const h = rows[0];
-    return {
-      raceKey: rkOf(h), date: h.date, dateLabel: h.dateLabel, weekday: h.weekday,
-      scope: h.scope, country: h.country, venue: h.venue, raceNo: h.raceNo,
-      raceName: h.raceName, level: h.level, surface: h.surface, distance: h.distance,
-      heads: h.heads ?? rows.length, startTime: h.startTime, startTimeTz: h.startTimeTz,
-      startTimeInstant: h.startTimeInstant,
-      runners: rows.map((r) => ({
-        frame: r.frame, num: r.num, horseName: r.horseName, sex: r.sex, age: r.age,
-        color: r.color, jockey: r.jockey, weight: r.weight, trainer: r.trainer, belongs: r.belongs,
-        owner: r.owner, breeder: r.breeder, sire: r.sire, sireSire: r.sireSire, dam: r.dam, bms: r.bms,
-      })),
-    };
-  });
+  const bjKey = (o) => {
+    const t = o.startTimeInstant ? Date.parse(o.startTimeInstant) : NaN;
+    return Number.isNaN(t) ? Infinity : t;   // 无时刻（手动添加漏填）殿后
+  };
+  return [...groups.values()]
+    .map((rows) => {
+      const h = rows[0];
+      return {
+        raceKey: rkOf(h), date: h.date, dateLabel: h.dateLabel, weekday: h.weekday,
+        scope: h.scope, country: h.country, venue: h.venue, raceNo: h.raceNo,
+        raceName: h.raceName, level: h.level, surface: h.surface, distance: h.distance,
+        heads: h.heads ?? rows.length, startTime: h.startTime, startTimeTz: h.startTimeTz,
+        startTimeInstant: h.startTimeInstant,
+        runners: rows.map((r) => ({
+          frame: r.frame, num: r.num, horseName: r.horseName, sex: r.sex, age: r.age,
+          color: r.color, jockey: r.jockey, weight: r.weight, trainer: r.trainer, belongs: r.belongs,
+          owner: r.owner, breeder: r.breeder, sire: r.sire, sireSire: r.sireSire, dam: r.dam, bms: r.bms,
+        })),
+      };
+    })
+    .sort((a, b) => bjKey(a) - bjKey(b) || (a.raceNo ?? 0) - (b.raceNo ?? 0) || String(a.venue ?? "").localeCompare(String(b.venue ?? ""), "ja"));
 }
 
 // 进入分享卡（新标签页）：载荷经 sessionStorage 复制给新页，?share=open 读取后渲染
@@ -512,6 +606,7 @@ function emptyText() {
 }
 
 // 渲染当前视图：前端内存分页，每页最多 PG.size 条数据行；≤100 行直接 innerHTML，无需分块
+let pageRows = [];   // 当前页实际展示的行（不分组 = 切片；分组 = 各组页内区间展开），「全选本页」依据
 function render() {
   PG.size ||= pgSizeDef();   // 首次惰性初始化（PC 100 / mb 20）
   const rows = state.rows;
@@ -522,6 +617,7 @@ function render() {
 
   const body = $("#entry-table tbody");
   let pages = 1, shown = 0;
+  pageRows = [];
 
   if (!state.group) {
     // 不分组：数据行等宽切片
@@ -529,7 +625,8 @@ function render() {
     PG.page = Math.min(Math.max(PG.page, 1), pages);   // 页码越界修正
     const start = (PG.page - 1) * PG.size;
     shown = Math.min(rows.length - start, PG.size);   // 本页数据行数（末页为余数）
-    body.innerHTML = rows.slice(start, start + PG.size).map(rowHtml).join("");
+    pageRows = rows.slice(start, start + PG.size);
+    body.innerHTML = pageRows.map(rowHtml).join("");
   } else {
     // 分组视图：整组分页——页内按整组装填，装不下整组就整组移到下一页（最后一组不截断）；
     // 单组超过一页容量时才组内截断，跨页组在新页自动重复组头；组头 tr.sub 不占条数
@@ -567,7 +664,9 @@ function render() {
     for (const seg of packed[PG.page - 1] ?? []) {
       const gr = new Set(seg.list.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
       parts.push(`<tr class="sub"><td colspan="${COLSPAN}"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
-      parts.push(...seg.list.slice(seg.a, seg.b).map(rowHtml));
+      const segRows = seg.list.slice(seg.a, seg.b);
+      parts.push(...segRows.map(rowHtml));
+      pageRows.push(...segRows);
       shown += seg.b - seg.a;
     }
     body.innerHTML = parts.join("");
@@ -576,6 +675,7 @@ function render() {
   $("#count").innerHTML = `共 <b>${rows.length}</b> 頭 · <b>${races}</b> R` +
     (pages > 1 ? ` <span class="muted">当前第 ${PG.page} / ${pages} 页 · 显示 ${shown} 条</span>` : "");
   renderPager(pages, rows.length);
+  $("#sel-page").hidden = $("#desel-page").hidden = !state.selectMode || !pageRows.length;   // 全选/取消本页：仅勾选模式且有行时显示
 }
 
 // 数据实际覆盖范围（采集窗口从 JST 当天起，更早日期从未采集）
@@ -649,6 +749,7 @@ function resetFilters() {
   sireSireSel?.setValue("");
   bmsSel?.setValue("");
   groupSel?.setValue("");
+  renderPedTags();
   defaultDates();
   defaultScope();
   refresh();
@@ -675,12 +776,47 @@ async function main() {
   defaultScope();
 
   // 血统选择器（参考 yunji selector.js：搜索下拉 + 键盘导航 + 点击外部关闭）
-  sireSel = makeSelector({ mount: $("#m-sire"), placeholder: "父", onPick: (v) => { state.sire = v || ""; apply(); } });
-  sireSireSel = makeSelector({ mount: $("#m-siresire"), placeholder: "父父", onPick: (v) => { state.sireSire = v || ""; apply(); } });
-  bmsSel = makeSelector({ mount: $("#m-bms"), placeholder: "母父", onPick: (v) => { state.bms = v || ""; apply(); } });
+  sireSel = makeSelector({ mount: $("#m-sire"), placeholder: "父", onPick: (v) => { state.sire = v || ""; apply(); renderPedTags(); } });
+  sireSireSel = makeSelector({ mount: $("#m-siresire"), placeholder: "父父", onPick: (v) => { state.sireSire = v || ""; apply(); renderPedTags(); } });
+  bmsSel = makeSelector({ mount: $("#m-bms"), placeholder: "母父", onPick: (v) => { state.bms = v || ""; apply(); renderPedTags(); } });
   // 分组选择器：与血统下拉同款；空 = 不分组
   groupSel = makeSelector({ mount: $("#m-group"), placeholder: "不分组", onPick: (v) => { state.group = v || ""; render(); } });
   groupSel.setItems(GROUP_OPTIONS);
+
+  // 血统快捷标签行：点标签 → 对应下拉选中；✕ 移除；＋当前 存标签；恢复默认
+  $("#ped-tags").addEventListener("click", (e) => {
+    const x = e.target.closest("i.qt-x");
+    if (x) {
+      const { k, t } = x.dataset;
+      pedTags[k] = (pedTags[k] ?? []).filter((s) => canonOf(s) !== canonOf(t));
+      savePedTags();
+      renderPedTags();
+      return;
+    }
+    if (e.target.closest("#qt-reset")) {
+      pedTags = JSON.parse(JSON.stringify(PED_TAGS_DEFAULT));
+      savePedTags();
+      renderPedTags();
+      return;
+    }
+    const add = e.target.closest("[data-add]");
+    if (add) {
+      const key = add.dataset.add;
+      const c = state[key];
+      if (!c) return;
+      const tags = pedTags[key] ?? (pedTags[key] = []);
+      if (!tags.some((s) => canonOf(s) === c)) {
+        tags.push(displayOf(c));
+        if (tags.length > 12) tags.shift();   // 每项上限 12 个，超出丢最旧
+        savePedTags();
+      }
+      renderPedTags();
+      return;
+    }
+    const tag = e.target.closest(".qt[data-t]");
+    if (tag) pickPedTag(tag.dataset.k, tag.dataset.t);
+  });
+  renderPedTags();
 
   // 事件
   $("#reset").onclick = resetFilters;
@@ -764,8 +900,20 @@ async function main() {
     document.body.classList.toggle("picking", state.selectMode);
     $("#pick-mode").textContent = state.selectMode ? "完成勾选" : "勾选比赛";
     $("#pick-mode").classList.toggle("on", state.selectMode);
+    $("#sel-page").hidden = $("#desel-page").hidden = !state.selectMode || !pageRows.length;
     // 完成勾选：已有勾选 → 直接进分享卡页（新开一页数据）；没有则仅退出勾选模式
     if (!state.selectMode && state.selected.size) goShare();
+  };
+  // 全选 / 取消本页：当前筛选 + 当前页展示的全部行（马）；render 重画勾选框（不重置页码）
+  $("#sel-page").onclick = () => {
+    for (const r of pageRows) state.selected.add(rowKeyOf(r));
+    render();
+    updatePickBar();
+  };
+  $("#desel-page").onclick = () => {
+    for (const r of pageRows) state.selected.delete(rowKeyOf(r));
+    render();
+    updatePickBar();
   };
   $("#entry-table").addEventListener("change", (e) => {
     const b = e.target.closest(".pick-box");

@@ -83,6 +83,34 @@ a { color: var(--primary); text-decoration: none; }
 .filter-chip.off { opacity: .45; cursor: default; }
 .filter-chip.off:hover { border-color: #e3e3e3; background: #fff; color: #444; }
 
+/* 血统快捷标签（点击 → 对应下拉选中；✕ 移除；＋当前 存标签） */
+.ped-tags { row-gap: 5px; }
+.qt-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.qt-group + .qt-group { margin-left: 10px; }
+.qt-k { font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #8a8a8a; margin-right: 2px; }
+.qt { cursor: pointer; }
+.qt .qt-x {
+  font-style: normal; margin-left: 5px; margin-right: -4px; padding: 1px 3px;
+  font-size: 10px; line-height: 1; opacity: .4; border-radius: 4px;
+}
+.qt .qt-x:hover { opacity: 1; background: rgba(239, 68, 68, .12); color: #ef4444; }
+.qt-add { border-style: dashed; color: var(--muted-foreground); }
+.qt-empty { font-size: 11px; color: #b6b6b6; }
+.qt-reset {
+  margin-left: auto; align-self: center; border: none; background: none; padding: 2px 4px;
+  font-size: 11px; color: var(--muted-foreground); cursor: pointer; text-decoration: underline dotted;
+  white-space: nowrap;
+}
+.qt-reset:hover { color: #ef4444; }
+
+/* 「全选本页」：内联跟在汇总条计数文字后（.summary 是 baseline flex，不能用 margin-left:auto 推右） */
+.sel-page {
+  flex: none; margin-left: 0; border: 1px solid var(--border); border-radius: 8px; padding: 3px 10px;
+  font-size: 12px; color: var(--muted-foreground); background: #fff; cursor: pointer; transition: all .15s;
+}
+.sel-page:hover { border-color: rgba(10, 167, 160, .55); color: var(--accent-foreground); background: #f7fdfd; }
+.sel-page[hidden] { display: none; }
+
 select, input {
   height: 28px; border: 1px solid #e3e3e3; border-radius: 7px; background: #fff;
   padding: 0 9px; font-size: 12.5px; color: var(--foreground); font-family: inherit;
