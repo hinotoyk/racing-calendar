@@ -91,6 +91,7 @@ _site/index.html, app.js, style.css       # 静态页
 _site/data/races/**                       # 原始快照（可选择不发布）
 _site/derived/index.json                  # 日期 / 周 / 场 / 比赛格索引
 _site/derived/{YYYY-MM-DD}.json           # 扁平行（表格与 CSV 共用）
+_site/derived/horse-aliases.json          # 马名别名字典（canonical 合并同名马；下拉/分组/透视共用）
 _site/excel/races-{ISO周}.xlsx            # 每周工作簿
 ```
 
@@ -102,7 +103,7 @@ XLSX 由 `src/lib/xlsx.js` 零依赖写出（ZIP store + inlineStr），Excel / 
 
 - 日期 chips：默认最新比赛周，可多选；
 - 场地 chips 默认 JRA（当日无中央出走表时退回 NAR；全部 = 清空多选）；竞马场 / 级别 chips（计数，无数据置灰），级别展示名「无级别」→「普通比赛」；
-- 父 / 父父 / 母父 下拉（按入头数排序，取前 400）；
+- 父 / 父父 / 母父 下拉（按入头数排序，取前 400）：按 canonical 合并同名马——两源写法不同（JBIS「Saxon Warrior(JPN)」/ RP「Saxon Warrior」、JBIS「ディープインパクト」/ RP「Deep Impact」）归为一条，展示名取行内最多写法，搜索匹配全部别名（`src/lib/horse-name.mjs` 归一 + `derived/horse-aliases.json` 别名）；过滤、分组、Excel 透视同口径，表格/CSV 保留原始写法；
 - 关键字过滤；分组下拉与血统下拉同款（父 / 父父 / 母父 / 騎手 / 調教師，空 = 不分组）；
 - 前端内存分页：PC 一页 100 条、mb（<768px）一页 20 条，每页条数按设备固定不可选；页码按钮式分页条（移植 yunji-web races.html `.pager`），768px 断点 matchMedia 实时切换（老 Safari addListener 兜底）；筛选条件变化归第 1 页；分组视图整组分页——页内按整组装填，装不下整组移到下一页（最后一组不截断），单组超过一页容量才组内截断，跨页组自动重复组头，组头 `tr.sub` 不占条数；
 - CSV 导出（UTF-8 BOM）与每周 Excel 下载；
@@ -190,7 +191,9 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 
 - 抓取层依赖 SL 页面结构（Next.js `__NEXT_DATA__`）；`probe()` 可随时自检。
 - 只覆盖英国当天卡片；赛前 1-2 日的未来卡片在 RP 站有但被 WAF 挡。
-- 无 枠番 / 生産牧場 / 父父 / 胜负用时；体重为英石-磅换算值。
+- 无 枠番 / 生産牧場 / 胜负用时；体重为英石-磅换算值。
+- **父父补全借道 JBIS**：SL 档案父系引用 id 恒为页面自身 id（数据缺陷）无法链查，改为 父名/母父名 → JBIS 馬検索（`src/lib/horse-lookup.js`，缓存 `data/pedigree/name-lookup.json`）解析到 JBIS id 后取行内「父」列；消歧 = 名字归一精确匹配 +「種」标签 + 牡 + 生年 ≤ 当年-5 且 ≥ 当年-45（现代父系年龄下限，同名老马如 Highland Reel 1964 直接排除），英文名搜索但行内显示片假名时对前 5 行补抓马页核对官方英文名，不能唯一确定时留空。JBIS 未收录的名字（部分 US/挽马种公马）父父为空。
+- **别名字典同名异马冲突**：build 时现役种公马（`jbis-sire.json` 缓存键，出馬表里当过「父」）优先于 lookup「種」标签命中、再优先于其它声明，同分先到先得并打日志（`node src/backfill-lookup.js --revalidate` 可按新规则重验冲突/老马误绑并重写文档）。
 - US 场的 Woodbine 实际在加拿大（SL 标 USA），时区覆写为 America/Toronto。
 
 ## 9. 出馬表分享卡（`site/share.js`）

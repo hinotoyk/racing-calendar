@@ -6,7 +6,7 @@ JBIS（jbis.or.jp）**出走表**（出馬表）采集与检索：按 **中央 /
 
 - **设计文档**：[docs/DESIGN.md](docs/DESIGN.md)（URL 结构、数据契约、比赛格归一、采集与导出）
 - **数据**：`data/races/{日期}/{场}.json`（每日 × 场一张出走表）+ `data/races/manifest.json`
-- **血统缓存**：`data/pedigree/`（父→父父、马→全血统；不进 git、不发布）
+- **血统缓存**：`data/pedigree/`（父→父父、马→全血统、名字→JBIS id 解析；入库供 CI 增量复用）
 
 ## 快速开始
 
@@ -75,7 +75,18 @@ node src/collect-sources.js --source racingpost --countries all
 2. Settings → Actions → General → Workflow permissions 勾选 **Read and write permissions**（update-data 需要写入仓库）
 3. 定时任务说明：cron 在高峰期可能延迟数分钟到数十分钟；定时 workflow 只在默认分支（main）生效；私有仓库连续 60 天无活动会被暂停、且每分钟计费（每日 1 次 × ~20 分钟 ≈ 600 分钟/月，免费额度 2,000 分钟；公开仓库不计费）
 
-数据落库范围：`data/races/`（源文档 `.json.gz`）+ `data/pedigree/`（血统缓存**单文件包** `jbis-sire.json` / `jbis-horse.json` / `rp-horse.json`，文件数恒定、体积线性增长）——CI 每次运行增量复用缓存，不为已抓过的马重复请求上游。
+数据落库范围：`data/races/`（源文档 `.json.gz`）+ `data/pedigree/`（血统缓存**单文件包** `jbis-sire.json` / `jbis-horse.json` / `rp-horse.json` / `name-lookup.json`，文件数恒定、体积线性增长）——CI 每次运行增量复用缓存，不为已抓过的马重复请求上游。
+
+## 马名归一（canonical 合并）
+
+同一匹马在不同源写法不同（JBIS「Saxon Warrior(JPN)」/ RP「Saxon Warrior」、JBIS「ディープインパクト」/ RP「Deep Impact」），站点按 **canonical（JBIS id）合并**：
+
+- 父 / 父父 / 母父下拉、分组、筛选按 canonical 聚合，展示名取行内最多写法，表格/CSV 保留原形
+- 下拉搜索同时匹配全部别名（「deep impact」能搜到 ディープインパクト）
+- 归一规则与别名数据见 `src/lib/horse-name.mjs`；构建产物 `derived/horse-aliases.json`
+- 别名来源：JBIS 马页官方英文名（`nameEn`）+ JBIS 馬検索名字解析（`name-lookup.json`，消歧规则：名字精确匹配 +「種」标签 + 生年上下限，同名老马排除；同名异马冲突时现役种公马优先）
+
+RP 源的父父（SL 档案父系 id 缺陷无法链查）同样借道 JBIS 馬検索补全；一次性回填用 `node src/backfill-lookup.js`（已缓存的自动跳过）。
 
 ## 已知限制
 

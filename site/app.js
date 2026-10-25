@@ -7,6 +7,7 @@
 //   - 表列：当地比赛时间（日付+発走，附场馆）/ 北京时间（由 startTimeInstant 换算）/ 比赛名 / 距离 /
 //           枠 / 番 / 馬名 / 性齢 / 斤量 / 騎手 / 調教師 / 父 / 父父 / 母 / 母父
 import { unpackRows } from "./codec.mjs";
+import { normalizeHorseName } from "./horse-name.mjs";
 
 const $ = (s) => document.querySelector(s);
 const JBIS = "https://www.jbis.or.jp";
@@ -29,6 +30,8 @@ const state = {
   selectMode: false,          // 勾选模式（分享卡入口）
   selected: new Set(),        // 已勾选行键（行级勾选：同一场比赛的勾选行在分享卡里归入同一块）
   rows: [],
+  alias: null,        // derived/horse-aliases.json：alias（归一化别名→canonical）/ display（canonical→展示名）
+  aliasGroups: null,  // canonical → 归一化别名数组（血统下拉搜索用）
 };
 
 // 分组选项（血统下拉同款：v = 分组键，label = 展示名）；空 = 不分组
@@ -191,6 +194,22 @@ function renderLevels() {
     .join("");
 }
 
+// ---------- 马名 canonical（别名归一；别名字典缺失时退化为按归一化名合并） ----------
+// 同一匹马在两源的写法不同（JBIS「Saxon Warrior(JPN)」/ RP「Saxon Warrior」、
+// JBIS「ディープインパクト」/ RP「Deep Impact」），下拉/过滤/分组一律按 canonical 键合并，
+// 展示名用行内出现最多的原始写法（displayOf），原形保留在表格与 CSV 中不动。
+const canonMemo = new Map();
+function canonOf(raw) {
+  if (!raw) return raw;
+  let c = canonMemo.get(raw);
+  if (c !== undefined) return c;
+  const k = normalizeHorseName(raw);
+  c = state.alias?.alias?.[k] ?? k;
+  canonMemo.set(raw, c);
+  return c;
+}
+const displayOf = (canon) => state.alias?.display?.[canon] ?? canon;
+
 // ---------- 血统选择器（移植自 yunji-web public/selector.js 的 items + compact 模式） ----------
 // 搜索下拉：聚焦展开全列表 / 输入即过滤 / ↑↓+Enter 键盘导航 / 点击外部关闭 / ✕ 清空（空 = 全部）
 const selRegistry = [];
@@ -218,8 +237,15 @@ function makeSelector({ mount, placeholder, onPick }) {
 
   function render(q) {
     q = (q ?? "").trim().toLowerCase();
+    const qn = normalizeHorseName(q);   // 别名按归一化比较（空白/标点/大小写不敏感，跨语言走别名）
     clear.hidden = !q && !selected;
-    list = items.filter((it) => !q || labelOf(it).toLowerCase().includes(q) || it.v.toLowerCase().includes(q));
+    list = items.filter(
+      (it) =>
+        !q ||
+        labelOf(it).toLowerCase().includes(q) ||
+        it.v.toLowerCase().includes(q) ||
+        (qn && it.al?.some((a) => a.includes(qn)))
+    );
     if (!list.length) {
       drop.innerHTML = '<div class="empty-row">未找到匹配选项</div>';
       return;
@@ -293,17 +319,27 @@ function makeSelector({ mount, placeholder, onPick }) {
   };
 }
 
-// key 行的选项列表（按头数降序，取前 400）
+// key 行的选项列表（canonical 合并同名马，按头数降序，取前 400）
 function optionsOf(rows, key) {
-  const m = new Map();
+  const m = new Map(); // canon → { n, raws: Map(原始写法→行数) }
   for (const r of rows) {
-    const v = r[key];
-    if (v) m.set(v, (m.get(v) ?? 0) + 1);
+    const raw = r[key];
+    if (!raw) continue;
+    const c = canonOf(raw);
+    const e = m.get(c) ?? { n: 0, raws: new Map() };
+    e.n++;
+    e.raws.set(raw, (e.raws.get(raw) ?? 0) + 1);
+    m.set(c, e);
   }
   return [...m.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
+    .sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0], "ja"))
     .slice(0, 400)
-    .map(([v, n]) => ({ v, n }));
+    .map(([c, e]) => ({
+      v: c,
+      label: displayOf(c),
+      n: e.n,
+      al: state.aliasGroups?.[c] ?? [normalizeHorseName(c)],   // 归一化别名（下拉搜索用）
+    }));
 }
 
 // ---------- 过滤 ----------
@@ -314,9 +350,9 @@ function apply() {
     if (state.scope.size && !state.scope.has(r.scope)) return false;
     if (state.venues.size && !state.venues.has(r.venue)) return false;
     if (state.levels.size && !state.levels.has(r.level)) return false;
-    if (state.sire && r.sire !== state.sire) return false;
-    if (state.sireSire && r.sireSire !== state.sireSire) return false;
-    if (state.bms && r.bms !== state.bms) return false;
+    if (state.sire && canonOf(r.sire) !== state.sire) return false;
+    if (state.sireSire && canonOf(r.sireSire) !== state.sireSire) return false;
+    if (state.bms && canonOf(r.bms) !== state.bms) return false;
     if (q) {
       const hay = [r.horseName, r.jockey, r.breeder, r.trainer, r.owner, r.raceName].join(" ").toLowerCase();
       if (!hay.includes(q)) return false;
@@ -497,10 +533,12 @@ function render() {
   } else {
     // 分组视图：整组分页——页内按整组装填，装不下整组就整组移到下一页（最后一组不截断）；
     // 单组超过一页容量时才组内截断，跨页组在新页自动重复组头；组头 tr.sub 不占条数
+    // 血统三键按 canonical 合组（同一匹马两种写法进同一组），组头显示展示名
     const key = state.group;
+    const pedKey = key === "sire" || key === "sireSire" || key === "bms";
     const groups = new Map();
     for (const r of rows) {
-      const k = r[key] || "—";
+      const k = pedKey && r[key] ? canonOf(r[key]) : r[key] || "—";
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(r);
     }
@@ -528,7 +566,7 @@ function render() {
     const parts = [];
     for (const seg of packed[PG.page - 1] ?? []) {
       const gr = new Set(seg.list.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
-      parts.push(`<tr class="sub"><td colspan="${COLSPAN}"><b>${label}：${esc(seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
+      parts.push(`<tr class="sub"><td colspan="${COLSPAN}"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
       parts.push(...seg.list.slice(seg.a, seg.b).map(rowHtml));
       shown += seg.b - seg.a;
     }
@@ -618,6 +656,15 @@ function resetFilters() {
 
 async function main() {
   state.index = await json("derived/index.json");
+  // 马名别名字典（canonical 合并同名马；缺失时退化为按归一化名合并）
+  try {
+    state.alias = await json("derived/horse-aliases.json");
+    const groups = {};
+    for (const [a, c] of Object.entries(state.alias.alias ?? {})) (groups[c] ??= []).push(a);
+    state.aliasGroups = groups;
+  } catch {
+    state.alias = null;
+  }
   if (!state.index.dates.length) {
     $("#count").textContent = "尚无出走表数据";
     $("#empty").hidden = false;

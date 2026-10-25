@@ -5,6 +5,7 @@ import path from "node:path";
 import { buildXlsx } from "./lib/xlsx.js";
 import { readGz } from "./lib/bundle.js";
 import { assertRoundTrip, packRows, unpackRows } from "./lib/rows-codec.mjs";
+import { normalizeHorseName } from "./lib/horse-name.mjs";
 import { countryGroupOf, LEVELS, TRACK_CENTRAL, TRACK_LOCAL, klassToLevel, scopeOfVenue } from "./race-config.js";
 
 // CLI 覆盖（fixture/测试用）：node src/build.js --data-dir <dir> --out-dir <dir>
@@ -135,6 +136,8 @@ fs.rmSync(OUT_DIR, { recursive: true, force: true });
 fs.cpSync(SITE_DIR, OUT_DIR, { recursive: true });
 // 字典包编解码模块复制进站点（app.js 以 type=module import；单一出处见 src/lib/rows-codec.mjs）
 fs.copyFileSync(path.resolve("src", "lib", "rows-codec.mjs"), path.join(OUT_DIR, "codec.mjs"));
+// 马名规范化模块同样复制进站点（app.js 下拉合并/搜索用）
+fs.copyFileSync(path.resolve("src", "lib", "horse-name.mjs"), path.join(OUT_DIR, "horse-name.mjs"));
 // 原始快照随站点发布（血统缓存除外）
 if (fs.existsSync(DATA_DIR)) {
   fs.cpSync(DATA_DIR, path.join(OUT_DIR, "data", "races"), { recursive: true });
@@ -154,6 +157,105 @@ const index = {
 const venueMap = new Map();
 const klassMap = new Map();
 const weekMap = new Map();
+
+// ---------- 马名别名（canonical 合并） ----------
+// canonical = JBIS id（有则）否则归一化名自身；展示名 = 当前行内出现最多的原始写法（原形保留）。
+// 数据源：data/pedigree/name-lookup.json（RP 名→JBIS id）+ jbis-sire/jbis-horse 缓存
+// （rec.name 出馬表表记 / rec.nameEn 官方英文名 / 各血统引用 {id,name}）。
+// 同名异马冲突（同名老马 vs 现役种公马）按优先级解决：
+//   3 = jbis-sire.json 键（出馬表里当过「父」= 现役种公马） > 2 = lookup 命中「種」标签 > 1 = 其它；
+// 同分先到先得并记日志。
+function buildAliasDict(nameCounts) {
+  const claims = new Map(); // 归一化名 → [{canon, prio, src}]
+  let conflicts = 0;
+  const conflictNotes = [];
+  const readJson = (p) => {
+    try {
+      return JSON.parse(fs.readFileSync(p, "utf8"));
+    } catch {
+      return null;
+    }
+  };
+
+  const pedDir = path.resolve("data", "pedigree");
+  const lookup = readJson(path.join(pedDir, "name-lookup.json")) ?? {};
+  const jbisSire = readJson(path.join(pedDir, "jbis-sire.json")) ?? {};
+  const jbisHorse = readJson(path.join(pedDir, "jbis-horse.json")) ?? {};
+  const activeSires = new Set(Object.keys(jbisSire)); // 出馬表里当过「父」的 id = 现役种公马
+  const prioOf = (canon, base) => (activeSires.has(canon) ? 3 : base);
+  const addClaim = (raw, canon, prio, src) => {
+    const k = normalizeHorseName(raw);
+    if (!k || !canon) return;
+    if (!claims.has(k)) claims.set(k, []);
+    const arr = claims.get(k);
+    if (arr.some((c) => c.canon === canon)) return;
+    arr.push({ canon, prio, src });
+  };
+
+  for (const rec of Object.values(lookup)) {
+    if (!rec.resolvedId) continue;
+    const base = rec.stallion ? 2 : 1;
+    if (rec.name) addClaim(rec.name, rec.resolvedId, prioOf(rec.resolvedId, base), "lookup");
+    if (rec.resolvedName) addClaim(rec.resolvedName, rec.resolvedId, prioOf(rec.resolvedId, base), "lookup");
+    if (rec.sire?.name && rec.sire?.id) addClaim(rec.sire.name, rec.sire.id, prioOf(rec.sire.id, 1), "lookup.sire");
+  }
+  for (const rec of Object.values(jbisSire)) {
+    if (rec.name && rec.id) addClaim(rec.name, rec.id, 3, "sire");
+    if (rec.nameEn && rec.id) addClaim(rec.nameEn, rec.id, 3, "sire.nameEn");
+    if (rec.sire?.name && rec.sire?.id) addClaim(rec.sire.name, rec.sire.id, prioOf(rec.sire.id, 1), "sire.sire");
+  }
+  for (const rec of Object.values(jbisHorse)) {
+    if (rec.name && rec.id) addClaim(rec.name, rec.id, prioOf(rec.id, 1), "horse");
+    if (rec.nameEn && rec.id) addClaim(rec.nameEn, rec.id, prioOf(rec.id, 1), "horse.nameEn");
+    for (const k of ["sire", "sireSire", "sireDam", "dam", "damSire", "damDam"]) {
+      if (rec[k]?.name && rec[k]?.id) addClaim(rec[k].name, rec[k].id, prioOf(rec[k].id, 1), `horse.${k}`);
+    }
+  }
+
+  const alias = new Map(); // 归一化名 → canonical
+  for (const [k, arr] of claims) {
+    arr.sort((a, b) => b.prio - a.prio); // 稳定排序：同分保持先到先得
+    alias.set(k, arr[0].canon);
+    const losers = arr.filter((c) => c.canon !== arr[0].canon);
+    if (losers.length) {
+      conflicts++;
+      conflictNotes.push(
+        `${k}: ${arr[0].canon}(${arr[0].src}) 胜 ${losers.map((l) => `${l.canon}(${l.src})`).join(", ")}`
+      );
+    }
+  }
+
+  // 行内写法计数：展示名依据 + 未入库名字的 canonical 兜底（同名异写至少归一化合并）
+  const forms = new Map(); // canonical → Map(原始写法 → 行数)
+  for (const [raw, n] of nameCounts) {
+    const k = normalizeHorseName(raw);
+    const canon = alias.get(k) ?? k;
+    if (!alias.has(k)) alias.set(k, canon);
+    const fm = forms.get(canon) ?? new Map();
+    fm.set(raw, (fm.get(raw) ?? 0) + n);
+    forms.set(canon, fm);
+  }
+  const display = {};
+  for (const [canon, fm] of forms) {
+    display[canon] = [...fm.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))[0][0];
+  }
+  if (conflictNotes.length) console.log(`[alias] 同名异马冲突 ${conflicts} 处（现役种公马优先）:\n  ${conflictNotes.join("\n  ")}`);
+  return {
+    schema: "horse.aliases/v1",
+    generatedAt: new Date().toISOString(),
+    alias: Object.fromEntries([...alias].sort()),
+    display,
+  };
+}
+
+const nameCounts = new Map();
+const countPedNames = (rows) => {
+  for (const r of rows)
+    for (const k of ["sire", "sireSire", "bms"]) {
+      const v = r[k];
+      if (v) nameCounts.set(v, (nameCounts.get(v) ?? 0) + 1);
+    }
+};
 
 for (const date of listDates()) {
   const files = docFilesOf(date);
@@ -184,6 +286,7 @@ for (const date of listDates()) {
   if (!rows.length) continue;
 
   for (const r of rows) klassMap.set(r.level, (klassMap.get(r.level) ?? 0) + 1);
+  countPedNames(rows);
 
   rows.sort(
     (a, b) =>
@@ -219,6 +322,13 @@ index.venues = [...venueMap.values()].sort((a, b) => a.track.localeCompare(b.tra
 index.sources = [...new Set(index.venues.map((v) => v.source))].sort();
 index.levels = LEVELS.map((level) => ({ level, count: klassMap.get(level) ?? 0 }));
 
+// ---------- 马名别名字典落盘（前端下拉/分组合并 + Excel 透视共用） ----------
+const aliasDict = buildAliasDict(nameCounts);
+const canonOf = (raw) => aliasDict.alias[normalizeHorseName(raw)] ?? normalizeHorseName(raw);
+const displayOf = (canon) => aliasDict.display[canon] ?? canon;
+fs.writeFileSync(path.join(DERIVED, "horse-aliases.json"), JSON.stringify(aliasDict));
+console.log(`[alias] ${Object.keys(aliasDict.alias).length} 别名 / ${Object.keys(aliasDict.display).length} canonical → derived/horse-aliases.json`);
+
 // ---------- 每周 Excel ----------
 const COLS = [
   "日付", "曜日", "区分", "場", "R", "発走", "レース名", "比赛格", "分组",
@@ -243,9 +353,10 @@ const instantOffset = (iso) => (iso ? iso.slice(-6) : ""); // "+01:00"
 function pivot(rows, key, label) {
   const m = new Map();
   for (const r of rows) {
-    const k = r[key];
-    if (!k) continue;
-    const e = m.get(k) ?? { name: k, runners: 0, races: new Set(), jra: 0, nar: 0, overseas: 0 };
+    const raw = r[key];
+    if (!raw) continue;
+    const k = canonOf(raw); // 同一匹马的不同写法（JBIS 片假名/国码表记 vs RP 英文名）合并统计
+    const e = m.get(k) ?? { name: displayOf(k), runners: 0, races: new Set(), jra: 0, nar: 0, overseas: 0 };
     e.runners++;
     e.races.add(`${r.date}/${r.track}/${r.raceNo}`);
     if (r.scope === "JRA") e.jra++;

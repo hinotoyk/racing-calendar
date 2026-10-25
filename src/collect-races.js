@@ -108,6 +108,7 @@ async function resolveSireSire(sire) {
     schema: "jbis.pedigree.sire/v1",
     id: sire.id,
     name: sire.name,
+    nameEn: ped?.nameEn ?? null, // 官方英文名（归一化别名用）
     sire: ped?.sire ?? null,
     capturedAt: at(jstToday()),
   };
@@ -127,6 +128,7 @@ async function resolveHorsePedigree(horse) {
     schema: "jbis.pedigree.horse/v1",
     id: horse.id,
     name: horse.name,
+    nameEn: ped.nameEn ?? null, // 官方英文名（归一化别名用）
     ...ped,
     capturedAt: at(jstToday()),
   };

@@ -282,10 +282,15 @@ function parseRecent(cell) {
 }
 
 // ---------- 血统页 ----------
-// 返回 { sire, sireSire, sireDam, dam, damSire, damDam }（各为 {id,name} 或 null）
+// 返回 { nameEn, sire, sireSire, sireDam, dam, damSire, damDam }（各为 {id,name} 或 null）
+// nameEn = 马页标题下的官方英文名（hdg1-search__sub，如 ディープインパクト页为 "Deep Impact(JPN)"），
+//          是片假名 ↔ 英文名归一化的桥（同名马两形态共用同一 JBIS id）。
 export function parsePedigree(html) {
   const at = html.indexOf('<div class="data-3__inner"');
   if (at < 0) return null;
+
+  const nameEnM = html.match(/<span class="hdg1-search__sub">([\s\S]*?)<\/span>/);
+  const nameEn = nameEnM ? txt(nameEnM[1]).replace(/\s*[\(（][A-Za-z]{2,4}[\)）]\s*$/u, "").trim() || null : null;
 
   const profileAt = html.indexOf("プロフィール", at);
   const block = html.slice(at, profileAt > at ? profileAt : at + 8000);
@@ -299,6 +304,7 @@ export function parsePedigree(html) {
   const male = pick(items[0] || "");
   const female = pick(items[1] || "");
   return {
+    nameEn,
     sire: male[0] ?? null,
     sireSire: male[1] ?? null,
     sireDam: male[2] ?? null,

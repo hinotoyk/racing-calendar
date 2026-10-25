@@ -15,6 +15,8 @@
 // time = 英国当地时间；date = 场地当地比赛日；两者口径都写进卡片。
 import { get, nextData } from "./http.js";
 import { pedCache } from "../lib/ped-cache.js";
+import { createHorseLookup, preferredMapFromSireCache } from "../lib/horse-lookup.js";
+import { normalizeHorseName } from "../lib/horse-name.mjs";
 import {
   courseTzOf,
   colourOf,
@@ -87,6 +89,44 @@ async function pedigreeOf(horseId, { store, delayMs, useCache = true, log = () =
   return rec;
 }
 
+// ---------- 父父补全 + 名字→JBIS id 解析（别名字典的数据源） ----------
+// SL 档案的父系引用 id 恒为页面自身 id（数据缺陷）无法链查，父父借道 JBIS 馬検索：
+// 父名/母父名 → JBIS id（缓存 data/pedigree/name-lookup.json，build 时并入别名字典），
+// 命中且行内有「父」列时把 runner.sireSire 补成 {id,name}（JBIS 表记，与 JBIS 源同形）。
+// overwrite=false（CI 日常）：只填空值，不清不覆盖；overwrite=true（--revalidate 回填）：
+// 解析记录有「父」列就覆盖（修错绑），解析为空就清回 null（撤掉当年错绑的旧值）。
+export async function enrichSireSire(docs, { lookup, log, overwrite = false }) {
+  const names = new Map();
+  for (const doc of docs) for (const race of doc.races ?? []) for (const r of race.runners ?? []) for (const key of ["sire", "bms"]) {
+    const n = r[key]?.name;
+    if (n) names.set(normalizeHorseName(n), n);
+  }
+  if (!names.size) return;
+  log(`[siresire] 待解析名字 ${names.size} 种`);
+  const resolved = new Map();
+  for (const [key, raw] of names) {
+    const rec = await lookup.resolve(raw, { log });
+    resolved.set(key, rec); // 未解析的也入表：overwrite 模式下用于清除过期 sireSire
+  }
+  let filled = 0;
+  let cleared = 0;
+  for (const doc of docs)
+    for (const race of doc.races ?? [])
+      for (const r of race.runners ?? []) {
+        const rec = r.sire?.name ? resolved.get(normalizeHorseName(r.sire.name)) : null;
+        if (rec?.sire) {
+          if (!r.sireSire || overwrite) {
+            r.sireSire = rec.sire; // {id, name}
+            filled++;
+          }
+        } else if (overwrite && rec && r.sireSire) {
+          r.sireSire = null;
+          cleared++;
+        }
+      }
+  log(`[siresire] 父父补完 ${filled} 頭${cleared ? ` / 清除过期 ${cleared} 頭` : ""} / lookup ${lookup.size()} 名`);
+}
+
 // ---------- ride → canonical runner ----------
 function runnerOf(ride, ped) {
   const horse = ride.horse ?? {};
@@ -111,7 +151,7 @@ function runnerOf(ride, ped) {
     sire: ped?.sire ? { id: null, name: ped.sire } : null,
     dam: ped?.dam ? { id: null, name: ped.dam } : null,
     bms: ped?.damsire ? { id: null, name: ped.damsire } : null,
-    sireSire: null, // SL 相对 id 缺陷 → 父马档案无法反查（见 pedigreeOf）
+    sireSire: null, // 采集后由 enrichSireSire 借道 JBIS 馬検索补全（SL 档案父系 id 缺陷无法链查）
     recent: (horse.previous_results ?? []).slice(0, 3).map((x) => ({
       rank: x.position != null ? `${x.position}着` : null,
       date: x.date ?? null,
@@ -175,6 +215,21 @@ export async function collect({
 
   // 血统缓存单文件包（入库 → CI 增量复用，见 lib/ped-cache.js）
   const store = pedCache(path.resolve("data", "pedigree", "rp-horse.json"));
+  // 现役种公马预置别名（jbis-sire 缓存键优先于搜索，同名老马/歧义的根本解）
+  let preferred = null;
+  try {
+    preferred = preferredMapFromSireCache(JSON.parse(fs.readFileSync(path.resolve("data", "pedigree", "jbis-sire.json"), "utf8")));
+    log(`[ped-cache] 现役种公马别名 ${preferred.size} 名（jbis-sire 缓存）`);
+  } catch {
+    log("[ped-cache] jbis-sire 缓存缺失，现役别名预置跳过");
+  }
+  // 名字→JBIS id 解析缓存（父父补全 + 别名字典数据源）
+  const lookup = createHorseLookup({
+    cache: pedCache(path.resolve("data", "pedigree", "name-lookup.json")),
+    delayMs,
+    preferred,
+    log,
+  });
 
   // 1) 当日 index：会议 + 场次 meta + 单场链接
   const page = await get(INDEX_URL);
@@ -280,6 +335,13 @@ export async function collect({
       log(`[race] ${race.date} ${cs.name} R${i + 1} ${race.time} ${race.name} — ${runners.length} 頭`);
     }
     if (limit && fetched >= limit) break;
+  }
+
+  // 父父补全（借道 JBIS 馬検索）+ 名字解析缓存
+  if (pedigree) {
+    await enrichSireSire([...byDate.values()].flatMap((m) => [...m.values()]), { lookup, log });
+    lookup.save();
+    log(`[ped-cache] name-lookup ${lookup.size()} 名 → data/pedigree/name-lookup.json`);
   }
 
   // 3) 展开为落盘单元（血统缓存包落盘）
