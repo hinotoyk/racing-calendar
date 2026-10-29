@@ -98,11 +98,14 @@
     <div id="pick-list" hidden></div>
   </div>
 
-  <!-- 出馬表分享卡视图（app.js 动态 import share.js 后展示） -->
+  <!-- 出馬表分享卡视图（app.js 动态 import share.js 后展示；批量编辑表格 = share-grid.js） -->
   <section id="share-view" hidden>
     <div class="share-bar">
       <span class="filter-title">出馬表分享卡 · <span id="share-count"></span></span>
       <div class="tools">
+        <span class="share-fld">时间</span>
+        <div id="share-clock" class="filter-chips"></div>
+        <span class="v-sep"></span>
         <div id="share-cols" class="filter-chips"></div>
         <label class="share-fld">倍率
           <select id="share-scale"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option></select>
@@ -115,10 +118,37 @@
     <div class="share-stage"><canvas id="share-canvas"></canvas></div>
     <div class="share-editor">
       <div class="se-head">
-        <span class="se-title">分享内容</span>
+        <span class="se-title">批量编辑 · 出走馬</span>
+        <span class="se-hint">点单元格就地改 · Enter↓ / Tab→ / 方向键移动 · Ctrl+Z 撤销 / Ctrl+Y 重做 · Delete 清格</span>
         <button id="share-add" class="sh-btn ghost" type="button">＋ 手动添加比赛</button>
       </div>
-      <div id="share-blocks"></div>
+      <div id="share-grid" class="sg">
+        <div class="sg-toolbar">
+          <button id="sg-addBtn" class="sg-op" type="button">＋ 追加行</button>
+          <button id="sg-delBtn" class="sg-op danger" type="button" disabled>删除所选</button>
+          <button id="sg-undoBtn" class="sg-op ghost" type="button" disabled>↶ 撤销</button>
+          <button id="sg-redoBtn" class="sg-op ghost" type="button" disabled>↷ 重做</button>
+          <button id="sg-pasteBtn" class="sg-op ghost" type="button">📋 粘贴导入</button>
+          <span class="sg-spring"></span>
+          <span class="sg-wrapbtn">
+            <button id="sg-colBtn" class="sg-op ghost" type="button">列 ▾</button>
+            <div id="sg-colMenu" class="sg-colmenu" hidden></div>
+          </span>
+          <button id="sg-fsBtn" class="sg-op ghost" type="button">⛶ 全屏</button>
+        </div>
+        <div class="sg-wrap">
+          <table id="sg-grid">
+            <thead id="sg-thead"></thead>
+            <tbody id="sg-tbody"></tbody>
+          </table>
+        </div>
+        <div class="sg-foot">
+          <span id="sg-meta"></span>
+          <span class="sg-foot-hint">◈ 比赛头行改比赛信息 · 出走馬行改馬 · 编辑即时同步到上方出图</span>
+        </div>
+      </div>
+      <div class="sg-mb-hint">批量编辑表格请在电脑端使用；手机端可直接导出当前出图。</div>
+      <div id="sg-toast" class="sg-toast" hidden></div>
       <form id="share-form" hidden>
         <div class="sf-grid">
           <label>日期<input type="date" id="sf-date"></label>

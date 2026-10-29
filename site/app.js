@@ -534,7 +534,41 @@ function demoPick(open) {
   for (const r of allRows()) if (pickSet.has(rkOf(r))) state.selected.add(rowKeyOf(r));
   apply();
   updatePickBar();
-  if (open) import("./share.js").then((m) => m.show(collectShareRaces())).catch((e) => console.error(e));   // 自检：页内直开
+  if (open) return import("./share.js").then((m) => m.show(collectShareRaces())).catch((e) => console.error(e));   // 自检：页内直开
+  return Promise.resolve();
+}
+
+// ?share=demo&edit=1|2：批量编辑表格端到端自检（截图核对用）
+// edit=1 → 就地改騎手 + 追加行输馬名 + 勾选删一行；edit=2 → 再撤销 3 步复原
+async function gridSelfTest(full) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  await sleep(600);
+  const $g = (s) => document.querySelector(s);
+  // ① 就地编辑：第 1 场第 2 行 騎手（view: 0=比赛头行，1/2=出走馬行）
+  const td = $g('#sg-tbody td[data-c="jockey"][data-vi="2"]');
+  td?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+  await sleep(120);
+  const inp = td?.querySelector(".sg-inp");
+  if (inp) { inp.value = "自己試験騎手"; inp.blur(); }
+  await sleep(180);
+  // ② 追加行（自动聚焦新行 馬名）→ 输入 → Enter
+  $g("#sg-addBtn")?.click();
+  await sleep(180);
+  const inp2 = $g("#sg-tbody .sg-inp");
+  if (inp2) {
+    inp2.value = "テスト出走馬";
+    inp2.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+  }
+  await sleep(180);
+  // ③ 勾选一行 → 删除所选
+  const ck = $g('#sg-tbody input.sg-sel[data-vi="1"]');
+  if (ck) { ck.checked = true; ck.dispatchEvent(new Event("change", { bubbles: true })); }
+  $g("#sg-delBtn")?.click();
+  await sleep(250);
+  // ④ 撤销 3 步：删行 → 追加行 → 改騎手，全部复原
+  if (full) {
+    for (let i = 0; i < 3; i++) { $g("#sg-undoBtn")?.click(); await sleep(150); }
+  }
 }
 
 // ---------- 渲染 ----------
@@ -961,7 +995,8 @@ async function main() {
   } else if (qp.get("share") === "demo") {     // 自检：全部日期 → 级别赛 → 直接打开分享卡（本页内）
     state.dates = new Set(state.index.dates.map((d) => d.date));
     await refresh();
-    demoPick(true);
+    await demoPick(true);
+    if (qp.has("edit")) await gridSelfTest(qp.get("edit") === "2");
   } else if (qp.get("pick") === "demo") {      // 自检：勾选模式 + 已选浮动条（&list=1 顺带展开上拉预览）
     state.selectMode = true;
     document.body.classList.add("picking");
