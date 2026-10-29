@@ -108,7 +108,8 @@ XLSX 由 `src/lib/xlsx.js` 零依赖写出（ZIP store + inlineStr），Excel / 
 - 关键字过滤；分组下拉与血统下拉同款（父 / 父父 / 母父 / 騎手 / 調教師，空 = 不分组）；表格行全局按北京时间升序（早的发走排上，跨日期交叉排；同时刻按场次R/竞马场兜底，`cmpBjTime`）；
 - 前端内存分页：PC 一页 100 条、mb（<768px）一页 20 条，每页条数按设备固定不可选；页码按钮式分页条（移植 yunji-web races.html `.pager`），768px 断点 matchMedia 实时切换（老 Safari addListener 兜底）；筛选条件变化归第 1 页；分组视图整组分页——页内按整组装填，装不下整组移到下一页（最后一组不截断），单组超过一页容量才组内截断，跨页组自动重复组头，组头 `tr.sub` 不占条数；
 - CSV 导出（UTF-8 BOM）与每周 Excel 下载；
-- 深链：`?group=sire|sireSire|bms|jockey|trainer`。
+- 深链：`?group=sire|sireSire|bms|jockey|trainer`；
+- **favicon**（2026-10-29）：站群品牌方块（friend-links.js 同款青绿 #0aa7a0 圆角方块 + 白字 RC）——`site/favicon.svg`（首选）+ `site/favicon.png` 64×64（不支持 SVG favicon 的浏览器兜底）+ `site/apple-touch-icon.png` 180×180 全出血方块（iOS 主屏，系统自带圆角遮罩）。此前未声明 favicon，浏览器标签页显示默认地球。
 
 ## 7. 已知限制
 
