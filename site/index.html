@@ -23,6 +23,7 @@
         <button id="d-prev" class="d-nav" type="button" title="更早 5 天">‹</button>
         <span class="filter-chips" id="date-tabs"></span>
         <button id="d-next" class="d-nav" type="button" title="更晚 5 天">›</button>
+        <button id="d-weekend" class="d-nav" type="button" title="一次选中本周六日">本周末</button>
         <button id="d-today" class="d-nav" type="button">今天</button>
       </div>
     </div>
@@ -56,6 +57,7 @@
 
   <div class="summary">
     <span id="count" class="count"></span>
+    <span id="col-mount"></span>
     <button id="sel-page" class="sel-page" type="button" hidden title="勾选当前筛选下本页展示的全部行（马）">全选本页</button>
     <button id="desel-page" class="sel-page" type="button" hidden title="取消勾选当前页展示的全部行（马）">取消本页</button>
   </div>
@@ -70,6 +72,7 @@
       </tr></thead>
       <tbody></tbody>
     </table>
+    <div class="skel" id="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="empty" id="empty" hidden></div>
   </div>
 
@@ -112,6 +115,7 @@
         </label>
         <button id="share-copy" class="sh-btn ghost" type="button">复制到剪贴板</button>
         <button id="share-dl" class="sh-btn" type="button">导出 PNG</button>
+        <button id="share-newtab" class="sh-btn ghost" type="button" title="在独立标签页打开当前分享卡（弹窗拦截时备用）">新标签打开</button>
         <button id="share-back" class="sh-btn ghost" type="button">返回列表</button>
       </div>
     </div>

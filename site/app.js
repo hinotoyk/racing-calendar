@@ -106,6 +106,15 @@ const levelBadge = (level) => {
   return c ? `<span class="yj-grade yj-${c}">${esc(level)}</span>` : "";
 };
 
+// 枠番传统色（JRA 公式 1白2黒3赤4青5黄6緑7橙8桃，与 share.js WAKU 同源）
+const frameBadge = (f) => (f == null || f === "" ? "" : `<span class="waku w${f}">${esc(f)}</span>`);
+// 芝/ダ/障 色点（扫读用）
+const surfDot = (s) => (s && SURF_SHORT[s] ? `<i class="surf-dot surf-${esc(s)}"></i>` : "");
+const distText = (r) => (r.distance ? `${SURF_SHORT[r.surface] ?? r.surface ?? ""}${r.distance}` : "");
+// 曜日（UTC 解析 date-only，与浏览器时区无关）
+const WEEKDAY_JA = "日一二三四五六";
+const weekdayOf = (date) => WEEKDAY_JA[new Date(date + "T00:00:00Z").getUTCDay()] ?? "";
+
 async function json(url) {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`${url} -> ${r.status}`);
@@ -145,7 +154,7 @@ function renderDateTabs() {
     const info = byDate.get(date);
     chips.push(
       `<button data-d="${date}" class="filter-chip${state.dates.has(date) ? " on" : ""}">` +
-      `${esc(dateLabelOf(date))}<small>${info?.runners ?? 0}頭</small></button>`,
+      `${esc(dateLabelOf(date))}<i class="wd">${weekdayOf(date)}</i><small>${info?.runners ?? 0}頭</small></button>`,
     );
   }
   $("#date-tabs").innerHTML = chips.join("");
@@ -153,6 +162,25 @@ function renderDateTabs() {
   const { first } = dataRange();
   $("#d-prev").disabled = !!first && state.winStart <= first;
   $("#d-prev").title = $("#d-prev").disabled ? "已是最早数据日" : "更早 5 天";
+  syncUrl();
+}
+
+// ---------- 筛选状态 ↔ URL（刷新不丢、可分享链接；replaceState 不污染历史） ----------
+function syncUrl() {
+  if (!state.index) return;
+  const p = new URLSearchParams();
+  if (state.dates.size) p.set("d", [...state.dates].sort().join(","));
+  if (state.winStart) p.set("w", state.winStart);
+  if (state.scope.size) p.set("scope", [...state.scope].join(","));
+  if (state.venues.size) p.set("v", [...state.venues].join(","));
+  if (state.levels.size) p.set("k", [...state.levels].join(","));
+  if (state.sire) p.set("sire", state.sire);
+  if (state.sireSire) p.set("ss", state.sireSire);
+  if (state.bms) p.set("bms", state.bms);
+  if (state.q.trim()) p.set("q", state.q.trim());
+  if (state.group) p.set("group", state.group);
+  const qs = p.toString();
+  history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
 }
 
 // 场地 chips：全部 / JRA / NAR / 数据里出现的国家组码（动态，多选、带头数）
@@ -344,14 +372,19 @@ function makeSelector({ mount, placeholder, onPick }) {
   }
 
   input.addEventListener("focus", () => {
-    if (selected) { selected = ""; input.value = ""; onPick(""); }   // 同 yunji：聚焦即清空已选、展示全列表
+    // 聚焦只展开列表，不再清空已选（误触焦点会丢筛选条件的坑）；清空走 ✕ 或重新选择
     render(input.value);
     drop.classList.add("open");
   });
   input.addEventListener("input", () => {
-    if (selected) { selected = ""; onPick(""); }
+    // 输入 = 开始新搜索：暂不动已选（筛选仍生效），失焦未选择时回显已选值
     render(input.value);
     drop.classList.add("open");
+  });
+  input.addEventListener("blur", () => {
+    if (!selected) return;
+    const it = items.find((x) => x.v === selected);
+    if (it && input.value !== labelOf(it)) input.value = labelOf(it);
   });
   clear.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -447,6 +480,7 @@ function apply() {
     })
     .sort(cmpBjTime);   // 全局按北京时间从小到大（跨日期交叉排）
   render();
+  syncUrl();
 }
 
 // ---------- 勾选行 → 分享卡 ----------
@@ -504,19 +538,14 @@ function collectShareRaces() {
     .sort((a, b) => bjKey(a) - bjKey(b) || (a.raceNo ?? 0) - (b.raceNo ?? 0) || String(a.venue ?? "").localeCompare(String(b.venue ?? ""), "ja"));
 }
 
-// 进入分享卡（新标签页）：载荷经 sessionStorage 复制给新页，?share=open 读取后渲染
+// 进入分享卡：默认页内切换（share.js show() 走 body.share-open，勾选与 URL 筛选都留在本页）；
+// 需要「新标签打开」时由分享工具条按钮走 sessionStorage 深链（?share=open）
 function goShare() {
   const races = collectShareRaces();
   if (!races.length) return;
   $("#pick-list").hidden = true;
   $("#pick-toggle").classList.remove("open");
-  try {
-    sessionStorage.setItem("rc.share.payload", JSON.stringify(races));
-  } catch (e) {
-    console.error(e);
-    return;
-  }
-  window.open("?share=open", "_blank");
+  import("./share.js").then((m) => m.show(races)).catch((e) => console.error(e));
 }
 
 // ?pick=demo / ?share=demo：视觉自检（按级别优先各取一场并展开为行级勾选，并按需打开分享卡）
@@ -572,32 +601,99 @@ async function gridSelfTest(full) {
 }
 
 // ---------- 渲染 ----------
-function rowHtml(r) {
-  const dist = r.distance ? `${SURF_SHORT[r.surface] ?? r.surface ?? ""}${r.distance}` : "";
-  const distTitle = [r.surface, r.distance ? `${r.distance}m` : ""].filter(Boolean).join(" ");
-  const name = r.raceUrl
-    ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener" title="${esc(r.raceName ?? "")}">${esc(r.raceName ?? "")}</a>`
-    : `<span title="${esc(r.raceName ?? "")}">${esc(r.raceName ?? "")}</span>`;
-  return `<tr>
-    <td class="c-left loc" title="${esc(r.startTimeInstant ?? "")}"><input type="checkbox" class="pick-box" data-k="${esc(rowKeyOf(r))}"${state.selected.has(rowKeyOf(r)) ? " checked" : ""} aria-label="勾选 ${esc(r.horseName ?? "")}"><span class="v">${esc(r.venue)}${r.raceNo}R</span>${esc(r.dateLabel ?? "")} ${esc(r.startTime ?? "")}</td>
-    <td class="num">${esc(bjTime(r.startTimeInstant))}</td>
-    <td class="c-left race"><span class="rname">${name}</span>${levelBadge(r.level)}</td>
-    <td class="num" title="${esc(distTitle)}">${esc(dist)}</td>
-    <td class="num">${r.frame ?? ""}</td>
-    <td class="num">${r.num ?? ""}</td>
-    <td class="c-left name">${horseLink(r.horseId, r.horseName)}</td>
-    <td class="num">${esc((r.sex ?? "") + (r.age ?? ""))}</td>
-    <td class="num">${r.weight ?? ""}</td>
-    <td class="c-left">${esc(r.jockey ?? "")}</td>
-    <td class="c-left">${esc(r.trainer ?? "")}</td>
-    <td class="c-left ped">${esc(r.sire ?? "")}</td>
-    <td class="c-left ped">${esc(r.sireSire ?? "")}</td>
-    <td class="c-left ped">${esc(r.dam ?? "")}</td>
-    <td class="c-left ped">${esc(r.bms ?? "")}</td>
-  </tr>`;
+// ---------- 列定义与显隐（localStorage rc.cols.v4） ----------
+// 默认展示：競馬場 R 比赛名 距离 北京时间 馬名 枠番 馬番 性齢 斤量 騎手 父 母父；
+// 発走 / 調教師 / 父父 / 母 默认隐藏（発走在比赛分隔行里，其余经「自定义显示列」开回）。
+const COLUMNS = [
+  { k: "venue",    label: "競馬場", left: 1 },
+  { k: "raceno",   label: "R" },
+  { k: "race",     label: "比赛名", left: 1 },
+  { k: "dist",     label: "距离" },
+  { k: "start",    label: "発走", defHide: 1 },
+  { k: "bj",       label: "北京时间" },
+  { k: "name",     label: "馬名", left: 1 },
+  { k: "waku",     label: "枠番" },
+  { k: "num",      label: "馬番" },
+  { k: "sexage",   label: "性齢" },
+  { k: "weight",   label: "斤量" },
+  { k: "jockey",   label: "騎手", left: 1 },
+  { k: "trainer",  label: "調教師", left: 1, defHide: 1 },
+  { k: "sire",     label: "父", left: 1 },
+  { k: "siresire", label: "父父", left: 1, f: "sireSire", defHide: 1 },   // 数据字段为驼峰 sireSire，f 指明取值键
+  { k: "dam",      label: "母", left: 1, defHide: 1 },
+  { k: "bms",      label: "母父", left: 1 },
+];
+const COLS_KEY = "rc.cols.v4";
+const COLS_DEFAULT_HIDE = ["start", "trainer", "siresire", "dam"];
+let hiddenCols = loadHiddenCols();
+function loadHiddenCols() {
+  try {
+    const a = JSON.parse(localStorage.getItem(COLS_KEY));
+    if (Array.isArray(a)) return new Set(a.filter((k) => COLUMNS.some((c) => c.k === k)));
+  } catch {}
+  return new Set(COLS_DEFAULT_HIDE);   // 未保存过 = 新默认：比赛级信息由分隔行承载
+}
+const saveHiddenCols = () => { try { localStorage.setItem(COLS_KEY, JSON.stringify([...hiddenCols])); } catch {} };
+const visCols = () => COLUMNS.filter((c) => !hiddenCols.has(c.k));
+
+// 单元格渲染（每列一个分支；esc 统一在 case 内做）
+function cellHtml(r, c) {
+  switch (c.k) {
+    case "venue":
+      return esc(r.venue ?? "");
+    case "raceno":
+      return esc(r.raceNo ?? "");
+    case "start":
+      return `<span class="st">${esc(r.dateLabel ?? "")} ${esc(r.startTime ?? "")}</span>`;
+    case "bj":
+      return esc(bjTime(r.startTimeInstant));
+    case "race": {
+      const name = r.raceUrl
+        ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener" title="${esc(r.raceName ?? "")}">${esc(r.raceName ?? "")}</a>`
+        : `<span title="${esc(r.raceName ?? "")}">${esc(r.raceName ?? "")}</span>`;
+      return `<span class="rname">${name}</span>${levelBadge(r.level)}`;
+    }
+    case "dist": return `${surfDot(r.surface)}${esc(distText(r))}`;
+    case "waku": return frameBadge(r.frame);
+    case "num":  return esc(r.num ?? "");
+    case "name": return horseLink(r.horseId, r.horseName);
+    case "sexage": return esc((r.sex ?? "") + (r.age ?? ""));
+    case "weight": return esc(r.weight ?? "");
+    default: return esc(r[c.f ?? c.k] ?? "");   // f = 列键与数据字段名不同时的取值键
+  }
 }
 
-const COLSPAN = 15;
+function rowHtml(r) {
+  const k = esc(rowKeyOf(r));
+  const box = `<input type="checkbox" class="pick-box" data-k="${k}"${state.selected.has(rowKeyOf(r)) ? " checked" : ""} aria-label="勾选 ${esc(r.horseName ?? "")}">`;
+  const tds = visCols().map((c, i) => {
+    // 勾选框锚定第一可见列（绝对定位在左侧预留区，任何列组合下都可用）
+    const host = i === 0 ? " pk-host" : "";
+    const cls = `${c.left ? "c-left" : "num"}${c.k === "bj" ? " bj" : ""}${host}`;
+    return `<td class="${cls}" data-l="${esc(c.label)}">${i === 0 ? box : ""}${cellHtml(r, c)}</td>`;
+  }).join("");
+  return `<tr data-pk="${k}" title="${esc(r.startTimeInstant ?? "")}">${tds}</tr>`;
+}
+
+// 比赛分隔行（同场比赛的首行前插入：场R · 比赛名 · 级别 · 北京时间 · 距离 · 当地发走 · 头数）
+function raceSepHtml(r, heads) {
+  const nm = r.raceUrl
+    ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
+    : esc(r.raceName ?? "");
+  const bj = bjTime(r.startTimeInstant);
+  const meta = [distText(r), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
+    .filter(Boolean).join(" · ");
+  return `<tr class="sep"><td colspan="${visCols().length}"><b>${esc(r.venue)}${r.raceNo}R</b>${nm}${levelBadge(r.level)}` +
+    `${bj ? `<span class="sep-bj">${esc(bj)} 北京</span>` : ""}` +
+    `${meta ? `<span class="sep-meta">${meta}</span>` : ""}</td></tr>`;
+}
+
+// 表头按可见列重画（列显隐切换时调用）
+function renderThead() {
+  $("#entry-table thead tr").innerHTML = visCols()
+    .map((c) => `<th class="${c.left ? "c-left" : ""}">${esc(c.label)}</th>`)
+    .join("");
+}
 
 // ---------- 分页条（页码按钮式，移植 yunji-web races.html pageSeq / pagerHTML） ----------
 // 页码序列：首尾页 + 当前页 ±2 窗口，间断处用 null 表示省略号
@@ -631,36 +727,49 @@ function renderPager(pages, total) {
   $("#pager-mount").innerHTML = pages > 1 ? pagerHTML(PG.page, pages, total) : "";
 }
 
-// 空态说明：默认只选 JRA 时，工作日通常没有中央比赛，提示切换到日期 / 全部场地
-function emptyText() {
-  if (state.scope.size === 1 && state.scope.has("JRA")) {
-    return "当前条件下没有出走马（中央比赛多在周六、周日；出馬表约开赛前 2 日公开，可切换日期或选「全部」）";
-  }
-  return "当前条件下没有出走马（中央出馬表约开赛前 2 日公开，地方约前日，海外为英国当日）";
+// 空态说明：默认只选 JRA 时，工作日通常没有中央比赛，给一键行动按钮
+function emptyHtml() {
+  const jraOnly = state.scope.size === 1 && state.scope.has("JRA");
+  const text = jraOnly
+    ? "当前条件下没有出走马（中央比赛多在周六、周日；出馬表约开赛前 2 日公开）"
+    : "当前条件下没有出走马（中央出馬表约开赛前 2 日公开，地方约前日，海外为英国当日）";
+  const acts = [];
+  if (state.scope.size) acts.push(`<button class="e-act" data-act="all-scope" type="button">切换到全部场地</button>`);
+  acts.push(`<button class="e-act" data-act="near" type="button">跳到最近有赛日</button>`);
+  return `${esc(text)}<span class="e-acts">${acts.join("")}</span>`;
 }
 
 // 渲染当前视图：前端内存分页，每页最多 PG.size 条数据行；≤100 行直接 innerHTML，无需分块
 let pageRows = [];   // 当前页实际展示的行（不分组 = 切片；分组 = 各组页内区间展开），「全选本页」依据
 function render() {
+  $("#skel")?.remove();   // 首帧骨架屏：首次真实渲染后移除
   PG.size ||= pgSizeDef();   // 首次惰性初始化（PC 100 / mb 20）
   const rows = state.rows;
   const races = new Set(rows.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
+  const colspan = visCols().length;
 
   $("#empty").hidden = rows.length > 0;
-  $("#empty").textContent = rows.length ? "" : emptyText();
+  $("#empty").innerHTML = rows.length ? "" : emptyHtml();
 
   const body = $("#entry-table tbody");
   let pages = 1, shown = 0;
   pageRows = [];
 
   if (!state.group) {
-    // 不分组：数据行等宽切片
+    // 不分组：数据行等宽切片；同场比赛首行前插入分隔行（场R · 比赛名 · 级别）
     pages = Math.max(1, Math.ceil(rows.length / PG.size));
     PG.page = Math.min(Math.max(PG.page, 1), pages);   // 页码越界修正
     const start = (PG.page - 1) * PG.size;
     shown = Math.min(rows.length - start, PG.size);   // 本页数据行数（末页为余数）
     pageRows = rows.slice(start, start + PG.size);
-    body.innerHTML = pageRows.map(rowHtml).join("");
+    const parts = [];
+    let lastRk = null;
+    for (const r of pageRows) {
+      const rk = rkOf(r);
+      if (rk !== lastRk) { parts.push(raceSepHtml(r, r.heads)); lastRk = rk; }
+      parts.push(rowHtml(r));
+    }
+    body.innerHTML = parts.join("");
   } else {
     // 分组视图：整组分页——页内按整组装填，装不下整组就整组移到下一页（最后一组不截断）；
     // 单组超过一页容量时才组内截断，跨页组在新页自动重复组头；组头 tr.sub 不占条数
@@ -697,9 +806,14 @@ function render() {
     const parts = [];
     for (const seg of packed[PG.page - 1] ?? []) {
       const gr = new Set(seg.list.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
-      parts.push(`<tr class="sub"><td colspan="${COLSPAN}"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
+      parts.push(`<tr class="sub"><td colspan="${colspan}"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
       const segRows = seg.list.slice(seg.a, seg.b);
-      parts.push(...segRows.map(rowHtml));
+      let lastRk = null;   // 组内同样按比赛加分隔行（比赛级列默认隐藏后，这里是场R信息的唯一来源）
+      for (const r of segRows) {
+        const rk = rkOf(r);
+        if (rk !== lastRk) { parts.push(raceSepHtml(r, r.heads)); lastRk = rk; }
+        parts.push(rowHtml(r));
+      }
       pageRows.push(...segRows);
       shown += seg.b - seg.a;
     }
@@ -765,6 +879,10 @@ async function refresh() {
   sireSel.setItems(optionsOf(rows, "sire"));
   sireSireSel.setItems(optionsOf(rows, "sireSire"));
   bmsSel.setItems(optionsOf(rows, "bms"));
+  // 下拉回显当前筛选（URL 恢复 / 快捷标签变更后保持一致；canonical 不在选项内时兜底展示名）
+  sireSel.setValue(state.sire, state.sire ? displayOf(state.sire) : "");
+  sireSireSel.setValue(state.sireSire, state.sireSire ? displayOf(state.sireSire) : "");
+  bmsSel.setValue(state.bms, state.bms ? displayOf(state.bms) : "");
   renderScopes();
   renderVenues();
   renderLevels();
@@ -801,11 +919,32 @@ async function main() {
     state.alias = null;
   }
   if (!state.index.dates.length) {
+    $("#skel")?.remove();
     $("#count").textContent = "尚无出走表数据";
     $("#empty").hidden = false;
     $("#empty").textContent = "尚无数据：运行 npm run collect 后重新构建站点";
     return;
   }
+  // URL 筛选状态恢复（syncUrl 写入的 d/w/scope/v/k/sire/ss/bms/q/group）
+  const qp = new URLSearchParams(location.search);
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const urlDates = (qp.get("d") ?? "").split(",").filter((d) => DATE_RE.test(d));
+  const urlWin = qp.get("w");
+  if (urlDates.length) {
+    state.dates = new Set(urlDates);
+    if (urlWin && DATE_RE.test(urlWin)) state.winStart = urlWin;
+    else state.winStart = addDays([...state.dates].sort()[0], -1);
+  }
+  if (qp.get("scope")) state.scope = new Set(qp.get("scope").split(",").filter(Boolean));
+  if (qp.get("v")) state.venues = new Set(qp.get("v").split(",").filter(Boolean));
+  if (qp.get("k")) state.levels = new Set(qp.get("k").split(",").filter(Boolean));
+  if (qp.get("sire")) state.sire = qp.get("sire");
+  if (qp.get("ss")) state.sireSire = qp.get("ss");
+  if (qp.get("bms")) state.bms = qp.get("bms");
+  if (qp.get("q")) { state.q = qp.get("q"); $("#f-q").value = state.q; }
+  const g = qp.get("group");
+  if (["sire", "sireSire", "bms", "jockey", "trainer"].includes(g)) state.group = g;
+
   defaultDates();
   defaultScope();
 
@@ -851,6 +990,7 @@ async function main() {
     if (tag) pickPedTag(tag.dataset.k, tag.dataset.t);
   });
   renderPedTags();
+  renderThead();
 
   // 事件
   $("#reset").onclick = resetFilters;
@@ -866,6 +1006,15 @@ async function main() {
     state.winStart = addDays(todayBJ(), -2);
     if (first && state.winStart < first) state.winStart = first;
     renderDateTabs();
+  };
+  // 本周末：一次选中本周六日（北京时间的今天所在周；周日当天 = 昨天+今天）
+  $("#d-weekend").onclick = () => {
+    const today = todayBJ();
+    const dow = new Date(today + "T00:00:00Z").getUTCDay();
+    const sat = addDays(today, dow === 0 ? -1 : 6 - dow);
+    state.dates = new Set([sat, addDays(sat, 1)]);
+    state.winStart = addDays(sat, -1);   // 5 天窗口：周六日都在窗内
+    refresh();
   };
   $("#scope-chips").onclick = (e) => {
     const b = e.target.closest("button");
@@ -903,6 +1052,69 @@ async function main() {
     refresh();
   };
   $("#f-q").oninput = (e) => { state.q = e.target.value; apply(); };
+
+  // 勾选模式整行点击 = 勾/取消（馬名・比赛名链接照常打开；checkbox 自身走 change）
+  $("#entry-table").addEventListener("click", (e) => {
+    if (!document.body.classList.contains("picking")) return;
+    if (e.target.closest("a") || e.target.closest(".pick-box")) return;
+    const tr = e.target.closest("tr[data-pk]");
+    if (!tr) return;
+    const k = tr.dataset.pk;
+    const on = !state.selected.has(k);
+    on ? state.selected.add(k) : state.selected.delete(k);
+    const box = tr.querySelector(".pick-box");
+    if (box) box.checked = on;
+    updatePickBar();
+  });
+
+  // 空态行动按钮：切换全部场地 / 跳最近有赛日
+  $("#empty").addEventListener("click", (e) => {
+    const b = e.target.closest(".e-act");
+    if (!b) return;
+    if (b.dataset.act === "all-scope") {
+      state.scope.clear();
+      state.venues.clear();
+      refresh();
+    } else if (b.dataset.act === "near") {
+      const dataDates = state.index.dates.map((d) => d.date);
+      const today = todayBJ();
+      const near = dataDates.reduce((a, c) =>
+        Math.abs(new Date(c + "T00:00:00Z") - new Date(today + "T00:00:00Z")) <
+        Math.abs(new Date(a + "T00:00:00Z") - new Date(today + "T00:00:00Z")) ? c : a
+      );
+      state.dates = new Set([near]);
+      state.winStart = addDays(near, -1);
+      refresh();
+    }
+  });
+
+  // ---------- 列显隐（summary「列」菜单；localStorage 记忆；loc/馬名 固定显示） ----------
+  function renderColMenu() {
+    $("#col-mount").innerHTML =
+      `<span class="col-wrap"><button id="col-btn" class="sel-page" type="button">自定义显示列 ▾</button>` +
+      `<div id="col-menu" class="col-menu" hidden>` +
+      COLUMNS.map((c) =>
+        `<label class="col-item"><input type="checkbox" data-ck="${c.k}"${hiddenCols.has(c.k) ? "" : " checked"}>${esc(c.label)}</label>`
+      ).join("") +
+      `</div></span>`;
+    const wrap = $("#col-mount .col-wrap");
+    selRegistry.push({ wrap, close: () => $("#col-menu").hidden = true });
+  }
+  renderColMenu();
+  $("#col-mount").addEventListener("click", (e) => {
+    if (e.target.closest("#col-btn")) {
+      const m = $("#col-menu");
+      m.hidden = !m.hidden;
+      return;
+    }
+    const ck = e.target.closest("input[data-ck]");
+    if (!ck) return;
+    if (!ck.checked && hiddenCols.size >= COLUMNS.length - 1) { ck.checked = true; return; }   // 至少保留一列
+    ck.checked ? hiddenCols.delete(ck.dataset.ck) : hiddenCols.add(ck.dataset.ck);
+    saveHiddenCols();
+    renderThead();
+    render();
+  });
 
   // 分页交互：#pager-mount 上事件委托，重渲染后仍生效（disabled 与缺 data-page 跳过）
   $("#pager-mount").addEventListener("click", (e) => {
@@ -974,13 +1186,8 @@ async function main() {
     updatePickBar();
   });
 
-  // 深链：?group=sire|sireSire|bms|jockey|trainer；?_demo= 展开第一个血统下拉（视觉自检用）
-  const qp = new URLSearchParams(location.search);
-  const g = qp.get("group");
-  if (["sire", "sireSire", "bms", "jockey", "trainer"].includes(g)) {
-    state.group = g;
-    groupSel.setValue(g);
-  }
+  // 深链：?group=（已在上方 URL 恢复时读入 state.group）→ 这里只回显下拉；?_demo= 展开第一个血统下拉（视觉自检用）
+  if (["sire", "sireSire", "bms", "jockey", "trainer"].includes(g)) groupSel.setValue(g);
 
   await refresh();
   if (qp.get("share") === "open") {            // 新标签页分享卡：读取 opener 复制来的 sessionStorage 载荷

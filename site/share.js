@@ -459,6 +459,13 @@ function wire() {
     document.body.classList.remove('share-open');
     $s('#share-view').hidden = true;
   };
+  // 新标签打开：载荷经 sessionStorage 复制给新页（app.js 页内切换的主路径之外的备选）
+  $s('#share-newtab').onclick = () => {
+    try {
+      sessionStorage.setItem('rc.share.payload', JSON.stringify(races));
+      window.open('?share=open', '_blank');
+    } catch (e) { console.error(e); }
+  };
   $s('#share-add').onclick = () => {
     const f = $s('#share-form');
     f.hidden = !f.hidden;
