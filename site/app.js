@@ -55,7 +55,7 @@ function isMb() {
 const PG = { page: 1, size: 0 };
 const pgSizeDef = () => (isMb() ? 20 : 100);
 
-// mb 日期轮播：5 天窗口内 mb 只显示 3 个 chip，winOff = 窗内偏移（0..2）；‹ › 步进、到边缘翻窗
+// mb 日期轮播：5 天窗口内 mb 只显示 2 个 chip，winOff = 窗内偏移（0..3）；‹ › 步进、到边缘翻窗
 let winOff = 0;
 
 // 比赛唯一键（raceKey 缺失时兜底）
@@ -149,13 +149,15 @@ function chip(label, value, on, key, count) {
 }
 
 // 日期窗口：winStart 起 5 天；无数据日也展示并可点击（选中后表格为空态）
-// mb：窗口内一次只显示 3 个 chip（winOff 偏移），‹ › 逐日步进、到边缘自动翻窗（PC 恒显 5 个）
-function renderDateTabs() {
+// mb：窗口内一次只显示 2 个 chip（winOff 偏移 0..3），‹ › 逐日步进、到边缘自动翻窗（PC 恒显 5 个）；
+// 「本周末/今天」在独立容器 .f-quick，mb 换到第二行。
+// align=false 时跳过「选中日保持可见」纠偏（‹ › 手动步进用——否则纠偏会把视口拉回选中日，步进卡死）
+function renderDateTabs(align = true) {
   const byDate = new Map(state.index.dates.map((d) => [d.date, d]));
-  const mb = isMb(), vis = mb ? 3 : 5, maxOff = 5 - vis;
+  const mb = isMb(), vis = mb ? 2 : 5, maxOff = 5 - vis;
   // 选中日（在窗内时）保持可见：偏移跟随
   const sel = [...state.dates].sort().find((d) => d >= state.winStart && d <= addDays(state.winStart, 4));
-  if (mb && sel) {
+  if (mb && align && sel) {
     const idx = Math.round((Date.parse(sel) - Date.parse(state.winStart)) / 864e5);
     if (idx < winOff) winOff = Math.max(0, idx);
     else if (idx > winOff + vis - 1) winOff = Math.min(maxOff, idx - vis + 1);
@@ -1060,7 +1062,7 @@ async function main() {
   $("#reset").onclick = resetFilters;
   // 日期 ‹ ›：PC 平移 5 天窗口；mb 在窗口内逐日步进（winOff），到边缘自动翻窗——连续按的体感是逐日移动
   const dateStep = (dir) => {
-    const mb = isMb(), vis = mb ? 3 : 5, maxOff = 5 - vis;
+    const mb = isMb(), vis = mb ? 2 : 5, maxOff = 5 - vis;
     if (mb) {
       const off = winOff + dir;
       if (off >= 0 && off <= maxOff) { winOff = off; }
@@ -1076,7 +1078,7 @@ async function main() {
       const next = addDays(state.winStart, dir * 5);
       state.winStart = first && next < first ? first : next;
     }
-    renderDateTabs();
+    renderDateTabs(false);   // 手动步进：不拉回选中日
   };
   $("#d-prev").onclick = () => dateStep(-1);
   $("#d-next").onclick = () => dateStep(1);

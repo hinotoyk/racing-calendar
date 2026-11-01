@@ -617,13 +617,13 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
   .filter-label { width: 52px; }
   /* chips 行拉满整行（搜索下拉/血统 chips 等 mb 惯例，同 yunji .f-csel） */
   .filter-chips { flex-grow: 1; }
-  /* 日期行：单行横滑（不换行，‹ › 导航与 chips 一条线；滚动条隐藏，手势滑动）
-   * #date-tabs 是嵌套的 .filter-chips —— display:contents 提升其子元素到外层弹性流，避免双层滚动容器
-   * 右缘渐隐 = 「还能滑」的可供性提示；选中日期由 JS scrollIntoView 居中 */
-  .filter-row.f-scroll { align-items: center; position: relative; }
-  .filter-row.f-scroll::after { content: ""; position: absolute; right: -2px; top: 0; bottom: 0; width: 26px; background: linear-gradient(90deg, transparent, var(--card)); pointer-events: none; }
-  .filter-row.f-scroll > .filter-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
-  .filter-row.f-scroll > .filter-chips::-webkit-scrollbar { display: none; }
+  /* 日期行：mb 拆两段——.f-strip（‹ + 日期 chips + ›）单行横滑占满首行，.f-quick（本周末/今天）换到第二行；
+   * PC 两容器 display:contents 并入外层 chips 流（与重构前 DOM 等价）；#date-tabs 嵌套容器
+   * display:contents 提升子元素，避免双层滚动；选中日期由 JS scrollIntoView 保持可见 */
+  .f-strip, .f-quick { display: contents; }
+  .filter-row.f-scroll .f-strip { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
+  .filter-row.f-scroll .f-strip::-webkit-scrollbar { display: none; }
+  .filter-row.f-scroll .f-quick { display: flex; flex: none; align-items: center; gap: 6px; }
   .filter-row.f-scroll .filter-chip, .filter-row.f-scroll .d-nav { flex: none; }
   .filter-row.f-scroll #date-tabs { display: contents; }
   /* 已选浮动条：窄屏防压缩换行（清空按钮文字曾折成两行） */
