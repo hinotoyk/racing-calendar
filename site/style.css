@@ -364,12 +364,11 @@ footer { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 18px; justif
 .f-pick.on { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); font-weight: 600; }
 .f-pick + .f-reset { margin-left: 0; }
 
-/* 勾选框：绝对定位在首列左侧预留区内，不参与流式布局，避免行内容错位换行（锚点 = 第一可见列 .pk-host） */
-.pick-box { display: none; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0; accent-color: var(--primary); cursor: pointer; }
-body.picking .pick-box { display: inline-block; }
-body.picking td.pk-host { position: relative; padding-left: 28px; }
-body.picking table.yj-lib tbody tr { cursor: pointer; }   /* 整行点击 = 勾/取消 */
-body.picking table.yj-lib tbody tr:hover td { background: var(--race-tint); }
+/* 勾选框：常驻（点行任意处 = 勾/取消，分享卡入口零门槛）；绝对定位在首列左侧预留区，不参与流式布局 */
+.pick-box { display: inline-block; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0; accent-color: var(--primary); cursor: pointer; }
+td.pk-host { position: relative; padding-left: 28px; }
+table.yj-lib tbody tr[data-pk] { cursor: pointer; }   /* 整行点击 = 勾/取消 */
+table.yj-lib tbody tr[data-pk]:hover td { background: var(--race-tint); }
 
 /* 已选浮动条：胶囊造型 + 青绿主按钮 + 上拉预览列表 */
 #pick-bar {

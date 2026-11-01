@@ -27,7 +27,7 @@ const state = {
   bms: "",
   q: "",
   group: "",
-  selectMode: false,          // 勾选模式（分享卡入口）
+  selectMode: false,          // （已废弃：勾选常驻，保留键位兼容旧 localStorage）
   selected: new Set(),        // 已勾选行键（行级勾选：同一场比赛的勾选行在分享卡里归入同一块）
   rows: [],
   alias: null,        // derived/horse-aliases.json：alias（归一化别名→canonical）/ display（canonical→展示名）
@@ -823,7 +823,7 @@ function render() {
   $("#count").innerHTML = `共 <b>${rows.length}</b> 頭 · <b>${races}</b> R` +
     (pages > 1 ? ` <span class="muted">当前第 ${PG.page} / ${pages} 页 · 显示 ${shown} 条</span>` : "");
   renderPager(pages, rows.length);
-  $("#sel-page").hidden = $("#desel-page").hidden = !state.selectMode || !pageRows.length;   // 全选/取消本页：仅勾选模式且有行时显示
+  $("#sel-page").hidden = $("#desel-page").hidden = !pageRows.length;   // 全选/取消本页：有行时显示
 }
 
 // 数据实际覆盖范围（采集窗口从 JST 当天起，更早日期从未采集）
@@ -1053,9 +1053,8 @@ async function main() {
   };
   $("#f-q").oninput = (e) => { state.q = e.target.value; apply(); };
 
-  // 勾选模式整行点击 = 勾/取消（馬名・比赛名链接照常打开；checkbox 自身走 change）
+  // 勾选常驻：整行点击 = 勾/取消（馬名・比赛名链接照常打开；checkbox 自身走 change）
   $("#entry-table").addEventListener("click", (e) => {
-    if (!document.body.classList.contains("picking")) return;
     if (e.target.closest("a") || e.target.closest(".pick-box")) return;
     const tr = e.target.closest("tr[data-pk]");
     if (!tr) return;
@@ -1140,16 +1139,6 @@ async function main() {
     else if (typeof MB_MQL.addListener === "function") MB_MQL.addListener(onBreakpoint);
   }
 
-  // 勾选比赛（分享卡入口）
-  $("#pick-mode").onclick = () => {
-    state.selectMode = !state.selectMode;
-    document.body.classList.toggle("picking", state.selectMode);
-    $("#pick-mode").textContent = state.selectMode ? "完成勾选" : "勾选比赛";
-    $("#pick-mode").classList.toggle("on", state.selectMode);
-    $("#sel-page").hidden = $("#desel-page").hidden = !state.selectMode || !pageRows.length;
-    // 完成勾选：已有勾选 → 直接进分享卡页（新开一页数据）；没有则仅退出勾选模式
-    if (!state.selectMode && state.selected.size) goShare();
-  };
   // 全选 / 取消本页：当前筛选 + 当前页展示的全部行（马）；render 重画勾选框（不重置页码）
   $("#sel-page").onclick = () => {
     for (const r of pageRows) state.selected.add(rowKeyOf(r));
@@ -1204,11 +1193,7 @@ async function main() {
     await refresh();
     await demoPick(true);
     if (qp.has("edit")) await gridSelfTest(qp.get("edit") === "2");
-  } else if (qp.get("pick") === "demo") {      // 自检：勾选模式 + 已选浮动条（&list=1 顺带展开上拉预览）
-    state.selectMode = true;
-    document.body.classList.add("picking");
-    $("#pick-mode").textContent = "完成勾选";
-    $("#pick-mode").classList.add("on");
+  } else if (qp.get("pick") === "demo") {      // 自检：已选浮动条（&list=1 顺带展开上拉预览）
     demoPick(false);
     if (qp.has("list")) { $("#pick-list").hidden = false; $("#pick-toggle").classList.add("open"); }
   }
