@@ -609,6 +609,14 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
 
 /* mb：筛选卡高级行折叠（竞马场/级别/血统/快捷 收进「更多筛选」，yunji §162 同款；PC 恒展开不显示按钮） */
 .f-adv-btn { display: none; }
+/* 日期行（PC+mb 同一套单行流）：不换行、装不下横滑（滚动条隐藏）；
+ * .f-strip（‹+chips+›）/ .f-quick（本周末+今天）在 PC 用 display:contents 并入外层 chips 流 */
+.filter-row.f-scroll { align-items: center; }
+.filter-row.f-scroll > .filter-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.filter-row.f-scroll > .filter-chips::-webkit-scrollbar { display: none; }
+.f-strip, .f-quick { display: contents; }
+.filter-row.f-scroll .filter-chip, .filter-row.f-scroll .d-nav { flex: none; }
+#date-tabs { display: contents; }
 @media (max-width: 767px) {
   .filter-card .f-adv { display: none; }
   .filter-card.adv-open .f-adv { display: flex; }
@@ -617,15 +625,10 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
   .filter-label { width: 52px; }
   /* chips 行拉满整行（搜索下拉/血统 chips 等 mb 惯例，同 yunji .f-csel） */
   .filter-chips { flex-grow: 1; }
-  /* 日期行：mb 拆两段——.f-strip（‹ + 日期 chips + ›）单行横滑占满首行，.f-quick（本周末/今天）换到第二行；
-   * PC 两容器 display:contents 并入外层 chips 流（与重构前 DOM 等价）；#date-tabs 嵌套容器
-   * display:contents 提升子元素，避免双层滚动；选中日期由 JS scrollIntoView 保持可见 */
-  .f-strip, .f-quick { display: contents; }
-  .filter-row.f-scroll .f-strip { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
-  .filter-row.f-scroll .f-strip::-webkit-scrollbar { display: none; }
-  .filter-row.f-scroll .f-quick { display: flex; flex: none; align-items: center; gap: 6px; }
-  .filter-row.f-scroll .filter-chip, .filter-row.f-scroll .d-nav { flex: none; }
-  .filter-row.f-scroll #date-tabs { display: contents; }
+  /* 日期行 mb：.f-strip（‹+chips+›）单行横滑占满首行，.f-quick（本周末/今天）换到第二行 */
+  .f-strip { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
+  .f-strip::-webkit-scrollbar { display: none; }
+  .f-quick { display: flex; flex: 0 0 100%; align-items: center; gap: 6px; }
   /* 已选浮动条：窄屏防压缩换行（清空按钮文字曾折成两行） */
   #pick-bar { max-width: calc(100vw - 20px); }
   #pick-bar .pb-count, #pick-bar .pb-go, #pick-bar .pb-clear { flex: none; white-space: nowrap; }
