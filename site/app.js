@@ -675,7 +675,7 @@ function rowHtml(r) {
   return `<tr data-pk="${k}" title="${esc(r.startTimeInstant ?? "")}">${tds}</tr>`;
 }
 
-// 比赛分隔行（同场比赛的首行前插入：场R · 比赛名 · 级别 · 北京时间 · 距离 · 当地发走 · 头数）
+// 比赛分隔行（PC：同场比赛的首行前插入 场R · 比赛名 · 级别 · 北京时间 · 距离 · 当地发走 · 头数）
 function raceSepHtml(r, heads) {
   const nm = r.raceUrl
     ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
@@ -686,6 +686,59 @@ function raceSepHtml(r, heads) {
   return `<tr class="sep"><td colspan="${visCols().length}"><b>${esc(r.venue)}${r.raceNo}R</b>${nm}${levelBadge(r.level)}` +
     `${bj ? `<span class="sep-bj">${esc(bj)} 北京</span>` : ""}` +
     `${meta ? `<span class="sep-meta">${meta}</span>` : ""}</td></tr>`;
+}
+
+// ---------- 移动端（≤767px）卡片渲染（yunji race-rows mbCard 同方案：JS 独立路径，同一份列定义） ----------
+// 组头：比赛级信息一行带过（場R · 比赛名 · 级别 · 北京 · 距离 · 当地 · 头数）
+function mbSepHtml(r, heads) {
+  const nm = r.raceUrl
+    ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
+    : esc(r.raceName ?? "");
+  const bj = bjTime(r.startTimeInstant);
+  const meta = [distText(r), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
+    .filter(Boolean).join(" · ");
+  return `<div class="yj-mb-sep"><b>${esc(r.venue)}${r.raceNo}R</b>${nm}${levelBadge(r.level)}` +
+    `${bj ? `<span class="sep-bj">${esc(bj)} 北京</span>` : ""}` +
+    `${meta ? `<span class="sep-meta">${meta}</span>` : ""}</div>`;
+}
+
+// 马卡片：top 行（馬番 · 枠色片 · 馬名 · 性齢）+ 分组行（label：value 项，空值/隐藏列不出现）
+function mbCardHtml(r) {
+  const rk = esc(rowKeyOf(r));
+  const checked = state.selected.has(rowKeyOf(r));
+  const show = (k) => visCols().some((c) => c.k === k);   // 跟随列显隐（PC hide 的列 mb 卡不出现）
+  const item = (lb, v) => (v == null || v === "" ? "" : `<span class="yj-mb-item"><i>${esc(lb)}：</i><b>${v}</b></span>`);
+  const top = [
+    show("num") ? `<span class="yj-mb-no">${esc(r.num ?? "–")}</span>` : "",
+    show("waku") ? frameBadge(r.frame) : "",
+    `<span class="yj-mb-horse">${horseLink(r.horseId, r.horseName)}</span>`,
+    show("sexage") ? `<span class="yj-mb-sexage">${esc((r.sex ?? "") + (r.age ?? ""))}</span>` : "",
+  ].join("");
+  const line1 = [
+    show("jockey") ? item("騎手", esc(r.jockey ?? "")) : "",
+    show("weight") ? item("斤量", esc(r.weight ?? "")) : "",
+    show("trainer") ? item("調教師", esc(r.trainer ?? "")) : "",
+  ].join("");
+  const line2 = [
+    show("sire") ? item("父", esc(r.sire ?? "")) : "",
+    show("siresire") ? item("父父", esc(r.sireSire ?? "")) : "",
+    show("dam") ? item("母", esc(r.dam ?? "")) : "",
+    show("bms") ? item("母父", esc(r.bms ?? "")) : "",
+  ].join("");
+  return `<div class="yj-mb${checked ? " picked" : ""}" data-pk="${rk}">` +
+    `<input type="checkbox" class="pick-box" data-k="${rk}"${checked ? " checked" : ""} aria-label="勾选 ${esc(r.horseName ?? "")}">` +
+    `<div class="yj-mb-top">${top}</div>` +
+    (line1 ? `<div class="yj-mb-line">${line1}</div>` : "") +
+    (line2 ? `<div class="yj-mb-line">${line2}</div>` : "") +
+    `</div>`;
+}
+
+// 渲染结果落位：mb → #mb-list 卡片列表（table 隐藏）；PC → tbody
+function flushRows(parts) {
+  const mb = isMb();
+  $("#entry-table").hidden = mb;
+  $("#mb-list").hidden = !mb;
+  (mb ? $("#mb-list") : $("#entry-table tbody")).innerHTML = parts.join("");
 }
 
 // 表头按可见列重画（列显隐切换时调用）
@@ -751,7 +804,6 @@ function render() {
   $("#empty").hidden = rows.length > 0;
   $("#empty").innerHTML = rows.length ? "" : emptyHtml();
 
-  const body = $("#entry-table tbody");
   let pages = 1, shown = 0;
   pageRows = [];
 
@@ -766,10 +818,10 @@ function render() {
     let lastRk = null;
     for (const r of pageRows) {
       const rk = rkOf(r);
-      if (rk !== lastRk) { parts.push(raceSepHtml(r, r.heads)); lastRk = rk; }
-      parts.push(rowHtml(r));
+      if (rk !== lastRk) { parts.push(isMb() ? mbSepHtml(r, r.heads) : raceSepHtml(r, r.heads)); lastRk = rk; }
+      parts.push(isMb() ? mbCardHtml(r) : rowHtml(r));
     }
-    body.innerHTML = parts.join("");
+    flushRows(parts);
   } else {
     // 分组视图：整组分页——页内按整组装填，装不下整组就整组移到下一页（最后一组不截断）；
     // 单组超过一页容量时才组内截断，跨页组在新页自动重复组头；组头 tr.sub 不占条数
@@ -806,18 +858,20 @@ function render() {
     const parts = [];
     for (const seg of packed[PG.page - 1] ?? []) {
       const gr = new Set(seg.list.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
-      parts.push(`<tr class="sub"><td colspan="${colspan}"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
+      parts.push(isMb()
+        ? `<div class="yj-mb-sub"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</div>`
+        : `<tr class="sub"><td colspan="${colspan}"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
       const segRows = seg.list.slice(seg.a, seg.b);
       let lastRk = null;   // 组内同样按比赛加分隔行（比赛级列默认隐藏后，这里是场R信息的唯一来源）
       for (const r of segRows) {
         const rk = rkOf(r);
-        if (rk !== lastRk) { parts.push(raceSepHtml(r, r.heads)); lastRk = rk; }
-        parts.push(rowHtml(r));
+        if (rk !== lastRk) { parts.push(isMb() ? mbSepHtml(r, r.heads) : raceSepHtml(r, r.heads)); lastRk = rk; }
+        parts.push(isMb() ? mbCardHtml(r) : rowHtml(r));
       }
       pageRows.push(...segRows);
       shown += seg.b - seg.a;
     }
-    body.innerHTML = parts.join("");
+    flushRows(parts);
   }
 
   $("#count").innerHTML = `共 <b>${rows.length}</b> 頭 · <b>${races}</b> R` +
@@ -1066,6 +1120,20 @@ async function main() {
     updatePickBar();
   });
 
+  // mb 卡片：点击卡片 = 勾/取消（与 PC 行为一致）
+  $("#mb-list").addEventListener("click", (e) => {
+    if (e.target.closest("a") || e.target.closest(".pick-box")) return;
+    const card = e.target.closest(".yj-mb[data-pk]");
+    if (!card) return;
+    const k = card.dataset.pk;
+    const on = !state.selected.has(k);
+    on ? state.selected.add(k) : state.selected.delete(k);
+    const box = card.querySelector(".pick-box");
+    if (box) box.checked = on;
+    card.classList.toggle("picked", on);
+    updatePickBar();
+  });
+
   // 空态行动按钮：切换全部场地 / 跳最近有赛日
   $("#empty").addEventListener("click", (e) => {
     const b = e.target.closest(".e-act");
@@ -1156,6 +1224,18 @@ async function main() {
     b.checked ? state.selected.add(b.dataset.k) : state.selected.delete(b.dataset.k);
     updatePickBar();
   });
+  $("#mb-list").addEventListener("change", (e) => {
+    const b = e.target.closest(".pick-box");
+    if (!b) return;
+    b.checked ? state.selected.add(b.dataset.k) : state.selected.delete(b.dataset.k);
+    b.closest(".yj-mb")?.classList.toggle("picked", b.checked);
+    updatePickBar();
+  });
+  // mb：高级行折叠（竞马场/级别/血统/快捷；PC 按钮不显示，行恒展开）
+  $("#f-adv").onclick = () => {
+    const open = $(".filter-card").classList.toggle("adv-open");
+    $("#f-adv").textContent = open ? "收起筛选 ▴" : "更多筛选 ▾";
+  };
   $("#pick-clear").onclick = () => { state.selected.clear(); apply(); updatePickBar(); };
   $("#pick-go").onclick = goShare;
   // 已选预览：上拉列表开合

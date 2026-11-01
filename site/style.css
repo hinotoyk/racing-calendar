@@ -578,24 +578,45 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
 }
 
 /* ============================================================
- * 移动端（≤767px）：主表卡片式布局（thead 隐藏，td 转两列 flex，data-l 作行标签）
+ * 移动端（≤767px，yunji-web race-rows mbCard 同方案）
+ * 主表 = JS 独立渲染路径（#mb-list 卡片列表，app.js isMb() 分支），
+ * 比赛级信息由 .yj-mb-sep 组头承载，马卡片只留 馬番/枠/馬名/性齢 + label：value 行。
  * ============================================================ */
+#mb-list[hidden] { display: none; }
+.yj-mb-sep {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px;
+  padding: 9px 12px 5px; background: var(--surface); border-bottom: 1px solid var(--border-soft);
+  font-size: 12px; color: var(--secondary-foreground);
+}
+.yj-mb-sep b { font-size: 12.5px; color: var(--foreground); }
+.yj-mb-sep .sep-meta { margin-left: auto; }
+.yj-mb-sub { padding: 8px 12px 4px; background: var(--surface); border-bottom: 1px solid var(--border-soft); font-size: 12px; color: var(--muted-foreground); }
+.yj-mb-sub b { color: var(--foreground); font-size: 12.5px; margin-right: 6px; }
+.yj-mb { position: relative; padding: 9px 12px 9px 36px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .12s; }
+.yj-mb:last-child { border-bottom: none; }
+.yj-mb:active, .yj-mb.picked { background: var(--race-tint); }
+.yj-mb .pick-box { left: 13px; }
+.yj-mb-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.yj-mb-no { flex: none; min-width: 14px; font-weight: 700; font-size: 12.5px; color: var(--secondary-foreground); text-align: center; }
+.yj-mb-horse { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
+.yj-mb-sexage { flex: none; font-size: 11.5px; font-weight: 600; color: var(--muted-foreground); white-space: nowrap; }
+.yj-mb-line { padding-top: 2px; font-size: 12px; color: var(--secondary-foreground); line-height: 1.7; }
+.yj-mb-item { white-space: nowrap; margin-right: 16px; }
+.yj-mb-item:last-child { margin-right: 0; }
+.yj-mb-item i { font-style: normal; font-size: 10.5px; color: var(--muted-foreground); }
+.yj-mb-item b { font-weight: 500; }
+
+/* mb：筛选卡高级行折叠（竞马场/级别/血统/快捷 收进「更多筛选」，yunji §162 同款；PC 恒展开不显示按钮） */
+.f-adv-btn { display: none; }
 @media (max-width: 767px) {
-  #entry-table { display: block; }
-  #entry-table thead { display: none; }
-  #entry-table tbody { display: block; }
-  #entry-table tbody tr { display: block; border-bottom: 1px solid var(--border-soft); padding: 7px 12px; }
-  #entry-table tbody tr:last-child { border-bottom: none; }
-  #entry-table tbody td {
-    display: flex; align-items: baseline; gap: 8px;
-    border-bottom: none; padding: 2px 0; text-align: left; white-space: normal;
-  }
-  #entry-table tbody td::before {
-    content: attr(data-l); flex: none; width: 76px;
-    font-size: 10px; letter-spacing: .5px; color: var(--muted-foreground);
-  }
-  /* 组头/比赛分隔行：独占一行标题，不加 data-l 标签 */
-  #entry-table tbody tr.sub td, #entry-table tbody tr.sep td { display: block; }
-  #entry-table tbody tr.sub td::before, #entry-table tbody tr.sep td::before { content: none; }
-  #entry-table tbody td.name { font-size: 13px; }
+  .filter-card .f-adv { display: none; }
+  .filter-card.adv-open .f-adv { display: flex; }
+  .f-adv-btn { display: block; width: 100%; height: 34px; margin-top: 8px; border: 1px dashed var(--chip-border); border-radius: 8px; background: var(--card); color: var(--muted-foreground); font-size: 12px; cursor: pointer; transition: all .15s; }
+  .f-adv-btn:hover { border-color: rgba(10, 167, 160, .55); color: var(--teal-ink, #0b6b64); background: #f7fdfd; }
+  .filter-label { width: 52px; }
+  /* chips 行拉满整行（搜索下拉/血统 chips 等 mb 惯例，同 yunji .f-csel） */
+  .filter-chips { flex-grow: 1; }
+  /* 已选浮动条：窄屏防压缩换行（清空按钮文字曾折成两行） */
+  #pick-bar { max-width: calc(100vw - 20px); }
+  #pick-bar .pb-count, #pick-bar .pb-go, #pick-bar .pb-clear { flex: none; white-space: nowrap; }
 }

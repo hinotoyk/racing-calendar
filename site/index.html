@@ -30,15 +30,15 @@
       <span class="filter-label">场地</span>
       <div class="filter-chips" id="scope-chips"></div>
     </div>
-    <div class="filter-row">
+    <div class="filter-row f-adv">
       <span class="filter-label">竞马场</span>
       <div class="filter-chips" id="venue-chips"></div>
     </div>
-    <div class="filter-row">
+    <div class="filter-row f-adv">
       <span class="filter-label">级别</span>
       <div class="filter-chips" id="klass-chips"></div>
     </div>
-    <div class="filter-row">
+    <div class="filter-row f-adv">
       <span class="filter-label">血统</span>
       <div class="filter-chips selects">
         <span class="sel-mount" id="m-sire"></span>
@@ -48,10 +48,12 @@
         <span class="sel-mount" id="m-group"></span>
       </div>
     </div>
-    <div class="filter-row">
+    <div class="filter-row f-adv">
       <span class="filter-label">快捷</span>
       <div class="filter-chips ped-tags" id="ped-tags"></div>
     </div>
+    <!-- mb：高级行折叠开关（yunji §162；PC 恒显不渲染按钮，仅 ≤767px 显示） -->
+    <button id="f-adv" class="f-adv-btn" type="button">更多筛选 ▾</button>
   </div>
 
   <div class="summary">
@@ -71,6 +73,8 @@
       </tr></thead>
       <tbody></tbody>
     </table>
+    <!-- 移动端（≤767px）卡片列表：render() 按 isMb() 分支渲染（yunji race-rows mbCard 同方案） -->
+    <div id="mb-list" hidden></div>
     <div class="skel" id="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="empty" id="empty" hidden></div>
   </div>
