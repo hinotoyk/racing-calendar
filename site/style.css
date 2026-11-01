@@ -589,22 +589,21 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
   font-size: 12px; color: var(--secondary-foreground);
 }
 .yj-mb-sep b { font-size: 12.5px; color: var(--foreground); }
-.yj-mb-sep .sep-meta { margin-left: auto; }
 .yj-mb-sub { padding: 8px 12px 4px; background: var(--surface); border-bottom: 1px solid var(--border-soft); font-size: 12px; color: var(--muted-foreground); }
 .yj-mb-sub b { color: var(--foreground); font-size: 12.5px; margin-right: 6px; }
 .yj-mb { position: relative; padding: 9px 12px 9px 36px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .12s; }
 .yj-mb:last-child { border-bottom: none; }
 .yj-mb:active, .yj-mb.picked { background: var(--race-tint); }
-.yj-mb .pick-box { left: 13px; }
-.yj-mb-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.yj-mb-no { flex: none; min-width: 14px; font-weight: 700; font-size: 12.5px; color: var(--secondary-foreground); text-align: center; }
+.yj-mb .pick-box { left: 13px; top: 19px; transform: none; }   /* 对齐首行（馬名行）垂直中点，不随卡片高度居中 */
+.yj-mb-top { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.yj-mb-no { flex: none; min-width: 16px; font-weight: 700; font-size: 12.5px; color: var(--secondary-foreground); text-align: right; }   /* 右对齐：1~18 位对齐，重心统一 */
 .yj-mb-horse { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
 .yj-mb-sexage { flex: none; font-size: 11.5px; font-weight: 600; color: var(--muted-foreground); white-space: nowrap; }
 .yj-mb-line { padding-top: 2px; font-size: 12px; color: var(--secondary-foreground); line-height: 1.7; }
 .yj-mb-item { white-space: nowrap; margin-right: 16px; }
 .yj-mb-item:last-child { margin-right: 0; }
 .yj-mb-item i { font-style: normal; font-size: 10.5px; color: var(--muted-foreground); }
-.yj-mb-item b { font-weight: 500; }
+.yj-mb-item b { font-weight: 600; }
 
 /* mb：筛选卡高级行折叠（竞马场/级别/血统/快捷 收进「更多筛选」，yunji §162 同款；PC 恒展开不显示按钮） */
 .f-adv-btn { display: none; }
@@ -616,6 +615,13 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
   .filter-label { width: 52px; }
   /* chips 行拉满整行（搜索下拉/血统 chips 等 mb 惯例，同 yunji .f-csel） */
   .filter-chips { flex-grow: 1; }
+  /* 日期行：单行横滑（不换行，‹ › 导航与 chips 一条线；滚动条隐藏，手势滑动）
+   * #date-tabs 是嵌套的 .filter-chips —— display:contents 提升其子元素到外层弹性流，避免双层滚动容器 */
+  .filter-row.f-scroll { align-items: center; }
+  .filter-row.f-scroll > .filter-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
+  .filter-row.f-scroll > .filter-chips::-webkit-scrollbar { display: none; }
+  .filter-row.f-scroll .filter-chip, .filter-row.f-scroll .d-nav { flex: none; }
+  .filter-row.f-scroll #date-tabs { display: contents; }
   /* 已选浮动条：窄屏防压缩换行（清空按钮文字曾折成两行） */
   #pick-bar { max-width: calc(100vw - 20px); }
   #pick-bar .pb-count, #pick-bar .pb-go, #pick-bar .pb-clear { flex: none; white-space: nowrap; }

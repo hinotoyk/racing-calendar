@@ -709,7 +709,7 @@ function mbCardHtml(r) {
   const show = (k) => visCols().some((c) => c.k === k);   // 跟随列显隐（PC hide 的列 mb 卡不出现）
   const item = (lb, v) => (v == null || v === "" ? "" : `<span class="yj-mb-item"><i>${esc(lb)}：</i><b>${v}</b></span>`);
   const top = [
-    show("num") ? `<span class="yj-mb-no">${esc(r.num ?? "–")}</span>` : "",
+    show("num") && r.num != null ? `<span class="yj-mb-no">${esc(r.num)}</span>` : "",   // 未確定（num 空）不画占位符
     show("waku") ? frameBadge(r.frame) : "",
     `<span class="yj-mb-horse">${horseLink(r.horseId, r.horseName)}</span>`,
     show("sexage") ? `<span class="yj-mb-sexage">${esc((r.sex ?? "") + (r.age ?? ""))}</span>` : "",
