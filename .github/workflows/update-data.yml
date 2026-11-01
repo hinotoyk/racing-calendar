@@ -41,9 +41,11 @@ jobs:
           node src/collect-races.js 2>&1 | tee test-logs/jbis.log
 
       # Sporting Life 对数据中心 IP 的容忍度未验证 → 失败只告警，不阻断 JBIS 数据落库
+      # countries：GB/IRE 日常 + USA（Breeders' Cup 等北美大赛；SL racecards index 只滚出
+      # 「明天起」的会议，当日美国卡必须在当天 UTC 22:00 的运行里抓到，缺一次即错过）
       - name: Collect Racing Post (via Sporting Life)
         continue-on-error: true
-        run: node src/collect-sources.js --source racingpost 2>&1 | tee test-logs/rp.log
+        run: node src/collect-sources.js --source racingpost --countries GB,IRE,USA 2>&1 | tee test-logs/rp.log
 
       # 构建：数据归一 + _site 产出（_site 本身不入库）
       - name: Build site
