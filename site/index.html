@@ -14,23 +14,27 @@
   <div class="filter-card">
     <div class="filter-head">
       <span class="filter-title">筛选 · FILTER</span>
-      <button id="pick-mode" class="f-pick" type="button" title="勾选比赛，生成可分享的出馬表图片">勾选比赛</button>
       <button id="reset" class="f-reset" type="button">清空条件</button>
     </div>
-    <div class="filter-row">
+    <div class="filter-row f-scroll">
       <span class="filter-label">日期</span>
       <div class="filter-chips">
-        <button id="d-prev" class="d-nav" type="button" title="更早 5 天">‹</button>
-        <span class="filter-chips" id="date-tabs"></span>
-        <button id="d-next" class="d-nav" type="button" title="更晚 5 天">›</button>
-        <button id="d-today" class="d-nav" type="button">今天</button>
+        <span class="f-strip">
+          <button id="d-prev" class="d-nav" type="button" title="更早 5 天">‹</button>
+          <span class="filter-chips" id="date-tabs"></span>
+          <button id="d-next" class="d-nav" type="button" title="更晚 5 天">›</button>
+        </span>
+        <span class="f-quick">
+          <button id="d-weekend" class="d-nav" type="button" title="一次选中本周六日">本周末</button>
+          <button id="d-today" class="d-nav" type="button">今天</button>
+        </span>
       </div>
     </div>
     <div class="filter-row">
       <span class="filter-label">场地</span>
       <div class="filter-chips" id="scope-chips"></div>
     </div>
-    <div class="filter-row">
+    <div class="filter-row f-adv">
       <span class="filter-label">竞马场</span>
       <div class="filter-chips" id="venue-chips"></div>
     </div>
@@ -52,10 +56,13 @@
       <span class="filter-label">快捷</span>
       <div class="filter-chips ped-tags" id="ped-tags"></div>
     </div>
+    <!-- mb：高级行折叠开关（yunji §162；PC 恒显不渲染按钮，仅 ≤767px 显示） -->
+    <button id="f-adv" class="f-adv-btn" type="button">更多筛选 ▾</button>
   </div>
 
   <div class="summary">
     <span id="count" class="count"></span>
+    <span id="col-mount"></span>
     <button id="sel-page" class="sel-page" type="button" hidden title="勾选当前筛选下本页展示的全部行（马）">全选本页</button>
     <button id="desel-page" class="sel-page" type="button" hidden title="取消勾选当前页展示的全部行（马）">取消本页</button>
   </div>
@@ -70,6 +77,9 @@
       </tr></thead>
       <tbody></tbody>
     </table>
+    <!-- 移动端（≤767px）卡片列表：render() 按 isMb() 分支渲染（yunji race-rows mbCard 同方案） -->
+    <div id="mb-list" hidden></div>
+    <div class="skel" id="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="empty" id="empty" hidden></div>
   </div>
 
@@ -103,16 +113,29 @@
     <div class="share-bar">
       <span class="filter-title">出馬表分享卡 · <span id="share-count"></span></span>
       <div class="tools">
-        <span class="share-fld">时间</span>
-        <div id="share-clock" class="filter-chips"></div>
+        <span class="sb-group">
+          <span class="share-fld">版式</span>
+          <div id="share-layout" class="filter-chips"></div>
+        </span>
         <span class="v-sep"></span>
-        <div id="share-cols" class="filter-chips"></div>
+        <span class="sb-group">
+          <span class="share-fld">时间</span>
+          <div id="share-clock" class="filter-chips"></div>
+        </span>
+        <span class="v-sep"></span>
         <label class="share-fld">倍率
           <select id="share-scale"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option></select>
         </label>
+        <span class="v-sep"></span>
         <button id="share-copy" class="sh-btn ghost" type="button">复制到剪贴板</button>
         <button id="share-dl" class="sh-btn" type="button">导出 PNG</button>
+        <button id="share-newtab" class="sh-btn ghost" type="button" title="在独立标签页打开当前分享卡（弹窗拦截时备用）">新标签打开</button>
         <button id="share-back" class="sh-btn ghost" type="button">返回列表</button>
+        <!-- 追加列整行独立（flex-basis 100% 自动换行）：8 个血统芯片不再与操作按钮挤同一行 -->
+        <div id="share-cols-row" class="sb-cols-row">
+          <span class="share-fld">追加列</span>
+          <div id="share-cols" class="filter-chips"></div>
+        </div>
       </div>
     </div>
     <div class="share-stage"><canvas id="share-canvas"></canvas></div>

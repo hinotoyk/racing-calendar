@@ -111,11 +111,14 @@ function rowOf(doc, race, r) {
     dam: r.dam?.name ?? null,
     bms: r.bms?.name ?? null,
     raceKey: race.raceKey,
-    // 比赛页链接：RP = Sporting Life racecard（raceKey 即 race id，假 slug 可用）；JBIS = 场馆日历页
+    // 比赛页链接：RP = Sporting Life racecard（raceKey 即 race id，假 slug 可用）；
+    // JBIS = 比赛详情页（raceKey 即 URL 路径 20261101/108/01，比日历页直达）
     raceUrl:
       sourceOf(doc) === "racingpost" && /^\d+$/.test(String(race.raceKey))
         ? `https://www.sportinglife.com/racing/racecards/${doc.date}/x/racecard/${race.raceKey}/x`
-        : (doc.source ?? null),
+        : String(race.raceKey ?? "").match(/^\d{8}\/\w+\/\d{2}$/)
+          ? `https://www.jbis.or.jp/race/${race.raceKey}/`
+          : (doc.source ?? null),
     // 前走预渲染为文本（UI 已不用逐场对象；字典包里字符串远小于对象数组，且仅 Excel 消费）
     recent1: recentText(r.recent?.[0]) || null,
     recent2: recentText(r.recent?.[1]) || null,

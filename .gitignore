@@ -20,3 +20,6 @@ _site/
 
 # design/ 下的 QA 截图（无头浏览器验证产物，下划线前缀）；设计稿 share-card.html / sample-data.js / _extract.mjs 照常入库
 design/_*.png
+
+# WorkBuddy 本地工作记忆（会话日志/验证截图，不入库）
+.workbuddy/

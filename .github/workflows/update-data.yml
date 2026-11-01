@@ -1,6 +1,10 @@
 name: update-data
 
-# 每日一次采集 JBIS + Racing Post（经 Sporting Life）→ 构建 → 落库 data/ → 重新部署静态页面（Pages）。
+# 每日两次采集 → 构建 → 落库 data/ → 重新部署静态页面（Pages）：
+#   ① UTC 22:00 = 北京 06:00：JBIS 出馬表（今天起 3 天）+ Racing Post（全国家，
+#      美国/中东等夜间卡还挂在 SL racecards 索引里，是抓它们的唯一窗口）
+#   ② UTC 10:00 = 北京 18:00：仅 JBIS 出馬表——当天日本场次的枠順/馬番確定后的补采窗口
+# 两个 schedule 用 github.event.schedule 区分；手动 dispatch 视同 ①（全量）。
 # 结构对齐 yunji-web 的 update-data.yml（采集→构建→提交数据→运行日志 artifact）；
 # 差异：GitHub 规定 GITHUB_TOKEN 的 push 不触发其它 workflow，故部署不能依赖 deploy.yml 被 push 触发，
 #       由本 workflow 在提交后直接 build + 发布 Pages。
@@ -8,8 +12,8 @@ name: update-data
 #           Settings → Actions → General → Workflow permissions = Read and write permissions
 on:
   schedule:
-    # UTC 22:00 = 北京 06:00 = JST 07:00（中央枠順確定后的早盘窗口，一次覆盖当日+3 天）
-    - cron: '0 22 * * *'
+    - cron: '0 22 * * *'   # 北京 06:00 · 全量（JBIS + RP all）
+    - cron: '0 10 * * *'   # 北京 18:00 · 仅 JBIS（枠順补采）
   workflow_dispatch:
 
 permissions:
@@ -24,7 +28,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90   # countries=all 的血统抓取量大于 GB+IRE 单独跑（06:00 档）
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -35,15 +39,24 @@ jobs:
         with:
           node-version: 22
 
+      - name: Resolve run mode
+        id: mode
+        run: |
+          # 18:00 的 JBIS 补采档（cron '0 10 * * *'）不跑 RP；其余（06:00 档/手动 dispatch）全量
+          echo "rp=${{ github.event.schedule != '0 10 * * *' }}" >> "$GITHUB_OUTPUT"
+
       - name: Collect JBIS racecards
         run: |
           mkdir -p test-logs
           node src/collect-races.js 2>&1 | tee test-logs/jbis.log
 
       # Sporting Life 对数据中心 IP 的容忍度未验证 → 失败只告警，不阻断 JBIS 数据落库
+      # countries=all：GB/IRE/USA/... 全国家（SL racecards index 只滚出「明天起」的会议，
+      # 各国当日卡必须在各自的「当天窗口」内抓到，缺一次即错过——育马者杯 Keeneland 10-30/31 即为例证）
       - name: Collect Racing Post (via Sporting Life)
+        if: steps.mode.outputs.rp == 'true'
         continue-on-error: true
-        run: node src/collect-sources.js --source racingpost 2>&1 | tee test-logs/rp.log
+        run: node src/collect-sources.js --source racingpost --countries all 2>&1 | tee test-logs/rp.log
 
       # 构建：数据归一 + _site 产出（_site 本身不入库）
       - name: Build site
