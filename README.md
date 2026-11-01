@@ -69,7 +69,7 @@ node src/collect-sources.js --source racingpost --countries all
 站点为纯静态零依赖：`_site/` 即完整产物（全相对路径 + `.nojekyll`），任意 base path 可用。参照 yunji-web 的双 workflow 模式（[.github/workflows/](.github/workflows)）：
 
 - **deploy.yml** — push main（代码变更/首次推送）→ `node src/build.js` → 发布 `_site/` 到 Pages
-- **update-data.yml** — 每日一次（UTC 22:00 = **北京 06:00**，JST 07:00）采集 JBIS + Racing Post → 构建 → 有变化则 commit `data/races/` + `data/pedigree/` 回 main → **同一 workflow 内重新部署静态页面**（GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故不能依赖 deploy.yml 被 push 触发）；可手动触发；运行日志上传为 artifact（保留 14 天）
+- **update-data.yml** — 每日两次：① UTC 22:00 = **北京 06:00**（JST 07:00）采集 JBIS + Racing Post（`--countries all` 全国家，美国等夜间卡唯一窗口）；② UTC 10:00 = **北京 18:00** 仅采集 JBIS（当天日本场次枠順/馬番確定后的补采）。两次都 → 构建 → 有变化则 commit `data/races/` + `data/pedigree/` 回 main → **同一 workflow 内重新部署静态页面**（GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故不能依赖 deploy.yml 被 push 触发）；可手动触发（视同 ① 全量）；运行日志上传为 artifact（保留 14 天）
 
 前置设置（一次性）：
 
