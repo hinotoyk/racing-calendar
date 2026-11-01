@@ -433,7 +433,13 @@ body.share-open .filter-card, body.share-open .summary, body.share-open .table-w
   background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; padding: 12px 16px;
   box-shadow: 0 1px 3px rgba(var(--shadow-color), .04);
 }
-.share-bar .tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.share-bar .tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.sb-group { display: inline-flex; align-items: center; gap: 7px; }
+/* 追加列独立成第二行：虚线分隔 + 占满整行，与主操作区解耦 */
+.sb-cols-row {
+  flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 2px; padding-top: 10px; border-top: 1px dashed var(--border);
+}
 .share-fld { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #8a8a8a; }
 .share-stage { display: flex; justify-content: center; padding: 22px 0 8px; }
 #share-canvas { width: min(928px, 100%); height: auto; }

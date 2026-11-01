@@ -113,20 +113,29 @@
     <div class="share-bar">
       <span class="filter-title">出馬表分享卡 · <span id="share-count"></span></span>
       <div class="tools">
-        <span class="share-fld">版式</span>
-        <div id="share-layout" class="filter-chips"></div>
+        <span class="sb-group">
+          <span class="share-fld">版式</span>
+          <div id="share-layout" class="filter-chips"></div>
+        </span>
         <span class="v-sep"></span>
-        <span class="share-fld">时间</span>
-        <div id="share-clock" class="filter-chips"></div>
+        <span class="sb-group">
+          <span class="share-fld">时间</span>
+          <div id="share-clock" class="filter-chips"></div>
+        </span>
         <span class="v-sep"></span>
-        <div id="share-cols" class="filter-chips"></div>
         <label class="share-fld">倍率
           <select id="share-scale"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option></select>
         </label>
+        <span class="v-sep"></span>
         <button id="share-copy" class="sh-btn ghost" type="button">复制到剪贴板</button>
         <button id="share-dl" class="sh-btn" type="button">导出 PNG</button>
         <button id="share-newtab" class="sh-btn ghost" type="button" title="在独立标签页打开当前分享卡（弹窗拦截时备用）">新标签打开</button>
         <button id="share-back" class="sh-btn ghost" type="button">返回列表</button>
+        <!-- 追加列整行独立（flex-basis 100% 自动换行）：8 个血统芯片不再与操作按钮挤同一行 -->
+        <div id="share-cols-row" class="sb-cols-row">
+          <span class="share-fld">追加列</span>
+          <div id="share-cols" class="filter-chips"></div>
+        </div>
       </div>
     </div>
     <div class="share-stage"><canvas id="share-canvas"></canvas></div>

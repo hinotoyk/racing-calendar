@@ -63,7 +63,7 @@ const GRADE = {
 
 /* ================= 布局常量 ================= */
 const W = 880, M = 24, PAD = 32;
-const COLH = 27, ROW_H = 36, FOOT_H = 70, GAP = 26;
+const COLH = 27, ROW_H = 36, FOOT_H = 84, GAP = 26;   // FOOT_H 含右下角二维码（58px）所需高度
 
 const esc = (s) => String(s ?? "");
 const wdOf = (d) => WEEKDAY[new Date(d + 'T00:00:00Z').getUTCDay()] ?? '';
@@ -152,8 +152,17 @@ function footer(L, R, tableBot) {
   ctx.fillText('RACING CALENDAR', PAD + 13, fy + 26);
   ctx.font = font(400, 10.5); ctx.fillStyle = TT.mut;
   ctx.fillText('数据仅供个人学习、研究 · 赛马应援 · 非商业用途 · v1.4.0', PAD + 13, fy + 44);
-  ctx.font = font(600, 12.5); ctx.fillStyle = TT.tealInk; ctx.textAlign = 'right';
-  ctx.fillText(SHARE_URL, R - PAD, fy + 38);
+  // 右下角二维码（替代纯文本链接）：细边框 + 左侧两行引导文案
+  const qs = 58, qx = R - PAD - qs, qy = fy + 8;
+  drawQR(qx, qy, qs);
+  ctx.strokeStyle = TT.line; ctx.lineWidth = 1;
+  ctx.strokeRect(qx + .5, qy + .5, qs - 1, qs - 1);
+  ctx.lineWidth = 1;
+  ctx.textAlign = 'right';
+  ctx.font = font(600, 12); ctx.fillStyle = TT.tealInk;
+  ctx.fillText('扫码查看出走表', qx - 10, fy + 30);
+  ctx.font = font(400, 10); ctx.fillStyle = TT.mut2;
+  ctx.fillText(SHARE_URL.replace(/^https:\/\//, ''), qx - 10, fy + 47);
   ctx.font = font(400, 10.5); ctx.fillStyle = TT.mut2; ctx.textAlign = 'center';
   ctx.fillText('power by ディープ求索', R / 2, fy + 38);
   ctx.textAlign = 'left';
@@ -357,6 +366,16 @@ function drawCards(scale, races, extras) {
           ctx.fillText(fit(h.horseName ?? '', c.w - 18), c.x + 9, mid + fs.horse * 0.34);
           continue;
         }
+        if (c.k === 'sexage') {   // 性別配色（与紧凑一览一致：牡青 / 牝粉 / セ青绿）
+          const sex = h.sex ?? '', age = h.age != null ? String(h.age) : '';
+          ctx.font = font(600, fs.body);
+          const wS = tw(sex), wA = age ? tw(age) : 0;
+          const x0 = c.x + (c.w - wS - wA) / 2, ty = mid + fs.body * 0.35;
+          ctx.textAlign = 'left';
+          if (sex) { ctx.fillStyle = SEX_C[sex] ?? TT.sub; ctx.fillText(sex, x0, ty); }
+          if (age) { ctx.fillStyle = TT.mut2; ctx.fillText(age, x0 + wS, ty); }
+          continue;
+        }
         const v = c.k === 'sexage' ? sexAge(h) : h[c.k];
         ctx.font = font(400, c.size ?? fs.body);
         ctx.fillStyle = c.c ?? TT.sub;
@@ -403,22 +422,48 @@ function drawDense(scale, races, extras) {
   const H = M + MAST_H + 8 + COLH + rows * ROW_H + FOOT_H + M + 8;
 
   // ---- 列布局：北京时间（带日期）+ 场次/比赛名/赛道 合并列 + 逐马列
-  //      （2026-11-01 反馈：去横幅带，拆回表格三列；时间列格式「11月1日 09:00」）----
+  //      （2026-11-01 反馈：时间/场次/赛道按内容实测定宽，关键列不再被压缩成「京都1…」；
+  //       收缩按优先级分档：追加列 → 騎手 → 比赛名 → 馬名/关键合并列）----
   const timeCol = clockOpt.bj ? 'bj' : 'local';
-  const cols = [{ k: timeCol, label: clockOpt.bj ? '北京时间' : '当地时间', w: 78, align: 'c', merge: 'race' }];
+  // 时间列：按最长时间文案实测（单行「11-01 14:20」或双行模式的两行各自实测）
+  ctx.font = font(600, 11.5);
+  let timeNeed = 0;
+  for (const r of races) timeNeed = Math.max(timeNeed, tw(bjText(r) || '–'), tw(localText(r) || '–'));
+  if (clockOpt.local && clockOpt.bj) {
+    ctx.font = font(400, 10);
+    for (const r of races) timeNeed = Math.max(timeNeed, r.startTime ? tw(`当地 ${r.startTime}`) : 0);
+  }
+  const cols = [{ k: timeCol, label: clockOpt.bj ? '北京时间' : '当地时间', w: Math.max(78, timeNeed + 16), align: 'c', merge: 'race', prio: 3 }];
+  // 场次列：按最长「競馬場+R」实测（此前固定 48 会把「京都11R」截成「京都1…」）
+  ctx.font = font(600, 11.5);
+  let noNeed = 0;
+  for (const r of races) noNeed = Math.max(noNeed, tw(`${r.venue ?? ''}${r.raceNo ? r.raceNo + 'R' : ''}` || '–'));
+  cols.push({ k:'no', label:'场次', w: Math.min(120, Math.max(48, noNeed + 14)), align:'c', merge:'race', prio: 3 });
   cols.push(
-    { k:'no', label:'场次', w:48, align:'c', merge:'race' },
-    { k:'rname', label:'比赛名', min:96, align:'l', merge:'race' },
-    { k:'dist', label:'赛道', w:54, align:'c', merge:'race' },
+    { k:'rname', label:'比赛名', min:96, align:'l', merge:'race', prio: 2 },
+    { k:'dist', label:'赛道', w:54, align:'c', merge:'race', prio: 2 },
     { k:'wknum', label:'枠番', w:46, align:'c' },
-    { k:'horse', label:'馬名', min:108, align:'l' },
+    { k:'horse', label:'馬名', min:108, align:'l', prio: 3 },
     { k:'sexage', label:'性齢', w:42, align:'c' },
-    { k:'jockey', label:'騎手', min:64, align:'l' },
+    { k:'jockey', label:'騎手', min:64, align:'l', prio: 1 },
   );
   for (const k of extras) {
     const e = EXTRA_COLS.find((c) => c.k === k);
     cols.push({ k, label:e.label, w: k === 'weight' ? 46 : 78, min: k === 'weight' ? 46 : 72,
-                align: k === 'weight' ? 'c' : 'l', c:TT.mut2 });
+                align: k === 'weight' ? 'c' : 'l', c:TT.mut2, prio: 0 });   // 追加列最先收缩
+  }
+  // 赛道列：按最长「芝/ダ+距离」实测定宽（三列关键合并列 min = w：收缩时保住需求宽）
+  ctx.font = font(600, 11);
+  let distNeed = 0;
+  for (const r of races) {
+    const t = r.distance ? `${r.surface ?? ''}${r.distance}` : (r.surface || '');
+    distNeed = Math.max(distNeed, tw(t));
+  }
+  {
+    const dist = cols.find((c) => c.k === 'dist');
+    dist.w = Math.max(54, distNeed + 14);
+    dist.min = dist.w;
+    for (const c of cols) if (c.k === 'no' || c.k === timeCol) c.min = c.w;
   }
   for (const c of cols) {
     if (c.k === 'rname') {   // 比赛名需求宽含级别徽章位
@@ -443,15 +488,20 @@ function drawDense(scale, races, extras) {
   for (const c of cols) c.w = c.demand ?? c.w;
   const wsum = () => cols.reduce((n, c) => n + c.w, 0);
   let sum = wsum();
-  if (sum > content) {   // 需求列按比例收缩到下限
-    const pool = cols.reduce((n, c) => n + Math.max(0, c.w - (c.min ?? c.w)), 0);
-    const k = pool > 0 ? Math.min(1, (sum - content) / pool) : 0;
-    for (const c of cols) c.w -= Math.max(0, c.w - (c.min ?? c.w)) * k;
-  }
-  sum = wsum();
-  if (sum > content) {
-    const k2 = content / sum;
-    for (const c of cols) c.w *= k2;   // 列极多仍超 → 整体等比（fit 截断兜底）
+  if (sum > content) {   // 超宽 → 按优先级分档收缩（0 追加列 → 1 騎手 → 2 比赛名/赛道 → 3 馬名/关键合并列），保关键信息
+    let over = sum - content;
+    for (const p of [0, 1, 2, 3]) {
+      if (over <= 0) break;
+      const tier = cols.filter((c) => c.prio === p);
+      const pool = tier.reduce((n, c) => n + Math.max(0, c.w - (c.min ?? c.w)), 0);
+      if (pool <= 0) continue;
+      const k = Math.min(1, over / pool);
+      for (const c of tier) { const d = Math.max(0, c.w - (c.min ?? c.w)) * k; c.w -= d; over -= d; }
+    }
+    if (over > 0) {
+      const k2 = content / wsum();
+      for (const c of cols) c.w *= k2;   // 全部压到下限仍超 → 整体等比（fit 截断兜底）
+    }
   } else if (sum < content) {
     let extra = content - sum;   // 余量：馬名先吃到 +80，其余均分给騎手/追加列
     const horse = cols.find((c) => c.k === 'horse');
@@ -550,25 +600,24 @@ function drawDense(scale, races, extras) {
       ctx.fillText(fit(t, c.w - 6), c.x + c.w / 2, mid);
     }
   };
-  const drawRunCell = (c, h, mid) => {
+  const drawRunCell = (c, h, mid, span) => {
     ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
     if (c.k === 'wknum') {
       const fr = Number(h.frame);
+      // 枠番双列对齐：色片/馬番各占一列，整组按本场最大馬号宽居中（逐行居中会让两位数行左右抖动）
+      const s = 15, gap = 4;
+      const x0 = c.x + (c.w - (s + gap + span.numW)) / 2;
       if (fr >= 1 && fr <= 8) {
         const wk = WAKU[fr];
         ctx.font = font(700, fsD.num);
-        const numW = tw(String(h.num ?? '–'));
-        const s = 15, x0 = c.x + (c.w - (s + 4 + numW)) / 2, wy = mid - s / 2;
+        const wy = mid - s / 2;
         ctx.fillStyle = wk.bg; rr(x0, wy, s, s, 4); ctx.fill();
         if (wk.bd) { ctx.strokeStyle = wk.bd; ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 1; }
         ctx.font = font(700, 9.5); ctx.fillStyle = wk.fg; ctx.textAlign = 'center';
         ctx.fillText(String(fr), x0 + s / 2, mid + .5);
-        ctx.font = font(700, fsD.num); ctx.fillStyle = TT.ink; ctx.textAlign = 'left';
-        ctx.fillText(String(h.num ?? '–'), x0 + s + 4, mid + .5);
-      } else {
-        ctx.font = font(700, fsD.num); ctx.fillStyle = TT.ink; ctx.textAlign = 'center';
-        ctx.fillText(String(h.num ?? '–'), c.x + c.w / 2, mid + .5);
       }
+      ctx.font = font(700, fsD.num); ctx.fillStyle = TT.ink; ctx.textAlign = 'left';
+      ctx.fillText(String(h.num ?? '–'), x0 + s + gap, mid + .5);
       return;
     }
     if (c.k === 'horse') {
@@ -593,6 +642,10 @@ function drawDense(scale, races, extras) {
     ctx.fillText(c.align === 'l' ? fit(s2, c.w - 16) : s2, c.align === 'l' ? c.x + 8 : c.x + c.w / 2, mid + .5);
     ctx.textAlign = 'left';
   };
+  // 本场最大馬号宽（枠番列整组居中 + 双列对齐用）
+  ctx.font = font(700, fsD.num);
+  for (const s of spans)
+    s.numW = s.race.runners.reduce((n, h) => Math.max(n, tw(String(h.num ?? '–'))), 0);
   for (const c of cols) {
     if (c.merge === 'race') {
       for (const s of spans) {
@@ -601,7 +654,7 @@ function drawDense(scale, races, extras) {
       }
       continue;
     }
-    for (const s of spans) s.race.runners.forEach((h, i) => drawRunCell(c, h, rowY(s.start + i)));
+    for (const s of spans) s.race.runners.forEach((h, i) => drawRunCell(c, h, rowY(s.start + i), s));
   }
 
   // ---- Footer ----
@@ -613,8 +666,8 @@ function drawDense(scale, races, extras) {
 const LS_COLS = 'rc.share.cols.v3', LS_SCALE = 'rc.share.scale';
 const LS_LAYOUT = 'rc.share.layout.v1';
 const LAYOUT_CHIPS = [
-  { k: 'dense', label: '紧凑表' },
-  { k: 'cards', label: '分卡' },
+  { k: 'dense', label: '紧凑一览' },
+  { k: 'cards', label: '逐场分卡' },
 ];
 const ls = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } };
 let layout = ls(LS_LAYOUT, 'dense');   // 默认紧凑表（信息密度优先；参考平面出賽表排版）
