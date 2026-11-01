@@ -55,6 +55,9 @@ function isMb() {
 const PG = { page: 1, size: 0 };
 const pgSizeDef = () => (isMb() ? 20 : 100);
 
+// mb 日期轮播：5 天窗口内 mb 只显示 3 个 chip，winOff = 窗内偏移（0..2）；‹ › 步进、到边缘翻窗
+let winOff = 0;
+
 // 比赛唯一键（raceKey 缺失时兜底）
 const rkOf = (r) => r.raceKey ?? `${r.date}|${r.track}|${r.raceNo}`;
 // 行唯一键 = 比赛 + 馬番（未確定用馬名兜底）：勾选与分享卡都以行为单位
@@ -146,10 +149,20 @@ function chip(label, value, on, key, count) {
 }
 
 // 日期窗口：winStart 起 5 天；无数据日也展示并可点击（选中后表格为空态）
+// mb：窗口内一次只显示 3 个 chip（winOff 偏移），‹ › 逐日步进、到边缘自动翻窗（PC 恒显 5 个）
 function renderDateTabs() {
   const byDate = new Map(state.index.dates.map((d) => [d.date, d]));
+  const mb = isMb(), vis = mb ? 3 : 5, maxOff = 5 - vis;
+  // 选中日（在窗内时）保持可见：偏移跟随
+  const sel = [...state.dates].sort().find((d) => d >= state.winStart && d <= addDays(state.winStart, 4));
+  if (mb && sel) {
+    const idx = Math.round((Date.parse(sel) - Date.parse(state.winStart)) / 864e5);
+    if (idx < winOff) winOff = Math.max(0, idx);
+    else if (idx > winOff + vis - 1) winOff = Math.min(maxOff, idx - vis + 1);
+  }
+  winOff = Math.min(Math.max(winOff, 0), maxOff);
   const chips = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = winOff; i < winOff + vis; i++) {
     const date = addDays(state.winStart, i);
     const info = byDate.get(date);
     chips.push(
@@ -158,12 +171,10 @@ function renderDateTabs() {
     );
   }
   $("#date-tabs").innerHTML = chips.join("");
-  // mb 横滑行：把选中日期滚到可视区中央（块向 nearest 不动页面；无溢出时为 no-op）
-  $("#date-tabs .filter-chip.on")?.scrollIntoView({ block: "nearest", inline: "center" });
-  // ‹ 在数据起点处禁用（更早日期从未采集）
+  // ‹ 在数据起点处禁用（更早日期从未采集）；mb 还需窗口已贴边且偏移归零
   const { first } = dataRange();
-  $("#d-prev").disabled = !!first && state.winStart <= first;
-  $("#d-prev").title = $("#d-prev").disabled ? "已是最早数据日" : "更早 5 天";
+  $("#d-prev").disabled = !!first && state.winStart <= first && (!mb || winOff <= 0);
+  $("#d-prev").title = $("#d-prev").disabled ? "已是最早数据日" : "更早日期";
   syncUrl();
 }
 
@@ -1047,13 +1058,28 @@ async function main() {
 
   // 事件
   $("#reset").onclick = resetFilters;
-  $("#d-prev").onclick = () => {
-    const { first } = dataRange();
-    const next = addDays(state.winStart, -5);
-    state.winStart = first && next < first ? first : next;
+  // 日期 ‹ ›：PC 平移 5 天窗口；mb 在窗口内逐日步进（winOff），到边缘自动翻窗——连续按的体感是逐日移动
+  const dateStep = (dir) => {
+    const mb = isMb(), vis = mb ? 3 : 5, maxOff = 5 - vis;
+    if (mb) {
+      const off = winOff + dir;
+      if (off >= 0 && off <= maxOff) { winOff = off; }
+      else {
+        const { first } = dataRange();
+        let next = addDays(state.winStart, dir * 5);
+        if (first && next < first) next = first;
+        state.winStart = next;
+        winOff = dir < 0 ? maxOff : 0;
+      }
+    } else {
+      const { first } = dataRange();
+      const next = addDays(state.winStart, dir * 5);
+      state.winStart = first && next < first ? first : next;
+    }
     renderDateTabs();
   };
-  $("#d-next").onclick = () => { state.winStart = addDays(state.winStart, 5); renderDateTabs(); };
+  $("#d-prev").onclick = () => dateStep(-1);
+  $("#d-next").onclick = () => dateStep(1);
   $("#d-today").onclick = () => {
     const { first } = dataRange();
     state.winStart = addDays(todayBJ(), -2);
@@ -1199,6 +1225,7 @@ async function main() {
   const onBreakpoint = () => {
     if (!state.index) return;   // 首次 render() 惰性初始化，加载完成前不响应
     PG.size = pgSizeDef();
+    renderDateTabs();   // mb/PC 的日期 chip 数不同（3/5），断点切换重画
     render();
   };
   if (MB_MQL) {
