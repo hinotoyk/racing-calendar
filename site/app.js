@@ -158,6 +158,8 @@ function renderDateTabs() {
     );
   }
   $("#date-tabs").innerHTML = chips.join("");
+  // mb 横滑行：把选中日期滚到可视区中央（块向 nearest 不动页面；无溢出时为 no-op）
+  $("#date-tabs .filter-chip.on")?.scrollIntoView({ block: "nearest", inline: "center" });
   // ‹ 在数据起点处禁用（更早日期从未采集）
   const { first } = dataRange();
   $("#d-prev").disabled = !!first && state.winStart <= first;
@@ -712,14 +714,12 @@ function mbCardHtml(r) {
     show("num") && r.num != null ? `<span class="yj-mb-no">${esc(r.num)}</span>` : "",   // 未確定（num 空）不画占位符
     show("waku") ? frameBadge(r.frame) : "",
     `<span class="yj-mb-horse">${horseLink(r.horseId, r.horseName)}</span>`,
+    show("jockey") && r.jockey ? `<span class="yj-mb-jk">${esc(r.jockey)}</span>` : "",   // 騎手/斤量与馬名同排（用户定稿）
+    show("weight") && r.weight != null ? `<span class="yj-mb-w">${esc(r.weight)}</span>` : "",
     show("sexage") ? `<span class="yj-mb-sexage">${esc((r.sex ?? "") + (r.age ?? ""))}</span>` : "",
   ].join("");
-  const line1 = [
-    show("jockey") ? item("騎手", esc(r.jockey ?? "")) : "",
-    show("weight") ? item("斤量", esc(r.weight ?? "")) : "",
+  const linePed = [
     show("trainer") ? item("調教師", esc(r.trainer ?? "")) : "",
-  ].join("");
-  const line2 = [
     show("sire") ? item("父", esc(r.sire ?? "")) : "",
     show("siresire") ? item("父父", esc(r.sireSire ?? "")) : "",
     show("dam") ? item("母", esc(r.dam ?? "")) : "",
@@ -728,8 +728,7 @@ function mbCardHtml(r) {
   return `<div class="yj-mb${checked ? " picked" : ""}" data-pk="${rk}">` +
     `<input type="checkbox" class="pick-box" data-k="${rk}"${checked ? " checked" : ""} aria-label="勾选 ${esc(r.horseName ?? "")}">` +
     `<div class="yj-mb-top">${top}</div>` +
-    (line1 ? `<div class="yj-mb-line">${line1}</div>` : "") +
-    (line2 ? `<div class="yj-mb-line">${line2}</div>` : "") +
+    (linePed ? `<div class="yj-mb-line">${linePed}</div>` : "") +
     `</div>`;
 }
 
