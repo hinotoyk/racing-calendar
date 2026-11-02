@@ -51,6 +51,7 @@ node src/collect-sources.js --source racingpost --countries all
 - 关键字（馬名 / 騎手 / 生産牧場 / 調教師 / 馬主 / レース名）
 - 分组：按父 / 父父 / 母父 / 騎手 / 調教師（与血统下拉同款搜索下拉，空 = 不分组；组头显示头数与场次）
 - 导出 CSV（含北京时间、时区、级别、原始比赛格、源）、每周 Excel 下载
+- 出馬表分享卡双版式（勾选比赛 → 生成分享图）：**紧凑表**（默认；日期/北京时间/场地/场次/比赛名/赛道为合并单元格的连续大表，行高 24px，1080 宽幅，枠色片·性别·赛道配色锚点）/ **分卡**（每场一块，2026-10-29 版式）；版式·列·时间列（北京/当地）选择存 localStorage（`rc.share.layout.v1` 等）
 
 ## 每周 Excel
 
@@ -68,7 +69,7 @@ node src/collect-sources.js --source racingpost --countries all
 站点为纯静态零依赖：`_site/` 即完整产物（全相对路径 + `.nojekyll`），任意 base path 可用。参照 yunji-web 的双 workflow 模式（[.github/workflows/](.github/workflows)）：
 
 - **deploy.yml** — push main（代码变更/首次推送）→ `node src/build.js` → 发布 `_site/` 到 Pages
-- **update-data.yml** — 每日一次（UTC 22:00 = **北京 06:00**，JST 07:00）采集 JBIS + Racing Post → 构建 → 有变化则 commit `data/races/` + `data/pedigree/` 回 main → **同一 workflow 内重新部署静态页面**（GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故不能依赖 deploy.yml 被 push 触发）；可手动触发；运行日志上传为 artifact（保留 14 天）
+- **update-data.yml** — 每日两次：① UTC 22:00 = **北京 06:00**（JST 07:00）采集 JBIS + Racing Post（`--countries all` 全国家，美国等夜间卡唯一窗口）；② UTC 10:00 = **北京 18:00** 仅采集 JBIS（当天日本场次枠順/馬番確定后的补采）。两次都 → 构建 → 有变化则 commit `data/races/` + `data/pedigree/` 回 main → **同一 workflow 内重新部署静态页面**（GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故不能依赖 deploy.yml 被 push 触发）；可手动触发（视同 ① 全量）；运行日志上传为 artifact（保留 14 天）
 
 前置设置（一次性）：
 
