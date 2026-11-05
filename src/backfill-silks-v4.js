@@ -15,6 +15,7 @@ import { fetchNkHtml, fetchBuffer } from "./lib/fetch.js";
 import { pedCache } from "./lib/ped-cache.js";
 import { parseNkSearchRows, nkNameKey } from "./lib/parse-netkeiba.js";
 import { resolveWfSilk, saveWfCaches } from "./lib/winfinal.js";
+import { nkOwnerKey } from "./lib/silks.js";
 import { reqStats } from "./lib/reqlog.js";
 
 const DATA_DIR = path.resolve("data", "races");
@@ -22,6 +23,8 @@ const SILKS_DIR = path.resolve("data", "silks");
 const PED_DIR = path.resolve("data", "pedigree");
 const ownerStore = pedCache(path.join(PED_DIR, "nk-owner-v3.json")); // key=netkeibaId → { name, colours, miss? }
 const mapStore = pedCache(path.join(PED_DIR, "nk-map.json")); // key=馬名|生年 → { nkId, owner } | { miss }
+// 马主级缓存（collect-races 写入，key=归一马主名）：新马尚未被 netkeiba 收录时唯一可用的 0 请求线索
+const ownerNameStore = pedCache(path.join(PED_DIR, "nk-owner.json"));
 
 const argv = process.argv.slice(2);
 const argOf = (k) => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : null);
@@ -156,9 +159,22 @@ for (const date of dates) {
       if (!nameJp) continue;
       const birthYear = r.horse?.foaled ? parseInt(r.horse.foaled.slice(0, 4), 10) : r.age != null ? year - r.age : null;
 
-      // ① netkeiba
-      searches++;
+      // ⓪ 马主级缓存（0 请求）：马名搜索 0 命中但马主彩衣已登记 → 直接挂
+      //    修 JRA 最后 1 匹（0001394780 プレイヤ：2024-04 生 2 岁，netkeiba 尚未收录马页，马主藤田晋彩衣已知）
       let hit = null;
+      if (!r.silk && r.owner) {
+        const okey = nkOwnerKey(r.owner);
+        const orec = okey ? ownerNameStore.get(okey) : null;
+        if (orec?.colours) {
+          hit = { url: orec.colours, owner: orec.owner ?? { id: null, name: r.owner.name }, via: "netkeiba-owner" };
+          via["netkeiba-owner"] = (via["netkeiba-owner"] ?? 0) + 1;
+          nkHit++;
+        }
+      }
+
+      // ① netkeiba
+      if (!hit) {
+      searches++;
       const nk = await searchHorse(nameJp, birthYear);
       if (nk?.owner?.id) {
         const owner = await resolveOwner(nk.owner.id, nk.owner.name);
@@ -181,7 +197,10 @@ for (const date of dates) {
       if (hit) {
         nkHit++;
         via.netkeiba++;
-      } else {
+      }
+      } // end ① 守卫
+
+      if (!hit) {
         // ② winfinal 兜底（馬名完全一致 + 生年唯一）
         const wf = await resolveWfSilk(nameJp, birthYear, { delayMs: DELAY });
         if (wf?.colours) {

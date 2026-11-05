@@ -1,0 +1,10 @@
+# 数据快照 / 图片一律按二进制处理：禁止 autocrlf 行尾转换（.json.gz 一旦被改写，gzip 直接损坏；
+# 彩衣图同理），也不参与文本 diff。2026-11-05 新增，配合 CI 提交 data/ 目录使用。
+*.gz binary
+*.gif binary
+*.png binary
+*.jpg binary
+*.xlsx binary
+
+# data/ 下所有文件都不做行尾归一（快照必须字节级一致）
+data/** -text
