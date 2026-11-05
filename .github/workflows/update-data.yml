@@ -28,7 +28,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 120   # collect-races 内含 JBIS 马名解析（串行 1.2s/匹）+ 彩衣解析；留足 403 退避余量
+    timeout-minutes: 150  # 安全网；真正的时间约束放在各 step 上，超时的 step 失败后仍能跑日志摘要/上传
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -46,6 +46,7 @@ jobs:
           echo "rp=${{ github.event.schedule != '0 10 * * *' }}" >> "$GITHUB_OUTPUT"
 
       - name: Collect JBIS racecards
+        timeout-minutes: 80
         run: |
           mkdir -p test-logs
           node src/collect-races.js 2>&1 | tee test-logs/jbis.log
@@ -55,12 +56,21 @@ jobs:
       # 各国当日卡必须在各自的「当天窗口」内抓到，缺一次即错过——育马者杯 Keeneland 10-30/31 即为例证）
       - name: Collect Racing Post (via Sporting Life)
         if: steps.mode.outputs.rp == 'true'
+        timeout-minutes: 25
         continue-on-error: true
         run: node src/collect-sources.js --source racingpost --countries all 2>&1 | tee test-logs/rp.log
 
       # 构建：数据归一 + _site 产出（_site 本身不入库）
       - name: Build site
+        timeout-minutes: 15
         run: node src/build.js 2>&1 | tee test-logs/build.log
+
+      # 逐条请求 JSONL（data/logs/，gitignore 不入库）聚合成可读摘要：
+      # 直接打印在 Actions step 日志里，无需下载 artifact 就能判断请求量/403/彩衣覆盖/归一结果。
+      # if: always() —— 采集或 build 失败/超时也要产出诊断。
+      - name: Diagnostics from JSONL request log
+        if: always()
+        run: node src/ci-summary.js ${{ steps.mode.outputs.rp == 'true' && '--rp' || '' }}
 
       - name: Commit data changes
         run: |
@@ -94,10 +104,26 @@ jobs:
         uses: actions/deploy-pages@v4
 
       # 运行日志（对齐 yunji-web：always 上传，便于排查采集失败/为空）
+      # data/logs/requests-*.jsonl = 逐条出站请求（src/url/status/ok/ms/bytes/err），
+      # 本地 gitignore 不入库，只在 CI 作为 artifact 留存；配合 summary.log 定位到具体 URL。
       - name: Upload run logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: update-log-${{ github.run_id }}
-          path: test-logs/
-          retention-days: 14
+          path: |
+            test-logs/
+            data/logs/requests-*.jsonl
+          if-no-files-found: warn
+          retention-days: 30
+
+      # 摘要判 FAIL 时让 job 显式失败（放最后，保证上面的 artifact 已经上传）
+      - name: Gate on diagnostics
+        if: always()
+        run: |
+          v="$(cat test-logs/verdict.txt 2>/dev/null || echo FAIL)"
+          echo "verdict=$v"
+          if [ "$v" = "FAIL" ]; then
+            echo "::error::采集/构建异常，见 update-log artifact 的 summary.log 与 requests-*.jsonl"
+            exit 1
+          fi
