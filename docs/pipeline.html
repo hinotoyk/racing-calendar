@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>racing-calendar 采集链路全景</title>
+<style>
+  :root {
+    --bg: #fafaf8; --surface: #ffffff; --ink: #26241f; --ink2: #5f5e5a; --ink3: #888780;
+    --line: #e3e1d8; --line2: #cfcdc4;
+    --jbis: #185fa5; --jbis-bg: #e6f1fb; --jbis-line: #b5d4f4;
+    --nk: #0f6e56; --nk-bg: #e1f5ee; --nk-line: #9fe1cb;
+    --rp: #993c1d; --rp-bg: #faece7; --rp-line: #f5c4b3;
+    --sil: #6b5d10; --sil-bg: #faeeda; --sil-line: #fac775;
+    --sto: #444441; --sto-bg: #f1efe8;
+    --code: #f4f2ec;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: var(--bg); color: var(--ink);
+    line-height: 1.65; font-size: 14px;
+    padding: 40px 24px 80px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header { margin-bottom: 32px; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: .5px; }
+  .sub { color: var(--ink2); margin-top: 6px; font-size: 13px; }
+  .sub code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  nav.toc {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+  }
+  nav.toc a {
+    font-size: 12px; color: var(--jbis); text-decoration: none;
+    border: 1px solid var(--jbis-line); background: var(--surface);
+    padding: 4px 10px; border-radius: 999px;
+  }
+  nav.toc a:hover { background: var(--jbis-bg); }
+  section { margin-top: 40px; }
+  h2 {
+    font-size: 17px; font-weight: 600; padding-bottom: 8px;
+    border-bottom: 2px solid var(--line); margin-bottom: 16px;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  h2 .no { color: var(--ink3); font-size: 13px; font-weight: 400; }
+  h3 { font-size: 14px; font-weight: 600; margin: 18px 0 8px; }
+  p { margin: 6px 0; }
+  ul { padding-left: 20px; margin: 6px 0; }
+  li { margin: 3px 0; }
+  code {
+    font-family: Consolas, "JetBrains Mono", monospace; font-size: 12.5px;
+    background: var(--code); padding: 1px 5px; border-radius: 4px;
+    word-break: break-all;
+  }
+  .url {
+    display: block; font-family: Consolas, monospace; font-size: 12.5px;
+    background: var(--code); border: 1px solid var(--line);
+    padding: 7px 10px; border-radius: 6px; margin: 8px 0; word-break: break-all;
+  }
+  .url b { color: var(--jbis); font-weight: 600; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 16px 20px; margin: 14px 0;
+  }
+  .card.accent-jbis { border-left: 4px solid var(--jbis); }
+  .card.accent-nk   { border-left: 4px solid var(--nk); }
+  .card.accent-rp   { border-left: 4px solid var(--rp); }
+  .card.accent-sil  { border-left: 4px solid var(--sil); }
+  .card.accent-sto  { border-left: 4px solid var(--ink3); }
+  .card h3 { margin-top: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tag {
+    font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+    white-space: nowrap; vertical-align: 1px;
+  }
+  .tag.jbis { color: var(--jbis); background: var(--jbis-bg); border: 1px solid var(--jbis-line); }
+  .tag.nk   { color: var(--nk);   background: var(--nk-bg);   border: 1px solid var(--nk-line); }
+  .tag.rp   { color: var(--rp);   background: var(--rp-bg);   border: 1px solid var(--rp-line); }
+  .tag.sil  { color: var(--sil);  background: var(--sil-bg);  border: 1px solid var(--sil-line); }
+  .tag.sto  { color: var(--sto);  background: var(--sto-bg);  border: 1px solid var(--line2); }
+  .fn { font-size: 12px; color: var(--ink3); font-weight: 400; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+  th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--sto-bg); font-weight: 600; font-size: 12.5px; }
+  td code { font-size: 12px; }
+  .flow { margin: 18px 0; }
+  .flow-row {
+    display: flex; gap: 0; align-items: stretch; flex-wrap: wrap; margin: 10px 0;
+  }
+  .fbox {
+    flex: 1; min-width: 150px; border-radius: 8px; padding: 10px 12px;
+    font-size: 12.5px; line-height: 1.5; position: relative;
+  }
+  .fbox b { display: block; font-size: 13px; margin-bottom: 2px; }
+  .fbox.jbis { background: var(--jbis-bg); border: 1px solid var(--jbis-line); color: #0c447c; }
+  .fbox.nk   { background: var(--nk-bg);   border: 1px solid var(--nk-line);   color: #085041; }
+  .fbox.rp   { background: var(--rp-bg);   border: 1px solid var(--rp-line);   color: #712b13; }
+  .fbox.sil  { background: var(--sil-bg);  border: 1px solid var(--sil-line);  color: #633806; }
+  .fbox.sto  { background: var(--sto-bg);  border: 1px solid var(--line2);     color: var(--sto); }
+  .farrow {
+    align-self: center; color: var(--ink3); font-size: 16px; padding: 0 6px; flex: 0 0 auto;
+  }
+  .flow-lane-label {
+    font-size: 11.5px; font-weight: 600; letter-spacing: 1px;
+    color: var(--ink3); margin: 14px 0 4px; text-transform: uppercase;
+  }
+  .note {
+    background: var(--sil-bg); border: 1px solid var(--sil-line);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 12px 0;
+  }
+  .note b { color: var(--sil); }
+  .warn {
+    background: var(--rp-bg); border: 1px solid var(--rp-line);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 12px 0;
+  }
+  .warn b { color: var(--rp); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .mono { font-family: Consolas, monospace; font-size: 12.5px; }
+  footer { margin-top: 56px; color: var(--ink3); font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .kbd {
+    display: inline-block; background: var(--surface); border: 1px solid var(--line2);
+    border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; font-size: 11.5px;
+    font-family: Consolas, monospace;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>racing-calendar 采集链路全景</h1>
+  <div class="sub">
+    日本源（JBIS）与欧美源（Racing Post / Sporting Life）双管道并行采集 → 统一 canonical schema（<code>race.card</code>）→ 彩衣/血统富化 → <code>data/races/*.json.gz</code> 落盘 → <code>build.js</code> 合并生成站点派生数据。<br>
+    源码出处：<code>src/collect-races.js</code> · <code>src/collect-sources.js</code> · <code>src/sources/racingpost.js</code> · <code>src/sources/normalize.js</code> · <code>src/lib/silks.js</code> · <code>src/build.js</code>
+  </div>
+  <nav class="toc">
+    <a href="#overview">① 总览</a>
+    <a href="#jbis">② 日本源 JBIS</a>
+    <a href="#rp">③ 欧美源 Racing Post</a>
+    <a href="#silks">④ 彩衣富化</a>
+    <a href="#ped">⑤ 血统补全</a>
+    <a href="#store">⑥ 落盘与幂等</a>
+    <a href="#build">⑦ 合并与展示</a>
+    <a href="#discipline">⑧ 抓取纪律与调度</a>
+  </nav>
+</header>
+
+<!-- ================= ① 总览 ================= -->
+<section id="overview">
+  <h2><span class="no">①</span> 总览：两条管道，一个 schema</h2>
+  <div class="flow">
+
+    <div class="flow-lane-label">日本源 · src/collect-races.js（入口：node src/collect-races.js）</div>
+    <div class="flow-row">
+      <div class="fbox jbis"><b>赛历</b>jbis.or.jp/race/calendar/?year=&amp;month=<br>月度開催一览</div>
+      <div class="farrow">→</div>
+      <div class="fbox jbis"><b>当日页</b>/race/calendar/YYYYMMDD/CCC/<br>场次列表 · R号/时间/状态</div>
+      <div class="farrow">→</div>
+      <div class="fbox jbis"><b>出馬表</b>/race/YYYYMMDD/CCC/RR/<br>每马一行 · 枠番/馬番/騎手…</div>
+      <div class="farrow">→</div>
+      <div class="fbox sil"><b>富化</b>马名权威化（马页）<br>血统补全 + 彩衣（nk→winfinal）</div>
+      <div class="farrow">→</div>
+      <div class="fbox sto"><b>落盘</b>data/races/{date}/{场码}.json.gz</div>
+    </div>
+
+    <div class="flow-lane-label">欧美源 · src/collect-sources.js --source racingpost</div>
+    <div class="flow-row">
+      <div class="fbox rp"><b>当日 index</b>sportinglife.com/racing/racecards<br>__NEXT_DATA__ JSON · 会议列表</div>
+      <div class="farrow">→</div>
+      <div class="fbox rp"><b>单场 racecard</b>/racecards/{date}/{course}/racecard/{id}/{name}<br>rides 出走数组</div>
+      <div class="farrow">→</div>
+      <div class="fbox rp"><b>马匹档案</b>/racing/profiles/horse/{id}<br>父/母/母父（纯名字）</div>
+      <div class="farrow">→</div>
+      <div class="fbox sil"><b>富化</b>父父借道 JBIS 馬検索</div>
+      <div class="farrow">→</div>
+      <div class="fbox sto"><b>落盘</b>data/races/{date}/rp-{courseId}.json.gz</div>
+    </div>
+
+    <div class="flow-lane-label">汇合 · src/build.js</div>
+    <div class="flow-row">
+      <div class="fbox sto"><b>合并</b>读全部 race.card → 行级 rows（字典包编码）</div>
+      <div class="farrow">→</div>
+      <div class="fbox sto"><b>派生</b>_site/derived/*.json + 每周 Excel + 彩衣图复制</div>
+      <div class="farrow">→</div>
+      <div class="fbox sto"><b>展示</b>site/app.js 单页 · 日本/欧美同日并列，时区双口径</div>
+    </div>
+  </div>
+  <p>
+    两源产出统一为 canonical 文档（JBIS 为 <code>jbis.race.card/v1</code>，RP 映射层输出 <code>race.card/v2</code>，
+    字段名以 JBIS 为主口径），<code>build.js</code> 按 <code>source</code> 字段区分来源
+    （<code>jbis</code> / <code>racingpost</code>），落盘路径同为 <code>data/races/{日期}/</code>，
+    manifest 以 <code>{场码}</code> 与 <code>rp:{courseId}</code> 两类 key 并存，互不冲突。
+  </p>
+</section>
+
+<!-- ================= ② JBIS ================= -->
+<section id="jbis">
+  <h2><span class="no">②</span> 日本源：JBIS 三级抓取</h2>
+
+  <div class="card accent-jbis">
+    <h3>Step 1 · 赛历 <span class="tag jbis">jbis.or.jp</span><span class="fn">parseCalendar()</span></h3>
+    <span class="url"><b>https://www.jbis.or.jp/race/calendar/?year={Y}&amp;month={M}</b></span>
+    <p><b>得到字段</b>：<code>{ date, track(3位场码), scope(central|local), gradeTag }</code> —— 正则抓
+    <code>li.calendar__track-1|2</code> 内的 <code>a[href=/race/calendar/YYYYMMDD/CCC/]</code>。</p>
+    <p><b>清洗</b>：同一 date+track 去重；<code>track-1</code> = 中央、<code>track-2</code> = 地方。
+    场码经 <code>src/race-config.js → VENUES</code> 映射出场名（236=門別、220=大井、105=東京…），
+    未知场码按数值段推断（&lt;200 中央）。</p>
+    <p><b>落盘</b>：<code>data/races/_calendar/{YYYY-MM}.json</code>（schema <code>jbis.race.calendar/v1</code>）。</p>
+  </div>
+
+  <div class="card accent-jbis">
+    <h3>Step 2 · 当日页 <span class="tag jbis">jbis.or.jp</span><span class="fn">parseDayPage()</span></h3>
+    <span class="url"><b>https://www.jbis.or.jp/race/calendar/{YYYYMMDD}/{CCC}/</b></span>
+    <p><b>解析方式</b>：JBIS 全站为 div 嵌套布局（非 table）。按顶层 <code>&lt;div&gt;</code> 深度切分定位数据块：
+    中央认 <code>div.data-6-12</code>、地方认 <code>div.data-6-35</code>；表头文字定位列序，逐行切格。</p>
+    <p><b>得到字段</b>：R号、発走时刻、比赛名、芝/ダ/障、距離(m)、頭数、gradeTag、raceKey（<code>YYYYMMDD/CCC/RR</code>）。</p>
+    <p><b>清洗</b>：</p>
+    <ul>
+      <li>比赛名先过 <code>normalize()</code>：全角数字→半角、ⅠⅡⅢ→1/2/3、压缩空白；</li>
+      <li>再过 <code>klassOf()</code> 归一为展示用「比赛格」：重賞系（GⅠ-Ⅲ / JpnⅠ-Ⅲ / JG / 準重賞）、新馬 / 未勝利 / 1-3勝クラス、地方班级 A1-C3（取首个班）、特選 / 交流 / 一般，并归入 <code>klassGroup</code> 粗分组；</li>
+      <li><b>状态判定</b>：頭数未出 → <code>pending</code>；勝馬列为「-」/空 → <code>entries</code>（要采出馬表）；已有胜马 → <code>result</code>。</li>
+    </ul>
+  </div>
+
+  <div class="card accent-jbis">
+    <h3>Step 3 · 出馬表 <span class="tag jbis">jbis.or.jp</span><span class="fn">parseEntryPage() / parseRunner()</span></h3>
+    <span class="url"><b>https://www.jbis.or.jp/race/{YYYYMMDD}/{CCC}/{RR}/</b>　（RR 补零；404/非出馬表时回退 <b>/race/result/…</b> 再试一次）</span>
+    <p><b>解析方式</b>：认 <code>div.data-6-27</code> 块；<b>严格按表头文字定位列</b>
+    （枠〔中央写「枠番」地方可能只写「枠」〕/馬番/競走馬名/性齢/騎手/指数/調教師/1-3走前）——
+    未確定页可能整列缺失，绝不按位置猜列。</p>
+    <p><b>得到字段（每马一行）</b>：</p>
+    <table>
+      <tr><th>字段</th><th>内容</th><th>清洗规则</th></tr>
+      <tr><td><code>frame / num</code></td><td>枠番 / 馬番</td><td>只认表头列，值「--」或未公開存 <code>null</code>，UI 显示空，不猜</td></tr>
+      <tr><td><code>horse</code></td><td>{id(10位), name}</td><td>只取出 10 位 id；<b>马名不用表内文本</b>，改由马页权威化（见 ②-b，避免「 B」装备标记 / 国名括注尾缀误伤）</td></tr>
+      <tr><td><code>sex / age</code></td><td>性齢</td><td>先匹配「セン」再匹配单字「セ」（顺序错则骟马整条失败）</td></tr>
+      <tr><td><code>color</code></td><td>毛色</td><td>同一格内 13 种固定毛色词（黒鹿毛/青鹿毛/鹿毛/栗毛/青毛/芦毛/白毛/粕毛/月毛/桃毛/河原毛/駁毛/不正毛）</td></tr>
+      <tr><td><code>jockey + weight</code></td><td>騎手 / 斤量</td><td>骑手 id 从链接；斤量正则 <code>\d{2,3}(\.\d)?</code></td></tr>
+      <tr><td><code>trainer / belongs</code></td><td>調教師 / 所属</td><td>所属取链接后 <code>(…)</code> 括注</td></tr>
+      <tr><td><code>owner / breeder</code></td><td>馬主 / 生産者</td><td>id+name，供彩衣链路用</td></tr>
+      <tr><td><code>sire / dam / bms</code></td><td>父 / 母 / 母父</td><td>出馬表格内直接带出（<code>父：&lt;a href=/horse/…&gt;</code>）</td></tr>
+      <tr><td><code>sale / price</code></td><td>拍卖履历 / 取引き価格</td><td><code>/seri/</code> 链接 +「○○万円」文本</td></tr>
+      <tr><td><code>recent[3]</code></td><td>前三走</td><td>着順 / 日期+场 / 赛名 / 芝ダ距離+马场状态 / 走时 / 着差 / 马体重±增减（全角「－」转半角）/ 骑手+斤量</td></tr>
+    </table>
+  </div>
+
+  <div class="card accent-jbis">
+    <h3>②-b 马名权威化 <span class="tag jbis">jbis.or.jp/horse</span><span class="fn">parseHorseProfile() / resolveJbisName()</span></h3>
+    <span class="url"><b>https://www.jbis.or.jp/horse/{10位id}/</b>　（缓存 <b>data/pedigree/jbis-name.json</b>）</span>
+    <p><b>为什么</b>：出馬表马名是<b>显示名</b>，带装备标记「 B」（ブリンカー，190 例）和国名括注「(USA)」（141 例）。
+    靠正则剥尾缀会误伤纯 ASCII 名（如 <i>Indy B</i> 的 B 就是名字本身）。改为「只认 id，登录名从马页读」。</p>
+    <ul>
+      <li><b>日文名</b> ← <code>&lt;div class="hdg1-search"&gt;&lt;h1&gt;</code>（如 エアジーン）；纯英文名马匹 h1 亦为 ASCII → 判定为无名日文名，只存英文名；</li>
+      <li><b>英文名 + 国籍</b> ← <code>&lt;span class="hdg1-search__sub"&gt;Air Gene(JPN)&lt;/span&gt;</code>，拆成 <code>en="Air Gene"</code> / <code>country="JPN"</code>；</li>
+      <li><b>生日</b> ← <code>&lt;dt&gt;生年月日&lt;/dt&gt;</code>（精确到日），是彩衣唯一性判定的最佳依据（优于「赛事年 − age」）；</li>
+      <li>落盘字段：<code>horse.name</code>（日文名，无则英文名）、<code>horse.nameJp</code>、<code>horse.nameEn</code>、<code>horse.country</code>、<code>horse.foaled</code>；</li>
+      <li><b>缓存键 = JBIS 10 位 id</b>，含 <code>{miss:1}</code> 终态；重跑 0 网络。</li>
+    </ul>
+    <div class="warn" style="margin-top:10px">
+      <b>抓取约束</b>：JBIS 对本机 IP 有 WAF 限流（短时高频 → 整站 403，持续数分钟至数十分钟）。
+      因此马页抓取默认 <b>单并发 + 3.5s 间隔</b>，遇 403 不写缓存、暂停 2 分钟，连续多次则停批（缓存已存，重跑续采）。
+      马页需要接近真实浏览器的完整请求头（Accept-Language / Sec-Fetch-* / Referer）。
+    </div>
+  </div>
+
+</section>
+
+
+<!-- ================= ③ RP ================= -->
+<section id="rp">
+  <h2><span class="no">③</span> 欧美源：Racing Post（抓取层 Sporting Life）</h2>
+
+  <div class="warn">
+    <b>为什么不是 racingpost.com？</b> RP 官站 WAF 对一切非浏览器客户端返回 406（页面与 <code>/api/*</code> 同样拦截）。
+    RP 集团旗下 <b>sportinglife.com</b> 提供同源 racecard 数据且 robots.txt 无任何 Disallow，
+    因此以 SL 为抓取层、按 RP 口径映射；RP 直连探测保留在 <code>probe()</code>，日后解封可直接切换。
+  </div>
+
+  <div class="card accent-rp">
+    <h3>Step 1 · 当日 index <span class="tag rp">sportinglife.com</span><span class="fn">collect() → meetings</span></h3>
+    <span class="url"><b>https://www.sportinglife.com/racing/racecards</b></span>
+    <p><b>解析方式</b>：Next.js 站点，从 HTML 内嵌 <code>&lt;script id="__NEXT_DATA__"&gt;</code> 提取 JSON
+    （<code>sources/http.js → nextData()</code>），取 <code>props.pageProps.meetings</code>。
+    同时从 <code>&lt;a href&gt;</code> 收集「race id → 单场路径」映射表（Next 路由需要）。</p>
+    <p><b>会议过滤</b>：<code>meeting_summary.course.country.short_name</code> 按
+    <code>COUNTRY_GROUP</code> 折算（GB = ENG+Wale+SCO；IRE = Eire；另有 FR / UAE / SAF / USA / CAN），
+    支持 <code>--countries all</code> 全量或 <code>--tracks</code> 指定课程。</p>
+  </div>
+
+  <div class="card accent-rp">
+    <h3>Step 2 · 单场 racecard <span class="tag rp">sportinglife.com</span><span class="fn">runnerOf()</span></h3>
+    <span class="url"><b>https://www.sportinglife.com/racing/racecards/{date}/{course}/racecard/{raceId}/{slug}</b></span>
+    <p><b>解析方式</b>：同样提取 <code>__NEXT_DATA__</code>，取 <code>props.pageProps.race.rides</code>（出走数组，逐 <code>ride</code> 映射为 canonical runner）。</p>
+    <p><b>字段映射（SL → JBIS 主口径）</b>：</p>
+    <table>
+      <tr><th>canonical 字段</th><th>SL 来源</th><th>清洗 / 换算（normalize.js）</th></tr>
+      <tr><td><code>num</code></td><td><code>cloth_number</code></td><td>直取</td></tr>
+      <tr><td><code>frame</code></td><td>—</td><td>英国无枠番概念，恒 <code>null</code></td></tr>
+      <tr><td><code>horse</code></td><td><code>horse.horse_reference.id / name</code></td><td>id 加前缀 <code>rp:</code> 与 JBIS 10位 id 区分</td></tr>
+      <tr><td><code>sex</code></td><td><code>horse.sex.type</code></td><td><code>sexOf()</code>：c→牡 f→牝 g→セ m→牝 h→牡 r→騸</td></tr>
+      <tr><td><code>age</code></td><td><code>horse.age</code></td><td>直取</td></tr>
+      <tr><td><code>color</code></td><td><code>horseColour</code></td><td><code>colourOf()</code>：b→鹿毛 br→青鹿毛 ch→栗毛 gr→芦毛 bl→青毛…</td></tr>
+      <tr><td><code>jockey / trainer / owner</code></td><td><code>ride.jockey / trainer / owner</code></td><td>id 同加 <code>rp:</code> 前缀；owner 无 id 仅名字</td></tr>
+      <tr><td><code>weight</code></td><td><code>handicap</code>（"11-0" 英石-磅）</td><td><code>stonesToKg()</code>：英石×6.35029 + 磅×0.45359 → kg 保留 1 位；原始值留 <code>weightRaw</code></td></tr>
+      <tr><td><code>sire / dam / bms</code></td><td>马匹档案（Step 3）</td><td>SL 档案父系引用 id 恒为页面自身 id（数据缺陷）→ 只存 <code>{id:null, name}</code></td></tr>
+      <tr><td><code>recent[3]</code></td><td><code>previous_results</code></td><td>distance 经 <code>ukDistanceToMeters()</code> 换算；RP 特有字段（odds / race_class / headgear 等）保留在 <code>rp.*</code> 子对象</td></tr>
+      <tr><td><code>rp.*</code></td><td>formsummary / timeform_stars / rating123 / headgear / foaled…</td><td>RP 原始增强字段原样保留，不进 JBIS 共有字段</td></tr>
+    </table>
+  </div>
+
+  <div class="card accent-rp">
+    <h3>Step 3 · 马匹档案（父/母/母父） <span class="tag rp">sportinglife.com</span><span class="fn">pedigreeOf()</span></h3>
+    <span class="url"><b>https://www.sportinglife.com/racing/profiles/horse/{horseId}</b></span>
+    <p>同样 <code>__NEXT_DATA__</code> → <code>profile</code>，取 <code>sire.name / dam.name / damsire.name / colour / sex / foaled</code>，
+    缓存入 <code>data/pedigree/rp-horse.json</code>（pedCache 单文件包，CI 增量复用）。</p>
+    <p><b>父父补全（关键设计）</b>：SL 的父系引用 id 缺陷导致无法链查父父，
+    <code>enrichSireSire()</code> <b>借道 JBIS 馬検索</b>：把本场合计的父名/母父名收集去重 →
+    <code>lib/horse-lookup.js</code> 解析为 JBIS id（缓存 <code>data/pedigree/name-lookup.json</code>，
+    现役种公马别名由 <code>jbis-sire.json</code> 预置，防同名老马错绑）→ 行内有「父」列时补 <code>sireSire = {id, name}</code>。
+    这些解析记录同时也是 build 侧马名别名字典的数据源。</p>
+  </div>
+
+  <div class="card accent-rp">
+    <h3>彩衣 · 直接来自 racecard <span class="tag rp">sportinglife.com</span><span class="fn">slSilk()</span></h3>
+    <span class="url"><b>https://www.sportinglife.com/images/silks/{silk_filename}</b>　（208×150 PNG）</span>
+    <ul>
+      <li>SL 单场 racecard 的 <code>__NEXT_DATA__</code> 每个 ride 自带 <code>silk_filename</code>（如 <code>20261104mus131001.png</code>），无需二次查询；</li>
+      <li>文件名为「日期+场地+场次+馬番」组合 → 按内容 <b>sha1 去重</b>落盘 <code>data/silks/sl-{hash}.png</code>（同一马主跨场同图只存一份）；</li>
+      <li>缓存 <code>data/pedigree/sl-silk.json</code>（filename → colours / miss），重采 0 请求；</li>
+      <li>runner 挂 <code>silk = { url, owner:{name}, via:"sportinglife" }</code>，与日本源同一展示口径。</li>
+    </ul>
+  </div>
+
+  <div class="card accent-rp">
+    <h3>时区与比赛日（欧美源最易错处） <span class="fn">normalize.js 头注</span></h3>
+    <ul>
+      <li>SL 页面 <code>time</code> 一律是<b>英国当地时间（Europe/London）</b>，与场地所在国无关（实测 Abu Dhabi 13:00 = 当地 17:00，Belmont 17:10 = 当地 12:10）；</li>
+      <li><code>date</code> 是<b>场地当地</b>比赛日标签 —— 美国夜场跨英国午夜仍属同一比赛日；</li>
+      <li>落盘双口径：<code>timeZone</code>（展示口径，RP 恒 Europe/London）、<code>localTimeZone</code>（场地时区，date 标签口径，<code>COURSE_TZ</code> 表 + 个别场地 override）、<code>startTimeInstant</code>（ISO8601 绝对时刻）；</li>
+      <li><code>raceInstant()</code> 用场地时区反推消解跨日歧义：对 date 标签试 shift 0/1 天，哪个解释与标签自洽取哪个（DST 用两步校正法处理）；</li>
+      <li><code>build.js</code> 据此给 RP 行补北京时间（Asia/Tokyo 展示口径），与 JBIS 行同列展示。</li>
+    </ul>
+  </div>
+
+  <div class="card accent-rp">
+    <h3>比赛格归一（RP 口径）<span class="fn">klassOfRP() / runTypeOf()</span></h3>
+    <ul>
+      <li>赛名 <code>Group 1-3</code> / <code>Grade 1-3</code> → GⅠ-GⅢ、<code>Listed</code> → L，group=重賞；</li>
+      <li><code>runTypeOf()</code> 由赛名推断竞走种别：steeple/chase → CHASE、hurdle → HURDLE、nh flat/bumper → NH_FLAT、其余 FLAT；</li>
+      <li>HURDLE/CHASE → group=障害；其余 Class 1-7 → <code>klass="Class N"</code>（group=一般/障害）；</li>
+      <li>场地：<code>surfaceOf()</code> TURF→芝、all-weather/fibre/polytrack/sand/tapeta→ダ（英国全场地按惯例归ダート）。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= ④ silks ================= -->
+<section id="silks">
+  <h2><span class="no">④</span> 彩衣（勝負服）富化 —— netkeiba 优先 → winfinal 兜底</h2>
+
+  <div class="note">
+    <b>语义前提</b>：彩衣属<b>马主</b>而非骑手/马，因此链路终点是「马主 → 彩衣图」。
+    日本源（JBIS）全站无彩衣；按「马名 + 生年」两个来源依次确认唯一性：
+    <b>netkeiba</b>（覆盖最广）→ 未命中走 <b>winfinal 勝負服データベース</b>。
+    欧美源不在此链路，彩衣直接取自 Sporting Life racecard（见 ③）。
+  </div>
+
+  <div class="card accent-nk">
+    <h3>捷径 · NAR 出馬表（地方限定）<span class="fn">enrichSilks() / parseNkShutuba()</span></h3>
+    <span class="url"><b>https://nar.netkeiba.com/race/shutuba.html?race_id=YYYY+jyo+MMDD+RR</b></span>
+    <p>地方 race_id 可由日期直构（JBIS 场码 → netkeiba jyo_cd 映射表 <code>NK_JYO</code>：門別=30、大井=44、園田=50…）；
+    中央 race_id 含開催回次/日次，无法由日期推出 → 走兜底。解析 <code>&lt;a id="umalink_{nkId}"&gt;</code>
+    得「归一马名 → nk 马号」映射。</p>
+  </div>
+
+  <div class="card accent-nk">
+    <h3>兜底 · 马名搜索（中央 / 未命中）<span class="fn">resolveNkIdByName()</span></h3>
+    <span class="url"><b>https://db.netkeiba.com/horse/ajax_horse_search.html?func=whole&amp;word={EUC-JP编码}&amp;match=b&amp;limit=10</b></span>
+    <ul>
+      <li><b>EUC-JP 编码</b>：db.* 全站 EUC-JP，word 必须 EUC-JP 百分号编码；Node 无对应 Encoder，
+      <code>lib/silks.js → eucJpEncode()</code> 用 TextDecoder 一次性建 JIS X 0208 反查表（≈3.5k 项）实现零依赖编码；</li>
+      <li><b>防同名错配</b>：搜索行带生年，用「赛事年 − age」反推出生年双匹配；同年仍多条 → 写 miss 终态；</li>
+      <li>搜索行同时带出 owner id（<code>/owner/race.html?id=</code> title=马主名）→ 后续无需访问马页。</li>
+    </ul>
+  </div>
+
+  <div class="card accent-nk">
+    <h3>兜底 · winfinal 勝負服データベース <span class="tag sil">fuku.winfinal.com</span><span class="fn">resolveWfSilk()</span></h3>
+    <span class="url"><b>https://fuku.winfinal.com/?action=horse_name&amp;q={馬名}</b>　（馬名完全一致検索）</span>
+    <ul>
+      <li>netkeiba 判无（搜索 0 命中 / 马主未登记 / 双 404）后启用；覆盖 netkeiba 未登记的地方马主、外国产马；</li>
+      <li>结果卡含 <b>馬名 / 英字 / 性・毛色 / 生年月日 / 馬主名 / 服色图</b> 六项；</li>
+      <li><b>唯一性判定</b>：馬名归一后完全一致 + 生年月日<b>年份</b>一致（生年来自 JBIS 马页 foaled）；命中多条或 0 条 → 记 miss，不猜；</li>
+      <li>服色图 <code>img/{xxxx}.gif</code> → <code>data/silks/wf-{xxxx}.gif</code>；同一马主多马共用一张图（wf-owner 缓存）；</li>
+      <li>缓存 <code>data/pedigree/wf-horse.json</code>（馬名|生年）与 <code>wf-owner.json</code>（馬主名）。</li>
+    </ul>
+  </div>
+
+  <div class="card accent-nk">
+    <h3>归一与缓存<span class="fn">nkNameKey() / nkOwnerKey() / nkMap / nkOwner</span></h3>
+    <ul>
+      <li><b>马名归一 <code>nkNameKey()</code></b>：去空白、剥国名括注 <code>(USA)</code> 等、剥装备标记「 B」尾缀
+      （ブリンカー等，仅 JBIS 出马表显示用；<b>仅当主体含假名/汉字</b>才剥，纯 ASCII 外语名的字母可能是真名）。
+      循环剥到稳定，处理叠加尾缀如「ディープスリー(USA) B」；</li>
+      <li><b>马主名归一 <code>nkOwnerKey()</code></b>：全角→半角、去空白、去法人括注 <code>(株)/(有)/(同)</code> 等、大写化 ——
+      JBIS 与 netkeiba 写法差异的对齐键；</li>
+      <li><b>缓存体系</b>（<code>data/pedigree/</code>，入库供 CI 增量复用）：
+        <code>nk-owner-v3.json</code>（key=netkeibaId，马主级 · 同马主多马 0 请求）、
+        <code>nk-map.json</code>（key=归一马名|出生年，搜索结果终态）、
+        <code>nk-horse.json</code>（旧链路，保留供回溯）。</li>
+    </ul>
+  </div>
+
+  <div class="card accent-nk">
+    <h3>彩衣图下载 · URL 直构<span class="fn">downloadSilkByOwner()</span></h3>
+    <span class="url"><b>https://cdnv2.netkeiba.com/img/db/colours/{ownerId}.{png|gif}</b></span>
+    <ul>
+      <li>png 为 320×240 高清版（gif 仅 73×55），png 优先；</li>
+      <li>无彩衣马主两个扩展名均 404 → <b>终态可判定</b>，写 miss 缓存不再重试；</li>
+      <li>图落 <code>data/silks/{ownerId}.{gif|png}</code>（马主去重，本地存在即复用），
+      runner 挂 <code>silk = { url: "data/silks/…", owner: {id, name} }</code>，幂等指纹纳入 <code>silk.url</code>；</li>
+      <li>owner id 无线索时按马主名搜 <code>db.netkeiba.com/owner/list.html?word=</code>（EUC-JP）→
+      canonical 页取数字 id；首搜无结果时剥英文尾缀重试（JBIS 法人名常带 R/HD 等尾巴而 netkeiba 不带）。</li>
+    </ul>
+    <p><b>现状覆盖</b>：全量 v3 回填 63 场 7700 马次挂彩衣 4071（52.9%）；
+    未覆盖主因 = 地方马主在 netkeiba 未登记服色（数据源上限，非映射 bug）。</p>
+  </div>
+</section>
+
+<!-- ================= ⑤ pedigree ================= -->
+<section id="ped">
+  <h2><span class="no">⑤</span> 血统补全（两源各自的路径）</h2>
+  <div class="cols">
+    <div class="card accent-jbis">
+      <h3>JBIS 源<span class="fn">enrichPedigree() / parsePedigree()</span></h3>
+      <span class="url"><b>https://www.jbis.or.jp/horse/{10位id}/</b></span>
+      <ul>
+        <li>出馬表已带父/母/母父，直接用；</li>
+        <li>缺「父父」→ 查种马缓存 <code>jbis-sire.json</code>，未命中抓父马页（<code>resolveSireSire</code>）；</li>
+        <li>缺母父/母 → 抓本马页，血统区六格按序取（父父/父/母父之母 / 母/母父/母之母）；</li>
+        <li>顺带取官方英文名 <code>nameEn</code>（hdg1-search__sub），作片假名↔英文归一的桥；</li>
+        <li>两级缓存 <code>jbis-sire.json</code> / <code>jbis-horse.json</code>，CI 增量复用。</li>
+      </ul>
+    </div>
+    <div class="card accent-rp">
+      <h3>RP 源<span class="fn">pedigreeOf() / enrichSireSire()</span></h3>
+      <span class="url"><b>https://www.sportinglife.com/racing/profiles/horse/{id}</b></span>
+      <ul>
+        <li>每马一次档案抓取补父/母/母父（纯名字，id 缺陷见 ③）；</li>
+        <li>父父借道 JBIS 馬検索按名字解析（name-lookup 缓存 + 现役种公马别名预置）；</li>
+        <li>CI 日常 <code>overwrite=false</code> 只填空值；<code>--revalidate</code> 模式可覆盖修正错绑。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ⑥ store ================= -->
+<section id="store">
+  <h2><span class="no">⑥</span> 落盘与幂等</h2>
+  <div class="card accent-sto">
+    <h3>文件布局</h3>
+    <table>
+      <tr><th>路径</th><th>内容</th></tr>
+      <tr><td><code>data/races/{YYYY-MM-DD}/{场码}.json.gz</code></td><td>JBIS 文档（schema <code>jbis.race.card/v1</code>），一个 date×track 一个 gzip JSON</td></tr>
+      <tr><td><code>data/races/{YYYY-MM-DD}/rp-{courseId}.json.gz</code></td><td>RP 文档（schema <code>race.card/v2</code>），一个 date×courseId 一个</td></tr>
+      <tr><td><code>data/races/manifest.json</code></td><td>每 date 下按 <code>{场码}</code> / <code>rp:{courseId}</code> 记摘要（venue/country/scope/时区/races/decoded/runners/status）</td></tr>
+      <tr><td><code>data/races/_calendar/{YYYY-MM}.json</code></td><td>JBIS 月度赛历快照</td></tr>
+      <tr><td><code>data/pedigree/*.json</code></td><td>血统与彩衣缓存包（jbis-sire / jbis-horse / rp-horse / name-lookup / nk-owner-v3 / nk-map / nk-horse）</td></tr>
+      <tr><td><code>data/silks/</code></td><td>彩衣图（{ownerId}.{gif|png}，马主去重）</td></tr>
+    </table>
+    <h3>幂等规则（两源同款）</h3>
+    <ul>
+      <li><b>指纹幂等</b>：赛事数 / 头数 / 马ID:番号（JBIS 额外含 枠番·性齢·彩衣URL）全一致 → 跳过不写；
+      枠順更新、性齢修正、彩衣补全会触发重写；</li>
+      <li><b>防截断</b>：<code>--limit / --tracks / --dates</code> 部分采集时，已存文档头数更多则不覆盖；</li>
+      <li><b>彩衣继承</b>：采集重建 runner 时按 <code>(raceNo, horseId)</code> 继承已有彩衣（<code>inheritSilk</code>），防止把回填结果冲掉；</li>
+      <li><b>旧明文迁移</b>：兼容读 <code>.json</code>，写后删除旧明文，统一 gzip。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= ⑦ build ================= -->
+<section id="build">
+  <h2><span class="no">⑦</span> 合并与展示（build.js → _site）</h2>
+  <div class="card accent-sto">
+    <ul>
+      <li><b>合并</b>：遍历 <code>data/races/</code> 全部文档，<code>sourceOf()</code> 区分 <code>jbis</code> / <code>racingpost</code>
+      （v1 卡片 source 字段是 URL → 视为 jbis）；</li>
+      <li><b>行级展开</b>：<code>rowOf()</code> 把 runner 压成行（含 <code>source</code>、彩衣根相对路径 silk 字段），
+      <code>rows-codec</code> 自描述 schema 字典包编码 → <code>_site/derived/*.json</code>；</li>
+      <li><b>来源口径</b>：RP 行的筛选口径按国家组（<code>countryGroupOf</code>：ENG/Wale/SCO→GB…），
+      日本行按场馆名单分 JRA / NAR；</li>
+      <li><b>北京时间</b>：JBIS 行（Asia/Tokyo）与 RP 行（Europe/London 展示口径 + 场地当地）统一补北京时间列，同日并列展示；</li>
+      <li><b>别名字典</b>：RP 父父解析记录并入 <code>derived/horse-aliases.json</code>（片假名↔英文名互查）；</li>
+      <li><b>静态资源</b>：<code>data/silks</code> 复制进 <code>_site/data/silks</code>；rows-codec 编解码模块复制进站点供前端解包；</li>
+      <li><b>前端</b>：<code>site/app.js</code> 拉取 derived 字典包解包渲染，出馬表 silk 列（懒加载 + 404 隐藏）、
+      分享卡双版式、每周 Excel（<code>_site/excel/</code>）。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= ⑧ discipline ================= -->
+<section id="discipline">
+  <h2><span class="no">⑧</span> 抓取纪律与 CI 调度</h2>
+  <div class="cols">
+    <div class="card accent-jbis">
+      <h3>JBIS / fetch.js</h3>
+      <ul>
+        <li>诚实 UA：<code>Mozilla/5.0 (compatible; JBIS-Race-Calendar/1.0; personal research, polite crawl)</code>；</li>
+        <li><code>DELAY_MS</code> 礼貌间隔（config.delayMs）；</li>
+        <li>3 次重试 + 指数退避（1s/2s/4s）、30s 超时；</li>
+        <li><code>fetchHtmlSoft()</code> 允许 404 —— 出馬表开赛前 1-2 天才生成，属常态；</li>
+        <li>短响应（&lt;500 字符）视为失败防半页。</li>
+      </ul>
+    </div>
+    <div class="card accent-rp">
+      <h3>netkeiba / RP</h3>
+      <ul>
+        <li>均需<b>浏览器 UA</b>（bot UA 拿不到正文 / RP 直接 406）；</li>
+        <li>netkeiba 编码：<code>nar.*</code> UTF-8、<code>db.*</code> EUC-JP，先信 Content-Type 再按域名兜底（ICU 缺失退默认解码）；</li>
+        <li>彩衣/搜索间隔 <code>DELAY = 1200ms</code>；SL 源 <code>delayMs = 1200</code>；</li>
+        <li>SL racecards 只提供「英国当天」卡片（日期 URL 307 回当日页），美国夜场按场地当地 date 标签落盘。</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card accent-sto">
+    <h3>请求日志（JSONL）<span class="fn">src/lib/reqlog.js</span></h3>
+    <ul>
+      <li>所有出站请求（JBIS / netkeiba / winfinal / Sporting Life / 彩衣图）逐条追加 <code>data/logs/requests-YYYYMMDD.jsonl</code>；</li>
+      <li>字段：<code>ts / src / method / url / status / ok / ms / bytes / err</code>；按 <code>src</code> 可统计各源请求量、成功率、耗时；</li>
+      <li>关闭：<code>RC_REQLOG=0</code>；改目录：<code>RC_REQLOG_DIR=/path</code>。</li>
+    </ul>
+  </div>
+  <div class="card accent-sto">
+    <h3>CI 调度（GitHub Actions，每日两次）</h3>
+    <ul>
+      <li><span class="kbd">06:00</span> 全量：JBIS 出馬表 + <code>collect-sources --source racingpost --countries all</code>（含 RP all）；</li>
+      <li><span class="kbd">18:00</span> 仅 JBIS 补枠順（枠番/馬番通常前日傍晚公布）；</li>
+      <li>缓存包（pedigree / nk-* / name-lookup）随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求。</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  racing-calendar · 采集链路文档 · 生成于 2026-11-04 · 字段与规则均以当前工作区源码为准（文件/函数名已标注，可按图索骥）
+</footer>
+
+</div>
+</body>
+</html>

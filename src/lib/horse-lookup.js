@@ -74,10 +74,12 @@ export function createHorseLookup({ cache, delayMs = 1200, minFoaledForSire = nu
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  let lastStatus = 0;
   async function searchOnce(name) {
     const url = `${SEARCH_URL}?sid=horse&items=50&keyword=${encodeURIComponent(name)}`;
-    const r = await get(url).catch(() => null);
+    const r = await get(url, { src: "jbis-lookup" }).catch(() => null);
     await sleep(delayMs);
+    lastStatus = r?.status ?? 0;
     if (!r || r.status !== 200) return null;
     return parseResultRows(r.text);
   }
@@ -124,6 +126,11 @@ export function createHorseLookup({ cache, delayMs = 1200, minFoaledForSire = nu
     }
 
     const rows = await searchOnce(name);
+    // 403/网络失败 != 「查无此马」：不缓存，留给下次（否则会把限流误判成终态）
+    if (!rows && lastStatus !== 200) {
+      log(`[lookup] ${name} → JBIS ${lastStatus || "网络失败"}（未缓存，稍后重试）`);
+      return null;
+    }
     const rec = {
       schema: "ped.lookup.jbis/v1",
       key,

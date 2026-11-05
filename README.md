@@ -53,6 +53,23 @@ node src/collect-sources.js --source racingpost --countries all
 - 导出 CSV（含北京时间、时区、级别、原始比赛格、源）、每周 Excel 下载
 - 出馬表分享卡双版式（勾选比赛 → 生成分享图）：**紧凑表**（默认；日期/北京时间/场地/场次/比赛名/赛道为合并单元格的连续大表，行高 24px，1080 宽幅，枠色片·性别·赛道配色锚点）/ **分卡**（每场一块，2026-10-29 版式）；版式·列·时间列（北京/当地）选择存 localStorage（`rc.share.layout.v1` 等）
 
+### 嵌入引用（`embed/entries-table.js` 组件）
+
+本站向种马档案站（yunji-web / kzn-web 等）提供**纯渲染组件**——宿主一行挂载，得到「某種牡馬产驹近期出走」的简洁结果视图（对齐 jbis-sire-rank-history `embed/sire-rank-chart.js` 的兄弟站统一引用模式）：
+
+```html
+<div id="entries"></div>
+<script src="https://hinotoyk.github.io/racing-calendar/embed/entries-table.js"></script>
+<script>
+  RC_ENTRIES_EMBED.mount(document.getElementById("entries"), {
+    base: "https://hinotoyk.github.io/racing-calendar/",
+    sire: "コントレイル",   // 種牡馬日文名（JBIS 原形）；days 可控制未来侧日期数（默认 4）
+  });
+</script>
+```
+
+视图 = 头部（标题 + 共 N 頭 · M R · 北京時刻 + 本站外链）+ **JBIS 出馬表式按日期分组表格**（「11月4日（水）」+ 青绿短线 → 開催 / レース名 / 発走 / 芝ダ / 距離 / 枠番 / 馬番 / 出走馬 / 性齢 / 斤量 / 騎手 十一列，同场多匹产驹共用 rowspan 场次格，按场次块交替底色，窄屏按组件自身宽度分两档收起次要列（ResizeObserver，不用 @media））；赛事名显示层清洗（去「サラ系」前缀、去场次号、超长欧美冠名只留类型短语）；最近一周自动折叠；空态/加载/失败态内建；颜色走宿主 CSS 变量自动跟随换肤。组件自带数据编排（fetch `derived/` 产物并解包字典包），不写任何存储键。协议细节见 [docs/DESIGN.md](docs/DESIGN.md) §10；主站完整页 iframe 嵌入（`?embed=1`）作为附录保留，一般不用。
+
 ## 每周 Excel
 
 `_site/excel/races-{ISO周}.xlsx`，4 个 sheet：
@@ -89,6 +106,37 @@ node src/collect-sources.js --source racingpost --countries all
 - 别名来源：JBIS 马页官方英文名（`nameEn`）+ JBIS 馬検索名字解析（`name-lookup.json`，消歧规则：名字精确匹配 +「種」标签 + 生年上下限，同名老马排除；同名异马冲突时现役种公马优先）
 
 RP 源的父父（SL 档案父系 id 缺陷无法链查）同样借道 JBIS 馬検索补全；一次性回填用 `node src/backfill-lookup.js`（已缓存的自动跳过）。
+
+## 马名权威化 / 彩衣 / 请求日志（2026-11-04）
+
+### 马名：只认 JBIS id，登录名从马页读
+出馬表里的马名是显示名，带装备标记「 B」（ブリンカー，190 例）与国名括注「(USA)」（141 例），按正则剥尾缀会误伤纯 ASCII 名。改为：拿到 10 位 JBIS id 后读 `/horse/{id}/`，一次取四样东西并缓存 `data/pedigree/jbis-name.json`（key=id）：
+
+| 字段 | 来源 | 说明 |
+|---|---|---|
+| `jp` | `hdg1-search h1` | 日文登录名；纯英文名马匹为 null |
+| `en` | `hdg1-search__sub` | 英文名（去掉国籍括注），如 `Air Gene` |
+| `country` | 同上括注 | `JPN` / `USA` / `GB` / `IRE` … |
+| `foaled` | `生年月日` | 精确到日，彩衣唯一性判定基准 |
+
+回写 runner：`horse.name`（日文名，无则英文名）、`horse.nameJp`、`horse.nameEn`、`horse.country`、`horse.foaled`。
+
+```bash
+node src/collect-races.js                       # 日常采集：出馬表后自动补马名（默认 1 并发 / 3.5s）
+node src/backfill-names.js                      # 全量回填（新日期优先，缓存幂等，可随时中断重跑）
+node src/backfill-names.js --dates 2026-11-04 --tracks 236 --limit-docs 1   # 小批量
+```
+
+> JBIS 马页有 WAF 限流：短时高频会整站返回 403（持续数分钟到数十分钟）。抓取层按「近浏览器请求头 + 单并发 + 3.5s」执行，403 不写缓存、暂停时长指数增长，连续 3 次则停批（缓存已落盘，重跑续采）。
+
+### 彩衣：netkeiba 优先 → winfinal 兜底
+- 日本源：`马名 + 生年` 先查 netkeiba（马名搜索 → 马主 id → `cdnv2.netkeiba.com/img/db/colours/{id}.png|gif` 直构）；未命中再查 `fuku.winfinal.com`（`?action=horse_name&q=` 完全一致検索，结果卡含生年月日与馬主名，唯一命中才采用）。图落 `data/silks/{ownerId}.{gif|png}` 与 `data/silks/wf-{xxxx}.gif`。
+- 欧美源：Sporting Life racecard 的 `__NEXT_DATA__` 每个 ride 自带 `silk_filename`，直链 `https://www.sportinglife.com/images/silks/{filename}` 下载，按内容 sha1 去重落 `data/silks/sl-{hash}.png`。
+- 回填：`node src/backfill-silks-v4.js [--dates ...] [--tracks ...] [--delay 1200]`（缓存 `nk-map` / `nk-owner-v3` / `wf-horse` / `wf-owner` / `sl-silk` 入库，重跑 0 请求）。
+- 展示：出馬表 `silk` 列（默认隐藏，列菜单可开）、分享卡分卡版式彩衣列；欧美与日本同一 `silk.url` 口径。
+
+### 请求日志
+所有出站请求（JBIS / netkeiba / winfinal / Sporting Life / 彩衣图）逐条追加 `data/logs/requests-YYYYMMDD.jsonl`，字段 `ts / src / method / url / status / ok / ms / bytes / err`。关闭用 `RC_REQLOG=0`，改目录用 `RC_REQLOG_DIR`。
 
 ## 已知限制
 

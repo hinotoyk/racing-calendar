@@ -13,6 +13,8 @@ _site/
 
 # 日志
 *.log
+# 请求日志（JSONL，逐条记录出站请求；本地诊断用，不入库）
+data/logs/
 .tmp-fixture/
 
 # 服务重定向日志（本地起服务时的 stdout/stderr）
@@ -23,3 +25,7 @@ design/_*.png
 
 # WorkBuddy 本地工作记忆（会话日志/验证截图，不入库）
 .workbuddy/
+.workbuddy-ai/
+
+# 调试时抓下来的临时页面（如 JBIS 单页样本）
+.tmp-*.html

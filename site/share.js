@@ -235,6 +235,10 @@ function drawCards(scale, races, extras) {
     } else {
       cols.push({ k:'num', label:'馬番', w:46, align:'c' });
     }
+    // 彩衣列：该场有已加载的彩衣图才出现（73x55 源图缩至 21x16 居中）
+    if (race.runners.some((h) => h.silk && silkImgs.get(h.silk))) {
+      cols.push({ k:'silk', label:'彩衣', w:32, align:'c' });
+    }
     cols.push(
       { k:'horse',  label:'馬名', demand:demandW(race, 'horseName', 600, fs.horse, 120, 340), min:120, align:'l' },
       { k:'sexage', label:'性齢', w:58, align:'c', size:fs.body, c:TT.sub },
@@ -361,6 +365,14 @@ function drawCards(scale, races, extras) {
           ctx.textAlign = 'center'; ctx.fillText(String(h.num ?? '–'), c.x + c.w / 2, mid + fs.num * 0.34); ctx.textAlign = 'left';
           continue;
         }
+        if (c.k === 'silk') {
+          const img = silkImgs.get(h.silk);
+          if (img) {
+            const iw = 21, ih = 16;
+            ctx.drawImage(img, c.x + (c.w - iw) / 2, ry + (ROW_H - ih) / 2, iw, ih);
+          }
+          continue;
+        }
         if (c.k === 'horse') {
           ctx.font = font(600, fs.horse); ctx.fillStyle = TT.ink;
           ctx.fillText(fit(h.horseName ?? '', c.w - 18), c.x + 9, mid + fs.horse * 0.34);
@@ -443,6 +455,11 @@ function drawDense(scale, races, extras) {
     { k:'rname', label:'比赛名', min:96, align:'l', merge:'race', prio: 2 },
     { k:'dist', label:'赛道', w:54, align:'c', merge:'race', prio: 2 },
     { k:'wknum', label:'枠番', w:46, align:'c' },
+  );
+  // 彩衣列：与分卡版式同规则——该场有已加载的图才出现（24px 行高内缩至 18×14）
+  const hasSilkD = races.some((r) => (r.runners ?? []).some((h) => h.silk && silkImgs.get(h.silk)));
+  if (hasSilkD) cols.push({ k:'silk', label:'彩衣', w:26, align:'c', prio: 3 });
+  cols.push(
     { k:'horse', label:'馬名', min:108, align:'l', prio: 3 },
     { k:'sexage', label:'性齢', w:42, align:'c' },
     { k:'jockey', label:'騎手', min:64, align:'l', prio: 1 },
@@ -620,6 +637,11 @@ function drawDense(scale, races, extras) {
       ctx.fillText(String(h.num ?? '–'), x0 + s + gap, mid + .5);
       return;
     }
+    if (c.k === 'silk') {
+      const img = silkImgs.get(h.silk);
+      if (img) ctx.drawImage(img, c.x + (c.w - 18) / 2, mid - 7, 18, 14);
+      return;
+    }
     if (c.k === 'horse') {
       ctx.font = font(600, fsD.horse); ctx.fillStyle = TT.ink;
       ctx.fillText(fit(h.horseName ?? '', c.w - 16), c.x + 8, mid + .5);
@@ -710,8 +732,22 @@ function drawCanvas() {
   draw(+($s('#share-scale').value || 2), races, extras);
 }
 
+/* ---- 彩衣图预加载（canvas drawImage 需先有 Image；同 src 缓存，失败记 null 不重试） ---- */
+const silkImgs = new Map();   // src → Image|null
+async function ensureSilks(rs) {
+  const srcs = [...new Set(rs.flatMap((r) => (r.runners ?? []).map((h) => h.silk).filter(Boolean)))];
+  await Promise.all(srcs.map((src) => new Promise((res) => {
+    if (silkImgs.has(src)) return res();
+    const img = new Image();
+    img.onload = () => { silkImgs.set(src, img); res(); };
+    img.onerror = () => { silkImgs.set(src, null); res(); };
+    img.src = src;
+  })));
+}
+
 let grid = null;
-function renderAll() {
+async function renderAll() {
+  await ensureSilks(races);   // 先加载彩衣图再绘制，避免首帧缺图
   drawCanvas();
   const heads = races.reduce((n, r) => n + r.runners.length, 0);
   $s('#share-count').textContent = `${races.length} 场 · ${heads}頭`;

@@ -281,6 +281,49 @@ function parseRecent(cell) {
   };
 }
 
+// ---------- 马页：正式登录名（日文名 / 英文名 / 国籍） ----------
+// 出馬表里的马名带显示用尾缀（装备标记「 B」、国名括注），不能当登录名；
+// 马页 hdg1 区才是唯一权威来源：
+//   <div class="hdg1-search"><h1>エアジーン</h1>
+//   <span class="hdg1-search__sub">Air Gene(JPN)</span></div>
+// 英文名的括注即国籍（JPN/USA/GB/IRE/FR…）；纯英文名马匹 h1 也为 ASCII → 只存英文名。
+const JP_CHAR = /[\u3040-\u30FF\u3400-\u9FFF々〆]/;
+
+export function parseHorseProfile(html) {
+  if (!html) return null;
+  const h1m = html.match(/<div class="hdg1-search">[\s\S]{0,200}?<h1>([\s\S]*?)<\/h1>/);
+  const subM = html.match(/<span class="hdg1-search__sub">([\s\S]*?)<\/span>/);
+  const h1 = h1m ? txt(h1m[1]) : null;
+  const subRaw = subM ? txt(subM[1]) : null;
+
+  let nameEn = null;
+  let country = null;
+  if (subRaw) {
+    const m = subRaw.match(/^(.*?)\s*[\(（]([A-Za-z]{2,4})[\)）]\s*$/u);
+    nameEn = m ? m[1].trim() : subRaw;
+    country = m ? m[2].toUpperCase() : null;
+  }
+  // h1 为日文名；纯 ASCII 的 h1 归入英文名（部分外国产马无日文登录名）
+  let nameJp = h1 && JP_CHAR.test(h1) ? h1 : null;
+  if (!nameJp && h1) nameEn = nameEn ?? h1;
+  if (nameJp && !nameEn && !JP_CHAR.test(nameJp)) nameEn = nameJp;
+
+  // 生年月日（精确到日，彩衣唯一性判定用）；性別
+  const bornM = html.match(/<dt>生年月日<\/dt>\s*<dd>\s*(\d{4})\.(\d{1,2})\.(\d{1,2})/);
+  const sexM = html.match(/<dt>性別<\/dt>\s*<dd[^>]*>\s*(牡|牝|セ|セン|騸)/);
+
+  if (!nameJp && !nameEn) return null;
+  return {
+    nameJp,
+    nameEn,
+    country,
+    foaled: bornM
+      ? `${bornM[1]}-${String(bornM[2]).padStart(2, "0")}-${String(bornM[3]).padStart(2, "0")}`
+      : null,
+    sex: sexM ? sexM[1] : null,
+  };
+}
+
 // ---------- 血统页 ----------
 // 返回 { nameEn, sire, sireSire, sireDam, dam, damSire, damDam }（各为 {id,name} 或 null）
 // nameEn = 马页标题下的官方英文名（hdg1-search__sub，如 ディープインパクト页为 "Deep Impact(JPN)"），

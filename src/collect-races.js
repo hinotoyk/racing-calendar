@@ -7,6 +7,8 @@ import { fetchHtml, fetchHtmlSoft } from "./lib/fetch.js";
 import { readGz, writeGz } from "./lib/bundle.js";
 import { pedCache } from "./lib/ped-cache.js";
 import { parseCalendar, parseDayPage, parseEntryPage, parsePedigree } from "./lib/parse-race.js";
+import { enrichSilks, saveSilkCaches, silkStats } from "./lib/silks.js";
+import { attachJbisNames, saveJbisNames, jbisNameStats } from "./lib/jbis-name.js";
 import { venueName, scopeOf } from "./race-config.js";
 
 const DATA_DIR = path.resolve("data", "races");
@@ -25,6 +27,10 @@ const DAYS = parseInt(argOf("--days") ?? String(SITE.days), 10);
 const LIMIT = parseInt(argOf("--limit") ?? "0", 10);
 const DATE_ARG = argOf("--dates");
 const TRACK_ARG = argOf("--tracks");
+// 马名权威化：出馬表名 → JBIS 马页登录名（日文名/英文名/国籍/生日），缓存 data/pedigree/jbis-name.json
+const NO_NAMES = argv.includes("--no-names");
+const NAME_CONC = parseInt(argOf("--name-conc") ?? "1", 10);
+const NAME_DELAY = parseInt(argOf("--name-delay") ?? "1200", 10);
 
 function jstToday() {
   const p = new Intl.DateTimeFormat("en-CA", {
@@ -137,7 +143,22 @@ async function resolveHorsePedigree(horse) {
 }
 
 // ---------- 采集 ----------
-async function collectTrack(date, track, dayHtml) {
+// 已有文档的彩衣按 (raceNo, horseId) 继承到新采集结果：
+// 防止 CI 重采重建 runner 时把 backfill-silks 回填的彩衣丢掉
+function inheritSilk(existing, doc) {
+  if (!existing?.races) return;
+  const prev = new Map();
+  for (const pr of existing.races)
+    for (const x of pr.runners ?? []) if (x.silk) prev.set(`${pr.no}:${x.horse?.id}`, x.silk);
+  if (!prev.size) return;
+  for (const r of doc.races)
+    for (const x of r.runners) {
+      const k = `${r.no}:${x.horse?.id}`;
+      if (!x.silk && prev.has(k)) x.silk = prev.get(k);
+    }
+}
+
+async function collectTrack(date, track, dayHtml, existing) {
   const { races } = parseDayPage(dayHtml);
   const out = {
     schema: "jbis.race.card/v1",
@@ -169,6 +190,16 @@ async function collectTrack(date, track, dayHtml) {
         rec.runners = parsed.runners;
         rec.heads = parsed.runners.length || race.heads;
         rec.status = "entries";
+        // ① 马名权威化：按 JBIS id 读马页登录名（日文名 + 英文名 + 国籍 + 生日）
+        if (!NO_NAMES) {
+          await attachJbisNames(rec.runners, {
+            conc: NAME_CONC,
+            delayMs: NAME_DELAY,
+            log: (m) => console.log(m),
+          });
+        }
+        // ② 彩衣：netkeiba 优先（马名+生年唯一性）→ winfinal 兜底
+        await enrichSilks(date, track, rec);
       } else {
         rec.status = "pending";
       }
@@ -234,16 +265,19 @@ for (const date of DATES) {
     try {
       const dayHtml = await fetchHtml(url);
       await sleep(DELAY_MS);
-      const doc = await collectTrack(date, e.track, dayHtml);
+      const doc = await collectTrack(date, e.track, dayHtml, existing);
       await enrichPedigree(doc);
 
-      // 幂等：赛事数、头数、枠番/馬番/性齢一致则跳过（枠順更新、性齢修正会触发重写）
+      // 幂等：赛事数、头数、枠番/馬番/性齢/彩衣/登录名一致则跳过（任一变化触发重写）
       const fp = (d) =>
         JSON.stringify(
           (d?.races ?? []).map((r) => [
             r.no,
             r.heads,
-            (r.runners ?? []).map((x) => `${x.horse?.id}:${x.num}:${x.frame}:${x.sex ?? ""}${x.age ?? ""}`),
+            (r.runners ?? []).map(
+              (x) =>
+                `${x.horse?.id}:${x.num}:${x.frame}:${x.sex ?? ""}${x.age ?? ""}:${x.silk?.url ?? ""}:${x.horse?.name ?? ""}:${x.horse?.nameEn ?? ""}`
+            ),
           ])
         );
       const same = !FORCE && existing && fp(existing) === fp(doc);
@@ -283,4 +317,8 @@ ensureDir(DATA_DIR);
 fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2));
 sireStore.save();
 horseStore.save();
-console.log(`manifest -> ${manifestFile}（血统缓存 sire=${sireStore.size()} / horse=${horseStore.size()}，已入库 data/pedigree/）`);
+saveSilkCaches();
+saveJbisNames();
+console.log(
+  `manifest -> ${manifestFile}（血统缓存 sire=${sireStore.size()} / horse=${horseStore.size()} / 马名 ${jbisNameStats().cached} / 彩衣 ${silkStats().nkHorse}马 ${silkStats().nkMap}名 / winfinal ${silkStats().wf.horse}名，已入库 data/pedigree/）`
+);

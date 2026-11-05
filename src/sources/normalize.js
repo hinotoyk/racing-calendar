@@ -59,7 +59,7 @@ export function addDays(dateStr, n) {
 
 // 国家/地区 → IANA 时区（场地当地口径）
 export const COURSE_TZ = {
-  ENG: "Europe/London", Wale: "Europe/London", SCO: "Europe/London",
+  ENG: "Europe/London", Wale: "Europe/London", SCO: "Europe/London", Scot: "Europe/London",
   Eire: "Europe/Dublin",
   FR: "Europe/Paris",
   UAE: "Asia/Dubai",

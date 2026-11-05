@@ -97,9 +97,13 @@ function rowOf(doc, race, r) {
     num: r.num,
     horseId: r.horse?.id ?? null,
     horseName: r.horse?.name ?? null,
+    horseNameEn: r.horse?.nameEn ?? null,
+    horseCountry: r.horse?.country ?? null,
     sex: r.sex,
     age: r.age,
     color: r.color,
+    // 彩衣：站点根相对路径（data/silks/{ownerId}.gif，采集时按马主落盘）；null = 无登记/未覆盖
+    silk: r.silk?.url ?? null,
     jockey: r.jockey?.name ?? null,
     weight: r.weight,
     trainer: r.trainer?.name ?? null,
@@ -144,6 +148,11 @@ fs.copyFileSync(path.resolve("src", "lib", "horse-name.mjs"), path.join(OUT_DIR,
 // 原始快照随站点发布（血统缓存除外）
 if (fs.existsSync(DATA_DIR)) {
   fs.cpSync(DATA_DIR, path.join(OUT_DIR, "data", "races"), { recursive: true });
+}
+// 彩衣图（data/silks/，马主去重的小 GIF）随站点发布，行数据里存根相对路径
+const SILKS_SRC = path.resolve("data", "silks");
+if (fs.existsSync(SILKS_SRC)) {
+  fs.cpSync(SILKS_SRC, path.join(OUT_DIR, "data", "silks"), { recursive: true });
 }
 
 fs.mkdirSync(DERIVED, { recursive: true });

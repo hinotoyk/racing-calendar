@@ -215,3 +215,16 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 - **设计约定**：与主站 style.css 同 token（#0aa7a0 × shadcn Neutral，仅亮色）；枠番用 JRA 官方 8 枠色芯片（1白2黒3赤4青5黄6緑7橙8桃），级别徽章沿用主站 JBIS 配色；比赛名 / 距离 / 当地·北京时间编码进比赛块头（不逐行重复），行列为 枠 / 番 / 馬名 / 性齢 / 騎手（+ 附加列）。设计稿原型：`design/share-card.html`（样例数据由 `design/_extract.mjs` 生成）。
 
 > 实现教训：canvas 重设 `width/height` 会重置画布状态（含变换矩阵）——必须先设尺寸再 `setTransform(scale)`，否则导出 PNG 内容缩在左上角、其余全透明。
+
+## 10. 嵌入引用（兄弟站统一模式：`embed/` 组件 + derived 数据）
+
+本站向种马档案站（yunji-web / kzn-web …）提供**纯渲染组件**，供其一行挂载——与 jbis-sire-rank-history 的 `embed/sire-rank-chart.js` 同一引用模式（宿主给一个挂载点 + 种马名，得到内嵌结果；不照搬整站页面）。
+
+- **组件**：`site/embed/entries-table.js`（构建进 `_site/embed/`，零依赖单文件 IIFE，挂 `window.RC_ENTRIES_EMBED`）。API = `VERSION` / `load(base, opts)`（数据编排）/ `render(el, data, opts)`（纯渲染）/ `mount(el, opts)`（load + render + 内建加载/失败/重试态，宿主一行挂载）。
+- **宿主用法**：动态加载组件脚本（Promise 缓存）后 `RC_ENTRIES_EMBED.mount(el, { base: "https://hinotoyk.github.io/racing-calendar/", sire: "コントレイル" })`。`sire` = 種牡馬日文名（JBIS 原形，宿主从自家 config 取，与数据行 sire 字段同源）；`days` 控制未来侧有数据日期数（默认 4）。
+- **视图（v1.2.1，JBIS 出馬表式按日期分组表格）**：头部（标题 + 共 N 頭 · M R · 北京時刻 + Racing Calendar ↗）→ 逐日分组（「11月4日（水）」+ 青绿短线 + 右侧「N 頭 / M R」）→ 一张真 `<table>` 十一列：開催 / レース名 / 発走 / 芝ダ / 距離 / 枠番 / 馬番 / 出走馬 / 性齢 / 斤量 / 騎手（表体 13px、马名 14px）。**同场次多匹产驹共用 `rowspan` 场次单元格**（前 5 列为场次属性，后 6 列每匹一行），交替底色按**场次块**（不是按行，否则合并块会断色）。赛事名走 `cleanRaceName()` 显示层清洗（去 JBIS 重复拼接 / 去「サラ系」品種前缀 / 去 `Race N -` 场次号 / >40 字符的欧美冠名只留类型短语，数据原文不动）。今天之前最近 7 个自然日收进底部 `<details>`「最近一周」折叠区；空态/加载态/失败态（重试）内建；**窄容器收起必须按组件自身宽度判断**（`ResizeObserver` → `data-fit`，阈值 700 / 560），不能用 `@media`：组件挂在宿主 iframe 里，视口宽 ≠ 卡片内容宽（1024px 窗口实测会误判成放得下，导致 11 列被裁）。**所有输出必须套 `.rc-emb` 容器**——`--re-*` 变量定义在它身上，缺了这层 `background:var(--re-primary)` 会静默失效（绿线/灰表头/边框全丢）。
+- **数据**：组件自带 load——fetch `derived/index.json` + `derived/{date}.json`（字典包，`unpackRows` 内联自 `src/lib/rows-codec.mjs`，两处同步改），**不写任何存储键**（缓存仅内存）。与 sire-rank-chart「宿主 fetch 数据」的契约差异是有意的：出走表多文件懒加载的编排成本不转嫁给宿主。
+- **视觉**：亮色单主题；颜色走宿主 CSS 变量（`--foreground/--muted-foreground/--border/--primary/--accent` 等，缺省回退 #0aa7a0 × shadcn Neutral），与 friend-links.js 归一化变量同一做法——宿主换肤组件跟随；枠色/级别徽章 = JRA 官方枠色与 JBIS 配色（数据语义写死，同主站 `.waku`/`.yj-g*`）；同 DOM 渲染 → media query 生效于宿主视口（窄屏自动收缩列）。
+- **CORS**：GitHub Pages 全站带 `Access-Control-Allow-Origin: *`；本地 `npm run serve` 已对齐（`src/server.js` 全响应头补 ACAO *），供宿主站 `?rcdev=1` 式本地联调（宿主把 base 切到 `http://127.0.0.1:9090/`）。
+- **主站完整页嵌入（附录，一般不用）**：`index.html?embed=1` + §6 筛选深链——`<html data-embed>`（head 内联脚本）收起装饰层（页头/页脚/站群导航）、`#page` 占满、锁亮色（暗色 token 收窄为 `:root:not([data-embed])`）；`app.js` syncUrl 保留 `embed=1`。适合确需完整功能（多维筛选/分享卡）的 iframe 场景，日常引用一律走组件。
+

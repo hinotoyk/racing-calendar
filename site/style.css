@@ -3,6 +3,8 @@
  * 零依赖手写 CSS；token 与组件规范对齐 yunji-web front/pages/theme.css
  * 亮暗双主题：全部颜色走 token，暗色经 prefers-color-scheme 自动切换
  * （分享卡 canvas 出图为固定亮色版式，不随主题变化）
+ * embed 模式（?embed=1，DESIGN.md §10）：锁亮色 + 收起装饰层 ——
+ * 被种马档案站（yunji/kzn…）iframe 引用时与宿主亮色壳一致
  * ============================================================ */
 
 @font-face {
@@ -42,8 +44,14 @@
   --shadow-color: 16, 24, 40;
 }
 
+/* ============================================================
+ * 亮暗双主题（embed 锁亮，DESIGN.md §10）：
+ * 暗色 token 覆盖的选择器收窄为 :root:not([data-embed]) ——
+ * 宿主站 iframe 深链 ?embed=1 时（head 内联脚本挂 data-embed）保持亮色，
+ * 宿主站（yunji/kzn 等种马档案站）均为亮色主题，暗色 iframe 嵌亮壳会突兀。
+ * ============================================================ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-embed]) {
     --background: #0f1317;
     --foreground: #e7eaed;
     --card: #161b21;
@@ -68,6 +76,20 @@
     --overlay: rgba(22, 27, 33, .92);
   }
 }
+
+/* ============================================================
+ * embed 模式（DESIGN.md §10 嵌入引用）：宿主站 iframe 深链 ?embed=1
+ * —— <html data-embed> 由 head 内联脚本挂上，首帧生效。
+ * 宿主站自带页头（page-title）与留白，嵌进来只保留筛选卡+表格主体：
+ * 隐藏独立站装饰层（页头/页脚/powered/站群导航），容器占满 iframe 宽度、
+ * 上下留白收紧（宿主页 padding 已够）。分享卡 canvas 本就固定亮色，双口径一致。
+ * ============================================================ */
+:root[data-embed] .page-title,
+:root[data-embed] footer,
+:root[data-embed] .powered,
+:root[data-embed] [data-friend-links] { display: none; }
+:root[data-embed] #page { width: 100%; max-width: none; padding: 10px 0 30px; }
+@media (max-width: 768px) { :root[data-embed] #page { padding: 6px 0 24px; } }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -303,7 +325,7 @@ table.yj-lib tbody tr.sub td b { color: var(--accent-foreground); margin-right: 
 .yj-g3 { background-color: #087220; }
 .yj-listed { background-color: #dca026; }
 .yj-open { background-color: rgba(10, 167, 160, .15); color: #0a7a75; }
-@media (prefers-color-scheme: dark) { .yj-open { color: #7fd8d2; background-color: rgba(20, 184, 176, .2); } }
+@media (prefers-color-scheme: dark) { :root:not([data-embed]) .yj-open { color: #7fd8d2; background-color: rgba(20, 184, 176, .2); } }
 .yj-nar { background-color: #c2318e; }
 
 /* ---------- 日期窗口导航（‹ › 本周末 今天） ---------- */
@@ -338,7 +360,7 @@ table.yj-lib tbody tr.sub td b { color: var(--accent-foreground); margin-right: 
 footer { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: center; align-items: center; font-size: 11.5px; color: #a3a3a3; }
 .ver { border: 1px solid var(--border-soft); border-radius: 999px; padding: 1px 9px; font-size: 10.5px; color: #a3a3a3; font-family: Geist, sans-serif; }
 .powered { margin-top: 8px; text-align: center; font-size: 11px; color: #c4c8cd; letter-spacing: .5px; }
-@media (prefers-color-scheme: dark) { footer, .ver { color: #6b7178; } .powered { color: #4d545b; } }
+@media (prefers-color-scheme: dark) { :root:not([data-embed]) footer, :root:not([data-embed]) .ver { color: #6b7178; } :root:not([data-embed]) .powered { color: #4d545b; } }
 
 .table-wrap { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 .yj-drop-scroll { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
@@ -366,7 +388,9 @@ footer { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 4px 18px; justif
 
 /* 勾选框：常驻（点行任意处 = 勾/取消，分享卡入口零门槛）；绝对定位在首列左侧预留区，不参与流式布局 */
 .pick-box { display: inline-block; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0; accent-color: var(--primary); cursor: pointer; }
-td.pk-host { position: relative; padding-left: 28px; }
+td.pk-host { position: relative; }
+/* 特异性须压过 table.yj-lib td（0,1,2）的 5px，否则勾选框（left:10px+13px 宽）会叠上首列文字 */
+table.yj-lib td.pk-host { padding-left: 28px; }
 table.yj-lib tbody tr[data-pk] { cursor: pointer; }   /* 整行点击 = 勾/取消 */
 table.yj-lib tbody tr[data-pk]:hover td { background: var(--race-tint); }
 
@@ -639,3 +663,9 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
   #pick-bar { max-width: calc(100vw - 20px); }
   #pick-bar .pb-count, #pick-bar .pb-go, #pick-bar .pb-clear { flex: none; white-space: nowrap; }
 }
+
+/* ---------- 彩衣（勝負服）图标列 ---------- */
+/* 源图 73x55，列表小图展示（缩小显示清晰）；column 经「自定义显示列」开关 */
+td .silk-img { height: 15px; width: auto; vertical-align: -3px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+/* mb 卡片 top 行：与馬番/枠徽同排 */
+.yj-mb .silk-img { flex: none; height: 16px; width: auto; align-self: center; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }

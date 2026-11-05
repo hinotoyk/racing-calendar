@@ -14,6 +14,11 @@ const JBIS = "https://www.jbis.or.jp";
 
 let sireSel, sireSireSel, bmsSel, groupSel;   // 血统/分组选择器实例（main 中创建）
 
+// embed 模式（DESIGN.md §10）：宿主站 iframe 深链 ?embed=1 —— 装饰层收起/锁亮色由
+// index.html head 内联脚本挂 <html data-embed> + style.css 属性选择器完成，本文件只读标记；
+// syncUrl 需要在筛选变化时保留 embed=1（模式标志不随状态重写丢失）。
+const qpEmbed = /[?&]embed=1\b/.test(location.search);
+
 const state = {
   index: null,
   cache: new Map(),
@@ -194,6 +199,7 @@ function syncUrl() {
   if (state.bms) p.set("bms", state.bms);
   if (state.q.trim()) p.set("q", state.q.trim());
   if (state.group) p.set("group", state.group);
+  if (qpEmbed) p.set("embed", "1");   // embed=1 是模式标志不是瞬态参数（DESIGN.md §10）：随 URL 保留，刷新/回壳不丢
   const qs = p.toString();
   history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
 }
@@ -545,7 +551,7 @@ function collectShareRaces() {
         startTimeInstant: h.startTimeInstant,
         runners: rows.map((r) => ({
           frame: r.frame, num: r.num, horseName: r.horseName, sex: r.sex, age: r.age,
-          color: r.color, jockey: r.jockey, weight: r.weight, trainer: r.trainer, belongs: r.belongs,
+          color: r.color, silk: r.silk, jockey: r.jockey, weight: r.weight, trainer: r.trainer, belongs: r.belongs,
           owner: r.owner, breeder: r.breeder, sire: r.sire, sireSire: r.sireSire, dam: r.dam, bms: r.bms,
         })),
       };
@@ -630,6 +636,7 @@ const COLUMNS = [
   { k: "waku",     label: "枠番" },
   { k: "num",      label: "馬番" },
   { k: "sexage",   label: "性齢" },
+  { k: "silk",     label: "彩衣" },   // 勝負服小图（默认隐藏，列菜单可开；采集覆盖时才有值）
   { k: "weight",   label: "斤量" },
   { k: "jockey",   label: "騎手", left: 1 },
   { k: "trainer",  label: "調教師", left: 1, defHide: 1 },
@@ -639,12 +646,17 @@ const COLUMNS = [
   { k: "bms",      label: "母父", left: 1 },
 ];
 const COLS_KEY = "rc.cols.v4";
-const COLS_DEFAULT_HIDE = ["start", "trainer", "siresire", "dam"];
+const COLS_DEFAULT_HIDE = ["start", "trainer", "siresire", "dam", "silk"];
 let hiddenCols = loadHiddenCols();
 function loadHiddenCols() {
   try {
     const a = JSON.parse(localStorage.getItem(COLS_KEY));
-    if (Array.isArray(a)) return new Set(a.filter((k) => COLUMNS.some((c) => c.k === k)));
+    if (Array.isArray(a)) {
+      const s = new Set(a.filter((k) => COLUMNS.some((c) => c.k === k)));
+      // 彩衣列后加（v4 存量无此键）：老用户默认隐藏，列菜单手动开
+      if (!a.includes("silk")) s.add("silk");
+      return s;
+    }
   } catch {}
   return new Set(COLS_DEFAULT_HIDE);   // 未保存过 = 新默认：比赛级信息由分隔行承载
 }
@@ -673,6 +685,11 @@ function cellHtml(r, c) {
     case "num":  return esc(r.num ?? "");
     case "name": return horseLink(r.horseId, r.horseName);
     case "sexage": return esc((r.sex ?? "") + (r.age ?? ""));
+    case "silk": {
+      // 勝負服 73x55 小图（马主登记图，采集落盘）；懒加载，加载失败整图移除
+      if (!r.silk) return "";
+      return `<img class="silk-img" src="${esc(r.silk)}" alt="彩衣" loading="lazy" decoding="async" onerror="this.remove()">`;
+    }
     case "weight": return esc(r.weight ?? "");
     default: return esc(r[c.f ?? c.k] ?? "");   // f = 列键与数据字段名不同时的取值键
   }
@@ -724,6 +741,7 @@ function mbCardHtml(r) {
   const show = (k) => visCols().some((c) => c.k === k);   // 跟随列显隐（PC hide 的列 mb 卡不出现）
   const item = (lb, v) => (v == null || v === "" ? "" : `<span class="yj-mb-item"><i>${esc(lb)}：</i><b>${v}</b></span>`);
   const top = [
+    show("silk") && r.silk ? `<img class="silk-img" src="${esc(r.silk)}" alt="彩衣" loading="lazy" decoding="async" onerror="this.remove()">` : "",
     show("num") && r.num != null ? `<span class="yj-mb-no">${esc(r.num)}</span>` : "",   // 未確定（num 空）不画占位符
     show("waku") ? frameBadge(r.frame) : "",
     `<span class="yj-mb-horse">${horseLink(r.horseId, r.horseName)}</span>`,
@@ -1004,15 +1022,20 @@ async function main() {
   if (qp.get("scope")) state.scope = new Set(qp.get("scope").split(",").filter(Boolean));
   if (qp.get("v")) state.venues = new Set(qp.get("v").split(",").filter(Boolean));
   if (qp.get("k")) state.levels = new Set(qp.get("k").split(",").filter(Boolean));
-  if (qp.get("sire")) state.sire = qp.get("sire");
-  if (qp.get("ss")) state.sireSire = qp.get("ss");
-  if (qp.get("bms")) state.bms = qp.get("bms");
+  // 血统深链 canonical 化：state.sire* 存 canonical（行内比较 canonOf(r.sire) !== state.sire），
+  // syncUrl 写出的已是 canonical；但外部宿主深链（racing-calendar ?embed=1&sire=コントレイル，
+  // DESIGN.md §10）传的是展示名 → 必须过 canonOf（归一 + 别名表）才能与行内 canonical 匹配。
+  if (qp.get("sire")) state.sire = canonOf(qp.get("sire")) || "";
+  if (qp.get("ss")) state.sireSire = canonOf(qp.get("ss")) || "";
+  if (qp.get("bms")) state.bms = canonOf(qp.get("bms")) || "";
   if (qp.get("q")) { state.q = qp.get("q"); $("#f-q").value = state.q; }
   const g = qp.get("group");
   if (["sire", "sireSire", "bms", "jockey", "trainer"].includes(g)) state.group = g;
 
-  defaultDates();
-  defaultScope();
+  // 日期/场地默认值只在 URL 未指定时套用（?d=/?scope= 深链恢复优先）——
+  // 此前无条件执行，syncUrl 写进 URL 的 d/w/scope 在刷新/分享打开时会被默认值覆盖回「今天+JRA」。
+  if (!urlDates.length) defaultDates();
+  if (!qp.get("scope")) defaultScope();
 
   // 血统选择器（参考 yunji selector.js：搜索下拉 + 键盘导航 + 点击外部关闭）
   sireSel = makeSelector({ mount: $("#m-sire"), placeholder: "父", onPick: (v) => { state.sire = v || ""; apply(); renderPedTags(); } });

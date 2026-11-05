@@ -10,6 +10,10 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="fonts/noto-sc.css">
 <link rel="stylesheet" href="style.css">
+<!-- embed 模式标记（DESIGN.md §10 嵌入引用）：必须同步早于首帧渲染 —— 宿主站 iframe 深链
+     ?embed=1 时给 <html> 挂 data-embed，style.css 属性选择器据此收起装饰层（页头/页脚/站群导航）
+     并锁定亮色。放 head、早于 style.css 加载，首帧即生效、无闪烁。 -->
+<script>if (/[?&]embed=1\b/.test(location.search)) document.documentElement.setAttribute("data-embed", "1");</script>
 </head>
 <body>
 <div id="page">

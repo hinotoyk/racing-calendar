@@ -14,6 +14,10 @@
 // ## 时区（见 normalize.js 头注）
 // time = 英国当地时间；date = 场地当地比赛日；两者口径都写进卡片。
 import { get, nextData } from "./http.js";
+import fs from "node:fs";
+import path from "node:path";
+import { createHash } from "node:crypto";
+import { fetchBuffer } from "../lib/fetch.js";
 import { pedCache } from "../lib/ped-cache.js";
 import { createHorseLookup, preferredMapFromSireCache } from "../lib/horse-lookup.js";
 import { normalizeHorseName } from "../lib/horse-name.mjs";
@@ -44,7 +48,8 @@ const slugify = (s) =>
 
 // 国家组 → SL country.short_name
 const COUNTRY_GROUP = {
-  GB: ["ENG", "Wale", "SCO"],
+  // 实测 short_name：英格兰 ENG / 威尔士 Wale / 苏格兰 Scot（旧文档写 SCO，两种都收）
+  GB: ["ENG", "Wale", "SCO", "Scot"],
   IRE: ["Eire"],
   FR: ["FR"],
   UAE: ["UAE"],
@@ -56,6 +61,47 @@ const COUNTRY_GROUP = {
 function racePageUrl(race, courseId, courseName, hrefMap) {
   if (hrefMap.has(race.race_summary_reference?.id)) return SL + hrefMap.get(race.race_summary_reference.id);
   return `${SL}/racing/racecards/${race.date}/${slugify(courseName)}/racecard/${race.race_summary_reference?.id}/${slugify(race.name)}`;
+}
+
+// ---------- 彩衣（胜負服）----------
+// SL 单场 racecard 的 __NEXT_DATA__ 里每个 ride 带 silk_filename，
+// 图片直链 https://www.sportinglife.com/images/silks/{silk_filename}（208x150 PNG）。
+// 文件名为「日期+场地+场次+馬番」组合，同一马主跨场不同名 → 按内容 sha1 去重落盘 data/silks/sl-{hash}.png。
+// 缓存 data/pedigree/sl-silk.json：silk_filename → { colours } | { miss:1 }（重采 0 请求）。
+const SILKS_DIR = path.resolve("data", "silks");
+let slStore = null;
+const slStoreOf = () => (slStore ??= pedCache(path.resolve("data", "pedigree", "sl-silk.json")));
+
+// 供回填脚本复用：单张彩衣解析 + 缓存落盘
+export function slSilkStore() {
+  return slStoreOf();
+}
+
+export async function slSilk(filename, ownerName, delayMs, log = () => {}) {
+  if (!filename) return null;
+  const store = slStoreOf();
+  const cached = store.get(filename);
+  if (cached) {
+    return cached.miss ? null : { url: cached.colours, owner: { id: null, name: ownerName ?? null }, via: "sportinglife" };
+  }
+  const url = `${SL}/images/silks/${filename}`;
+  const got = await fetchBuffer(url, { src: "sl-silk" }).catch(() => null);
+  if (delayMs) await sleep(delayMs);
+  if (!got) {
+    store.set(filename, { miss: 1 });
+    return null;
+  }
+  const hash = createHash("sha1").update(got.buf).digest("hex").slice(0, 12);
+  const file = `sl-${hash}.png`;
+  const abs = path.join(SILKS_DIR, file);
+  if (!fs.existsSync(abs)) {
+    fs.mkdirSync(SILKS_DIR, { recursive: true });
+    fs.writeFileSync(abs, got.buf);
+  }
+  const colours = `data/silks/${file}`;
+  store.set(filename, { colours, bytes: got.buf.length });
+  log(`[silk] ${filename} → ${colours}`);
+  return { url: colours, owner: { id: null, name: ownerName ?? null }, via: "sportinglife" };
 }
 
 // ---------- 血统缓存（单文件包 data/pedigree/rp-horse.json，入库供 CI 增量复用） ----------
@@ -204,6 +250,7 @@ export async function collect({
   limit = 0, // 最多抓取场次数（0 = 不限）
   delayMs = 1200,
   pedigree = true, // 是否抓马匹档案补 父/母/母父
+  silk = true, // 是否下载 ride.silk_filename 彩衣图
   fs, path,
   log = console.log,
 }) {
@@ -282,6 +329,14 @@ export async function collect({
         runners.push(runnerOf(ride, ped));
       }
 
+      // 彩衣：ride.silk_filename 直链下载（内容 hash 去重；silk=false 可关）
+      if (silk) {
+        for (let i = 0; i < rides.length; i++) {
+          const s = await slSilk(rides[i].silk_filename, rides[i].owner?.name ?? null, delayMs, log);
+          if (s) runners[i].silk = s;
+        }
+      }
+
       const raceType = runTypeOf(race.name);
       const k = klassOfRP({ name: race.name, raceClass: race.race_class, runType: raceType });
       const inst = race.time ? raceInstant(race.date, race.time, tz, DISPLAY_TZ) : null;
@@ -346,6 +401,7 @@ export async function collect({
 
   // 3) 展开为落盘单元（血统缓存包落盘）
   store.save();
+  if (slStore) slStore.save();
   log(`[ped-cache] rp-horse ${store.size()} 匹 → data/pedigree/rp-horse.json`);
   const out = [];
   for (const [date, courses] of byDate) {

@@ -14,6 +14,10 @@ const MIME = {
   ".json": "application/json; charset=utf-8",
   ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ".png": "image/png",
+  ".gif": "image/gif",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
   ".ico": "image/x-icon",
   ".svg": "image/svg+xml",
 };
@@ -31,7 +35,17 @@ const server = http.createServer((req, res) => {
       res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
       return res.end("not found: " + url);
     }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(fp).toLowerCase()] || "application/octet-stream" });
+    // CORS *：与线上 GitHub Pages 对齐（GH Pages 全站带 ACAO *）。embed 组件（embed/entries-table.js）
+    // 在兄弟站宿主页里跨站 fetch 本站 derived/*.json，本地 ?rcdev=1 联调必须有 CORS 头，否则浏览器拦截。
+    // Cache-Control: no-cache：本地开发防陈旧 JS/CSS（无 ETag/Last-Modified，启发式缓存会让浏览器
+    // 一直用旧脚本——用户「看不到新功能」的元凶）。图片允许缓存。
+    const ext = path.extname(fp).toLowerCase();
+    const isImg = [".png", ".gif", ".jpg", ".jpeg", ".svg", ".woff2"].includes(ext);
+    res.writeHead(200, {
+      "Content-Type": MIME[ext] || "application/octet-stream",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": isImg ? "public, max-age=3600" : "no-cache",
+    });
     fs.createReadStream(fp).pipe(res);
   });
 });

@@ -37,6 +37,27 @@ export function scopeOf(code) {
   return VENUES[code]?.[1] ?? (Number(code) < 200 ? "central" : "local");
 }
 
+// JBIS 场代码 → netkeiba 地方会场码（jyo_cd，race_id 组成：YYYY+jyo+MM+DD+RR）。
+// 中央（101-110）netkeiba race_id 含開催回次/日次，无法由日期直接推出 → 彩衣暂只支持地方。
+// 出处：nar.netkeiba.com/racecourse/racecourse_list.html（2026-11-03）
+export const NK_JYO = {
+  "246": "65", // 帯広（ばんえい，无彩衣概念，抓取自然落空）
+  "236": "30", // 門別
+  "210": "35", // 盛岡
+  "211": "36", // 水沢
+  "218": "42", // 浦和
+  "219": "43", // 船橋
+  "220": "44", // 大井
+  "221": "45", // 川崎
+  "222": "46", // 金沢
+  "223": "47", // 笠松
+  "224": "48", // 名古屋
+  "227": "50", // 園田
+  "226": "51", // 姫路
+  "231": "54", // 高知
+  "232": "55", // 佐賀
+};
+
 const GRADE_LABEL = {
   G1: "GⅠ",
   G2: "GⅡ",
