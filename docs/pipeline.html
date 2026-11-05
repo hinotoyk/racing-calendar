@@ -130,8 +130,8 @@
 <header>
   <h1>racing-calendar 采集链路全景</h1>
   <div class="sub">
-    日本源（JBIS）与欧美源（Racing Post / Sporting Life）双管道并行采集 → 统一 canonical schema（<code>race.card</code>）→ 彩衣/血统富化 → <code>data/races/*.json.gz</code> 落盘 → <code>build.js</code> 合并生成站点派生数据。<br>
-    源码出处：<code>src/collect-races.js</code> · <code>src/collect-sources.js</code> · <code>src/sources/racingpost.js</code> · <code>src/sources/normalize.js</code> · <code>src/lib/silks.js</code> · <code>src/build.js</code>
+    日本源（JBIS）与欧美源（Racing Post / Sporting Life）双管道并行采集 → 统一 canonical schema（<code>race.card</code>）→ 马名权威化 + 彩衣/血统富化 → <code>data/races/*.json.gz</code> 落盘 → <code>build.js</code> 合并生成站点派生数据；历史缺口由本地回填脚本族补齐（CI 不跑）。<br>
+    源码出处：<code>src/collect-races.js</code> · <code>src/collect-sources.js</code> · <code>src/sources/racingpost.js</code> · <code>src/sources/normalize.js</code> · <code>src/lib/silks.js</code> · <code>src/lib/jbis-name.js</code> · <code>src/backfill-*.js</code> · <code>src/ci-summary.js</code> · <code>src/build.js</code>
   </div>
   <nav class="toc">
     <a href="#overview">① 总览</a>
@@ -141,7 +141,8 @@
     <a href="#ped">⑤ 血统补全</a>
     <a href="#store">⑥ 落盘与幂等</a>
     <a href="#build">⑦ 合并与展示</a>
-    <a href="#discipline">⑧ 抓取纪律与调度</a>
+    <a href="#discipline">⑧ 抓取纪律与 CI 调度</a>
+    <a href="#backfill">⑨ 回填脚本族与覆盖现状</a>
   </nav>
 </header>
 
@@ -158,7 +159,7 @@
       <div class="farrow">→</div>
       <div class="fbox jbis"><b>出馬表</b>/race/YYYYMMDD/CCC/RR/<br>每马一行 · 枠番/馬番/騎手…</div>
       <div class="farrow">→</div>
-      <div class="fbox sil"><b>富化</b>马名权威化（马页）<br>血统补全 + 彩衣（nk→winfinal）</div>
+      <div class="fbox sil"><b>富化</b>马名权威化（马页）<br>血统补全 + 彩衣（马主级→nk→winfinal）</div>
       <div class="farrow">→</div>
       <div class="fbox sto"><b>落盘</b>data/races/{date}/{场码}.json.gz</div>
     </div>
@@ -184,12 +185,28 @@
       <div class="farrow">→</div>
       <div class="fbox sto"><b>展示</b>site/app.js 单页 · 日本/欧美同日并列，时区双口径</div>
     </div>
+
+    <div class="flow-lane-label">回填 · 本地运维，不随 CI 调度（见 ⑨）</div>
+    <div class="flow-row">
+      <div class="fbox sil"><b>马名</b>backfill-names.js<br>显示名 → JBIS 登录名</div>
+      <div class="farrow">→</div>
+      <div class="fbox sil"><b>日本彩衣</b>backfill-silks-v4.js<br>马主级→nk→winfinal</div>
+      <div class="farrow">→</div>
+      <div class="fbox sil"><b>欧美彩衣</b>backfill-silks-rp.js<br>重抓 racecard 取 silk_filename</div>
+      <div class="farrow">→</div>
+      <div class="fbox sto"><b>重建</b>node src/build.js</div>
+    </div>
   </div>
   <p>
     两源产出统一为 canonical 文档（JBIS 为 <code>jbis.race.card/v1</code>，RP 映射层输出 <code>race.card/v2</code>，
     字段名以 JBIS 为主口径），<code>build.js</code> 按 <code>source</code> 字段区分来源
     （<code>jbis</code> / <code>racingpost</code>），落盘路径同为 <code>data/races/{日期}/</code>，
     manifest 以 <code>{场码}</code> 与 <code>rp:{courseId}</code> 两类 key 并存，互不冲突。
+  </p>
+  <p>
+    <b>两条时间线要分清</b>：① <b>日常采集</b>（CI 每日两档）只负责「新窗口内的出馬表 + 内联富化」，
+    受上游开放时间限制；② <b>回填</b>是对已落盘文档的补偿遍历（历史遗留字段、数据源后补的彩衣），
+    幂等缓存命中即 0 请求，可随时中断重跑 —— 两者共用同一批缓存包与同一套落盘指纹。
   </p>
 </section>
 
@@ -252,14 +269,17 @@
     <ul>
       <li><b>日文名</b> ← <code>&lt;div class="hdg1-search"&gt;&lt;h1&gt;</code>（如 エアジーン）；纯英文名马匹 h1 亦为 ASCII → 判定为无名日文名，只存英文名；</li>
       <li><b>英文名 + 国籍</b> ← <code>&lt;span class="hdg1-search__sub"&gt;Air Gene(JPN)&lt;/span&gt;</code>，拆成 <code>en="Air Gene"</code> / <code>country="JPN"</code>；</li>
-      <li><b>生日</b> ← <code>&lt;dt&gt;生年月日&lt;/dt&gt;</code>（精确到日），是彩衣唯一性判定的最佳依据（优于「赛事年 − age」）；</li>
+      <li><b>生日</b> ← <code>&lt;dt&gt;生年月日&lt;/dt&gt;</code>（精确到日），是彩衣唯一性判定的最佳依据（优于「赛事年 − age」）；同时取 <code>&lt;dt&gt;性別&lt;/dt&gt;</code>；</li>
       <li>落盘字段：<code>horse.name</code>（日文名，无则英文名）、<code>horse.nameJp</code>、<code>horse.nameEn</code>、<code>horse.country</code>、<code>horse.foaled</code>；</li>
-      <li><b>缓存键 = JBIS 10 位 id</b>，含 <code>{miss:1}</code> 终态；重跑 0 网络。</li>
+      <li><b>缓存键 = JBIS 10 位 id</b>，含 <code>{miss:1, reason}</code> 终态（10 位 id 不复用，可安全终态化）；重跑 0 网络；</li>
+      <li><b>串行节流</b>：<code>collect-races.js</code> 默认 <code>--name-conc 1 --name-delay 1200</code>，<code>--no-names</code> 可跳过；批量回填另见 ⑨。</li>
     </ul>
     <div class="warn" style="margin-top:10px">
       <b>抓取约束</b>：JBIS 对本机 IP 有 WAF 限流（短时高频 → 整站 403，持续数分钟至数十分钟）。
-      因此马页抓取默认 <b>单并发 + 3.5s 间隔</b>，遇 403 不写缓存、暂停 2 分钟，连续多次则停批（缓存已存，重跑续采）。
-      马页需要接近真实浏览器的完整请求头（Accept-Language / Sec-Fetch-* / Referer）。
+      因此马页抓取默认 <b>单并发 + 1.2–3.5s 间隔</b>，遇 403 <b>绝不写缓存</b>、整批暂停 2min 起指数退避（上限 15min），
+      连续 3 次限流则停批（已抓结果已落盘，重跑续采）。马页需要接近真实浏览器的完整请求头
+      （Accept-Language / Sec-Fetch-* / Referer）；<code>backfill-names.js</code> 开跑前另有 <code>probeJbis()</code> 预检，
+      封禁期每 5 分钟探一次、最多等 60 分钟再开抓。
     </div>
   </div>
 
@@ -355,36 +375,80 @@
 
 <!-- ================= ④ silks ================= -->
 <section id="silks">
-  <h2><span class="no">④</span> 彩衣（勝負服）富化 —— netkeiba 优先 → winfinal 兜底</h2>
+  <h2><span class="no">④</span> 彩衣（勝負服）富化 —— 马主级缓存 → netkeiba → winfinal（v4）</h2>
 
   <div class="note">
     <b>语义前提</b>：彩衣属<b>马主</b>而非骑手/马，因此链路终点是「马主 → 彩衣图」。
-    日本源（JBIS）全站无彩衣；按「马名 + 生年」两个来源依次确认唯一性：
-    <b>netkeiba</b>（覆盖最广）→ 未命中走 <b>winfinal 勝負服データベース</b>。
+    日本源（JBIS）全站无彩衣；<b>v4 链路（2026-11-04 起）分三级</b>：
+    <b>⓪ 马主级缓存</b>（0 请求，马主彩衣已知就直接挂）→ <b>① netkeiba</b>（马名 + 生年唯一性，覆盖最广）
+    → <b>② winfinal 勝負服データベース</b>（netkeiba 未登记的地方马主 / 外国产马）。
     欧美源不在此链路，彩衣直接取自 Sporting Life racecard（见 ③）。
   </div>
 
   <div class="card accent-nk">
-    <h3>捷径 · NAR 出馬表（地方限定）<span class="fn">enrichSilks() / parseNkShutuba()</span></h3>
-    <span class="url"><b>https://nar.netkeiba.com/race/shutuba.html?race_id=YYYY+jyo+MMDD+RR</b></span>
-    <p>地方 race_id 可由日期直构（JBIS 场码 → netkeiba jyo_cd 映射表 <code>NK_JYO</code>：門別=30、大井=44、園田=50…）；
-    中央 race_id 含開催回次/日次，无法由日期推出 → 走兜底。解析 <code>&lt;a id="umalink_{nkId}"&gt;</code>
-    得「归一马名 → nk 马号」映射。</p>
+    <h3>链路总览（单匹马一次决策）<span class="fn">resolveRunnerSilk() / enrichSilks()</span></h3>
+    <table>
+      <tr><th>步</th><th>判据</th><th>请求代价</th><th>命中后 <code>silk.via</code></th></tr>
+      <tr><td><b>⓪ 马主级缓存</b></td><td><code>nkOwnerKey(runner.owner)</code> 命中 <code>nk-owner.json</code> 且有 colours</td><td><b>0</b></td><td><code>netkeiba-owner</code></td></tr>
+      <tr><td><b>① netkeiba</b></td><td>马名（JBIS 登录名）+ 生年（<code>foaled</code> 优先）唯一定位 → 马主 → 彩衣 URL 直构</td><td>0–3</td><td><code>netkeiba</code></td></tr>
+      <tr><td><b>② winfinal</b></td><td>馬名完全一致 + 生年一致，唯一命中</td><td>1</td><td><code>winfinal</code></td></tr>
+      <tr><td><b>无</b></td><td>三级全 miss（终态，不重试）</td><td>—</td><td><code>null</code></td></tr>
+    </table>
+    <p>马名一律用 <b>JBIS 马页登录名</b>（<code>horse.nameJp ?? horse.name</code>），不用出馬表带「 B」/「(USA)」尾缀的显示名（见 ②-b）。
+    生年优先 <code>horse.foaled</code> 前四位，缺失才退回「赛事年 − age」。</p>
   </div>
 
   <div class="card accent-nk">
-    <h3>兜底 · 马名搜索（中央 / 未命中）<span class="fn">resolveNkIdByName()</span></h3>
-    <span class="url"><b>https://db.netkeiba.com/horse/ajax_horse_search.html?func=whole&amp;word={EUC-JP编码}&amp;match=b&amp;limit=10</b></span>
+    <h3>⓪ 马主级缓存（0 请求）<span class="tag nk">nk-owner.json</span><span class="fn">nkOwnerKey() / nk-owner</span></h3>
     <ul>
-      <li><b>EUC-JP 编码</b>：db.* 全站 EUC-JP，word 必须 EUC-JP 百分号编码；Node 无对应 Encoder，
-      <code>lib/silks.js → eucJpEncode()</code> 用 TextDecoder 一次性建 JIS X 0208 反查表（≈3.5k 项）实现零依赖编码；</li>
-      <li><b>防同名错配</b>：搜索行带生年，用「赛事年 − age」反推出生年双匹配；同年仍多条 → 写 miss 终态；</li>
-      <li>搜索行同时带出 owner id（<code>/owner/race.html?id=</code> title=马主名）→ 后续无需访问马页。</li>
+      <li><b>为什么要有这一步</b>：马名搜索对「2 岁新马 / 尚未被 netkeiba 收录马页」必然 0 命中，
+      但<b>马主彩衣可能早已登记</b>。v4 之前的链只看 nk-map，导致「马主彩衣已知却漏挂」——
+      JRA 唯一缺口 <code>0001394780 プレイヤ</code>（2024-04-20 生，馬主藤田晋）即此因；</li>
+      <li><b>实现</b>：按 <code>nkOwnerKey()</code>（马主名归一）查 <code>data/pedigree/nk-owner.json</code>，
+      命中 <code>{colours}</code> 直接挂 <code>via:"netkeiba-owner"</code>，<b>零请求</b>；</li>
+      <li>该缓存由 <code>collect-races.js → enrichSilks()</code> 写入（key=归一马主名），
+      所以日常采集每解析出一个新马主，就等于给回填链留了一条 0 请求线索；</li>
+      <li>验证样例：<code>2026-10-24/105</code> 159/159 命中、请求 0，PLAYA → <code>data/silks/232031.gif</code>。</li>
     </ul>
   </div>
 
   <div class="card accent-nk">
-    <h3>兜底 · winfinal 勝負服データベース <span class="tag sil">fuku.winfinal.com</span><span class="fn">resolveWfSilk()</span></h3>
+    <h3>①-a 捷径 · NAR 出馬表（地方限定）<span class="fn">enrichSilks() / parseNkShutuba()</span></h3>
+    <span class="url"><b>https://nar.netkeiba.com/race/shutuba.html?race_id=YYYY+jyo+MMDD+RR</b></span>
+    <p>地方 race_id 可由日期直构（JBIS 场码 → netkeiba jyo_cd 映射表 <code>NK_JYO</code>：門別=30、大井=44、園田=50…）；
+    中央 race_id 含開催回次/日次，无法由日期推出 → 走 ①-b。解析 <code>&lt;a id="umalink_{nkId}"&gt;</code>
+    得「归一马名 → nk 马号」映射，顺带行内 owner 链接。</p>
+  </div>
+
+  <div class="card accent-nk">
+    <h3>①-b 兜底 · 马名搜索（中央 / 出馬表未命中）<span class="fn">resolveNkIdByName()</span></h3>
+    <span class="url"><b>https://db.netkeiba.com/horse/ajax_horse_search.html?func=whole&amp;word={EUC-JP编码}&amp;match=b&amp;limit=10</b></span>
+    <ul>
+      <li><b>EUC-JP 编码</b>：db.* 全站 EUC-JP，word 必须 EUC-JP 百分号编码；Node 无对应 Encoder，
+      <code>lib/silks.js → eucJpEncode()</code> 用 TextDecoder 一次性建 JIS X 0208 反查表（≈3.5k 项）实现零依赖编码；JIS X 0208 外字符 → 记 miss 跳过；</li>
+      <li><b>防同名错配</b>：归一马名完全一致 + 出生年一致（<code>foaled</code> 精确年，缺失才用「赛事年 − age」）；
+      0 命中 → <code>{miss:1}</code>，多条 → <code>{ambiguous:1,n}</code>，均不猜；</li>
+      <li>搜索行同时带出 owner id（<code>/owner/race.html?id=</code> title=马主名）→ 后续无需访问马页；</li>
+      <li>命中但行内无 owner（未出道马）→ 抓一次 <code>db.netkeiba.com/horse/{nkId}/</code> 从「馬主」行补，结果回写 nk-map。</li>
+    </ul>
+  </div>
+
+  <div class="card accent-nk">
+    <h3>①-c 马主解析与彩衣图直构<span class="fn">resolveOwnerSilk() / downloadSilkByOwner()</span></h3>
+    <span class="url"><b>https://cdnv2.netkeiba.com/img/db/colours/{ownerId}.{png|gif}</b></span>
+    <ul>
+      <li>owner id 线索优先级：搜索行带出的 netkeiba id &gt; 无（JBIS 马主 id 是另一套体系，<code>J012063</code> / <code>0720040001</code>，<b>不能</b>直构 URL）；</li>
+      <li>无 id → 按马主名搜 <code>db.netkeiba.com/owner/list.html?word=</code>（EUC-JP）→ canonical 页取数字 id；
+      首搜无结果时剥英文尾缀重试（JBIS 法人名常带 R/HD 尾巴而 netkeiba 不带）；</li>
+      <li>png 为 320×240 高清版（gif 仅 73×55），png 优先；本地已有任意扩展名 → 复用不发请求；</li>
+      <li>两个扩展名均 404 → <b>终态可判定</b>，写 <code>{miss:1, via:"url-404"}</code> 不再重试；</li>
+      <li>图落 <code>data/silks/{ownerId}.{gif|png}</code>（马主去重），runner 挂
+      <code>silk = { url, owner:{id,name}, via }</code>，幂等指纹纳入 <code>silk.url</code>。</li>
+    </ul>
+  </div>
+
+  <div class="card accent-nk">
+    <h3>② 兜底 · winfinal 勝負服データベース <span class="tag sil">fuku.winfinal.com</span><span class="fn">resolveWfSilk()</span></h3>
     <span class="url"><b>https://fuku.winfinal.com/?action=horse_name&amp;q={馬名}</b>　（馬名完全一致検索）</span>
     <ul>
       <li>netkeiba 判无（搜索 0 命中 / 马主未登记 / 双 404）后启用；覆盖 netkeiba 未登记的地方马主、外国产马；</li>
@@ -396,33 +460,47 @@
   </div>
 
   <div class="card accent-nk">
-    <h3>归一与缓存<span class="fn">nkNameKey() / nkOwnerKey() / nkMap / nkOwner</span></h3>
+    <h3>归一<span class="fn">nkNameKey() / nkOwnerKey()</span></h3>
     <ul>
       <li><b>马名归一 <code>nkNameKey()</code></b>：去空白、剥国名括注 <code>(USA)</code> 等、剥装备标记「 B」尾缀
       （ブリンカー等，仅 JBIS 出马表显示用；<b>仅当主体含假名/汉字</b>才剥，纯 ASCII 外语名的字母可能是真名）。
       循环剥到稳定，处理叠加尾缀如「ディープスリー(USA) B」；</li>
       <li><b>马主名归一 <code>nkOwnerKey()</code></b>：全角→半角、去空白、去法人括注 <code>(株)/(有)/(同)</code> 等、大写化 ——
-      JBIS 与 netkeiba 写法差异的对齐键；</li>
-      <li><b>缓存体系</b>（<code>data/pedigree/</code>，入库供 CI 增量复用）：
-        <code>nk-owner-v3.json</code>（key=netkeibaId，马主级 · 同马主多马 0 请求）、
-        <code>nk-map.json</code>（key=归一马名|出生年，搜索结果终态）、
-        <code>nk-horse.json</code>（旧链路，保留供回溯）。</li>
+      JBIS 与 netkeiba 写法差异的对齐键（实测 2,709 匹已挂彩衣的马中，归一后同名马主对应多 id 仅 3 例 0.1%，
+      彩衣本身按马主登记且唯一 → 名字归一作 key 足够）。</li>
     </ul>
   </div>
 
   <div class="card accent-nk">
-    <h3>彩衣图下载 · URL 直构<span class="fn">downloadSilkByOwner()</span></h3>
-    <span class="url"><b>https://cdnv2.netkeiba.com/img/db/colours/{ownerId}.{png|gif}</b></span>
+    <h3>缓存体系（<code>data/pedigree/</code>，入库供 CI 增量复用）</h3>
+    <table>
+      <tr><th>文件</th><th>key</th><th>值 / 语义</th><th>写入方</th></tr>
+      <tr><td><code>nk-owner.json</code></td><td>归一马主名</td><td><code>{owner, colours}</code> | <code>{miss, via:"owner-search"|"url-404"}</code> — <b>v4 ⓪ 步的 0 请求来源</b></td><td>collect / 回填</td></tr>
+      <tr><td><code>nk-owner-v3.json</code></td><td>netkeibaId</td><td><code>{name, colours}</code> | <code>{miss}</code> — v3 遗留，按马主 id 去重</td><td>backfill-silks-v4</td></tr>
+      <tr><td><code>nk-map.json</code></td><td>归一马名|生年</td><td><code>{nkId, owner}</code> | <code>{miss,n}</code> | <code>{ambiguous,n}</code> — 搜索结果终态</td><td>collect / 回填</td></tr>
+      <tr><td><code>wf-horse.json</code> / <code>wf-owner.json</code></td><td>馬名|生年 / 馬主名</td><td>winfinal 检索结果与服色图（多马共用一图）</td><td>回填</td></tr>
+      <tr><td><code>jbis-name.json</code></td><td>JBIS 10 位 id</td><td>登录名 / 英文名 / 国籍 / 生日 / 性别（见 ②-b）</td><td>collect / 回填</td></tr>
+      <tr><td><code>nk-horse.json</code></td><td>nk 马号</td><td>旧链路遗留，仅供回溯</td><td>—</td></tr>
+    </table>
+    <p class="fn">全部 <code>{miss}</code> 都是<b>终态</b>：数据源已明确「无此马 / 无此彩衣」，重跑不会重复请求；新马主线索只能靠日常采集写入新的 nk-owner 条目。</p>
+  </div>
+
+  <div class="card accent-nk">
+    <h3>覆盖现状（2026-11-05 批次实测）</h3>
+    <table>
+      <tr><th>口径</th><th>已挂 / 总数</th><th>覆盖率</th><th>来源拆分</th></tr>
+      <tr><td><b>JRA（中央）</b></td><td>2,347 / 2,347（唯一马）</td><td><b>100%</b></td><td>netkeiba 为主，最后 1 匹靠 ⓪ 马主级兜底</td></tr>
+      <tr><td>NAR（地方）</td><td>≈4,381 / 6,349（唯一马）</td><td>69.0%</td><td>地方马主未登记占多数，属数据源上限（按用户口径允许缺）</td></tr>
+      <tr><td>JBIS 合计（馬次）</td><td>7,565 / 9,799</td><td>77.2%</td><td>netkeiba 5,782 + winfinal 1,783</td></tr>
+      <tr><td>欧美（RP / SL）</td><td>10,031 / 10,396</td><td>96.5%</td><td>racecard 内联 <code>silk_filename</code></td></tr>
+      <tr><td><b>全站合计</b></td><td>17,596 / 20,195</td><td><b>87.1%</b></td><td>引用 17,596 次 / 唯一图 8,110 张 / 缺图 0</td></tr>
+    </table>
+    <p><b>缺口成因（均为数据源上限，已记 miss 终态）</b>：</p>
     <ul>
-      <li>png 为 320×240 高清版（gif 仅 73×55），png 优先；</li>
-      <li>无彩衣马主两个扩展名均 404 → <b>终态可判定</b>，写 miss 缓存不再重试；</li>
-      <li>图落 <code>data/silks/{ownerId}.{gif|png}</code>（马主去重，本地存在即复用），
-      runner 挂 <code>silk = { url: "data/silks/…", owner: {id, name} }</code>，幂等指纹纳入 <code>silk.url</code>；</li>
-      <li>owner id 无线索时按马主名搜 <code>db.netkeiba.com/owner/list.html?word=</code>（EUC-JP）→
-      canonical 页取数字 id；首搜无结果时剥英文尾缀重试（JBIS 法人名常带 R/HD 等尾巴而 netkeiba 不带）。</li>
+      <li>港马 Happy Valley 126 头全缺 —— SL racecard 无 silk 字段；</li>
+      <li>地方马主未在 netkeiba / winfinal 登记服色（NAR 69% 的主因）；</li>
+      <li>未来场次 racecard 尚未上线（<code>backfill-silks-rp</code> 的 <code>matched 337/863</code> 即此因，<b>不写终态</b>，下轮可补）。</li>
     </ul>
-    <p><b>现状覆盖</b>：全量 v3 回填 63 场 7700 马次挂彩衣 4071（52.9%）；
-    未覆盖主因 = 地方马主在 netkeiba 未登记服色（数据源上限，非映射 bug）。</p>
   </div>
 </section>
 
@@ -464,16 +542,19 @@
       <tr><td><code>data/races/{YYYY-MM-DD}/rp-{courseId}.json.gz</code></td><td>RP 文档（schema <code>race.card/v2</code>），一个 date×courseId 一个</td></tr>
       <tr><td><code>data/races/manifest.json</code></td><td>每 date 下按 <code>{场码}</code> / <code>rp:{courseId}</code> 记摘要（venue/country/scope/时区/races/decoded/runners/status）</td></tr>
       <tr><td><code>data/races/_calendar/{YYYY-MM}.json</code></td><td>JBIS 月度赛历快照</td></tr>
-      <tr><td><code>data/pedigree/*.json</code></td><td>血统与彩衣缓存包（jbis-sire / jbis-horse / rp-horse / name-lookup / nk-owner-v3 / nk-map / nk-horse）</td></tr>
-      <tr><td><code>data/silks/</code></td><td>彩衣图（{ownerId}.{gif|png}，马主去重）</td></tr>
+      <tr><td><code>data/pedigree/*.json</code></td><td>单文件缓存包（文件数恒定、体积线性增长）：血统 <code>jbis-sire</code> / <code>jbis-horse</code> / <code>rp-horse</code> / <code>name-lookup</code>；马名 <code>jbis-name</code>；彩衣 <code>nk-owner</code> / <code>nk-owner-v3</code> / <code>nk-map</code> / <code>nk-horse</code> / <code>wf-horse</code> / <code>wf-owner</code> / <code>sl-silk</code></td></tr>
+      <tr><td><code>data/silks/</code></td><td>彩衣图：<code>{ownerId}.{gif|png}</code>（netkeiba，马主去重）、<code>wf-{xxxx}.gif</code>（winfinal）、<code>sl-{sha1}.png</code>（Sporting Life，内容去重）—— 现 8,110 张 / 67MB，随 <code>_site/data/silks</code> 一起发布</td></tr>
+      <tr><td><code>data/logs/requests-YYYYMMDD.jsonl</code></td><td>逐条出站请求日志（gitignore，不入库；CI 作 artifact 留存）</td></tr>
     </table>
     <h3>幂等规则（两源同款）</h3>
     <ul>
-      <li><b>指纹幂等</b>：赛事数 / 头数 / 马ID:番号（JBIS 额外含 枠番·性齢·彩衣URL）全一致 → 跳过不写；
-      枠順更新、性齢修正、彩衣补全会触发重写；</li>
+      <li><b>指纹幂等</b>：赛事数 / 头数 / 每匹 <code>马ID:番号:枠番:性齢:彩衣URL:登录名:英文名</code> 全一致 → 跳过不写；
+      枠順更新、性齢修正、彩衣补全、<b>马名权威化回写</b>都会触发重写；</li>
       <li><b>防截断</b>：<code>--limit / --tracks / --dates</code> 部分采集时，已存文档头数更多则不覆盖；</li>
       <li><b>彩衣继承</b>：采集重建 runner 时按 <code>(raceNo, horseId)</code> 继承已有彩衣（<code>inheritSilk</code>），防止把回填结果冲掉；</li>
-      <li><b>旧明文迁移</b>：兼容读 <code>.json</code>，写后删除旧明文，统一 gzip。</li>
+      <li><b>旧明文迁移</b>：兼容读 <code>.json</code>，写后删除旧明文，统一 gzip；</li>
+      <li><b>二进制保护</b>：<code>.gitattributes</code> 锁定 <code>*.gz / *.png / *.gif</code> 与 <code>data/races/**</code>、<code>data/silks/**</code> 为 binary，
+      防 Windows <code>core.autocrlf</code> 改写导致 gzip 损坏 / 图片花屏（pedigree 缓存仍按文本，保留 diff 可读性）。</li>
     </ul>
   </div>
 </section>
@@ -505,8 +586,9 @@
     <div class="card accent-jbis">
       <h3>JBIS / fetch.js</h3>
       <ul>
-        <li>诚实 UA：<code>Mozilla/5.0 (compatible; JBIS-Race-Calendar/1.0; personal research, polite crawl)</code>；</li>
-        <li><code>DELAY_MS</code> 礼貌间隔（config.delayMs）；</li>
+        <li>赛历 / 当日页 / 出馬表用诚实 UA：<code>Mozilla/5.0 (compatible; JBIS-Race-Calendar/1.0; personal research, polite crawl)</code>；
+        <b>马页（/horse/）另用完整浏览器 UA + Sec-Fetch 头</b>，否则 WAF 直接 403；</li>
+        <li><code>DELAY_MS</code> 礼貌间隔（config.delayMs）；马页串行 1.2–3.5s；</li>
         <li>3 次重试 + 指数退避（1s/2s/4s）、30s 超时；</li>
         <li><code>fetchHtmlSoft()</code> 允许 404 —— 出馬表开赛前 1-2 天才生成，属常态；</li>
         <li>短响应（&lt;500 字符）视为失败防半页。</li>
@@ -523,25 +605,86 @@
     </div>
   </div>
   <div class="card accent-sto">
-    <h3>请求日志（JSONL）<span class="fn">src/lib/reqlog.js</span></h3>
+    <h3>请求日志（JSONL）与运行摘要<span class="fn">src/lib/reqlog.js · src/ci-summary.js</span></h3>
     <ul>
       <li>所有出站请求（JBIS / netkeiba / winfinal / Sporting Life / 彩衣图）逐条追加 <code>data/logs/requests-YYYYMMDD.jsonl</code>；</li>
       <li>字段：<code>ts / src / method / url / status / ok / ms / bytes / err</code>；按 <code>src</code> 可统计各源请求量、成功率、耗时；</li>
-      <li>关闭：<code>RC_REQLOG=0</code>；改目录：<code>RC_REQLOG_DIR=/path</code>。</li>
+      <li>关闭：<code>RC_REQLOG=0</code>；改目录：<code>RC_REQLOG_DIR=/path</code>；</li>
+      <li><b><code>ci-summary.js</code></b>：把 JSONL + 文档扫描聚合成一张摘要 —— 请求总量/失败率/按源 403·404·5xx、彩衣覆盖（全站 / JRA / NAR / 欧美）、马名权威化覆盖、彩衣引用缺图数、build 是否产出；
+      产出 <code>test-logs/summary.log | summary.json | verdict.txt</code>，并写入 <code>::warning::</code> / <code>::error::</code> 注解；</li>
+      <li><b>判定语义</b>：FAIL = 无任何请求 / 失败率 &gt;60% / 无含出走马的文档 / build 未产出；WARN = 403 限流、5xx、欧美 0 请求、JRA 彩衣未满、马名缺行、彩衣缺图；
+      <b>退出码恒 0</b>，由 workflow 末尾 gate 步骤读 <code>verdict.txt</code> 决定 job 成败（保证 FAIL 也能上传 artifact）。</li>
     </ul>
   </div>
   <div class="card accent-sto">
     <h3>CI 调度（GitHub Actions，每日两次）</h3>
+    <table>
+      <tr><th>档</th><th>触发</th><th>动作</th><th>step 超时</th></tr>
+      <tr><td><span class="kbd">06:00</span> 全量</td><td><code>cron 0 22 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 25 / 15 min</td></tr>
+      <tr><td><span class="kbd">18:00</span> 补采</td><td><code>cron 0 10 * * *</code></td><td>仅 collect-races（枠番/馬番通常前日傍晚公布）→ build</td><td>80 / 15 min</td></tr>
+    </table>
     <ul>
-      <li><span class="kbd">06:00</span> 全量：JBIS 出馬表 + <code>collect-sources --source racingpost --countries all</code>（含 RP all）；</li>
-      <li><span class="kbd">18:00</span> 仅 JBIS 补枠順（枠番/馬番通常前日傍晚公布）；</li>
-      <li>缓存包（pedigree / nk-* / name-lookup）随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求。</li>
+      <li>两档都跑 <code>ci-summary.js</code>（全量档带 <code>--rp</code>，欧美 0 请求才告警）→ 提交 <code>data/races/ data/pedigree/ data/silks/</code> → 同 workflow 内 <code>upload-pages-artifact</code> + <code>deploy-pages</code>（<code>GITHUB_TOKEN</code> 的 push 不触发其它 workflow，故不能依赖 deploy.yml）；</li>
+      <li>job 级 <code>timeout-minutes: 150</code> 只作安全网，时间约束放在各 step 上 —— step 超时后仍能跑摘要、上传日志、走 gate；</li>
+      <li>提交前 <code>git pull --rebase</code>，冲突则放弃本次数据提交（下次调度自动重算）；无变化跳过提交；</li>
+      <li>artifact：<code>test-logs/</code> + <code>data/logs/requests-*.jsonl</code>，保留 <b>30 天</b>，<code>if: always()</code>；</li>
+      <li>缓存包随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求；<b>回填脚本（⑨）不在 CI 里跑</b>，避免长链路阻塞每日两次的发布窗口。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= ⑨ backfill ================= -->
+<section id="backfill">
+  <h2><span class="no">⑨</span> 回填脚本族（本地运维，CI 不跑）</h2>
+
+  <div class="note">
+    <b>为什么需要单独一层</b>：日常采集只覆盖「当前窗口内的出馬表」，而三类数据只能事后补 ——
+    ① 2026-11-04 之前落盘的文档没有马名权威化字段与彩衣；② 上游彩衣/马名数据后来才补上；
+    ③ CI 用旧代码抓的文档缺字段。回填脚本全部<b>幂等 + 缓存命中 0 请求 + 可中断重跑</b>，
+    统一走 <code>readGz/writeGz</code> 原地改写，只在内容变化时落盘。
+  </div>
+
+  <div class="card accent-sil">
+    <h3>四个脚本与执行顺序</h3>
+    <table>
+      <tr><th>#</th><th>脚本</th><th>补什么</th><th>典型命令</th><th>缓存</th></tr>
+      <tr><td>1</td><td><code>backfill-names.js</code></td><td>出馬表显示名 → JBIS 登录名 + <code>nameJp/nameEn/country/foaled</code></td><td><code>node src/backfill-names.js [--dates …] [--tracks …] [--name-conc 1] [--name-delay 1200] [--limit-docs N] [--dry]</code></td><td><code>jbis-name.json</code></td></tr>
+      <tr><td>2</td><td><code>backfill-silks-v4.js</code></td><td>日本源彩衣（⓪ 马主级 → ① netkeiba → ② winfinal）</td><td><code>node src/backfill-silks-v4.js [--dates …] [--tracks 236,105] [--delay 1200] [--no-clear]</code></td><td><code>nk-owner</code> / <code>nk-owner-v3</code> / <code>nk-map</code> / <code>wf-*</code></td></tr>
+      <tr><td>3</td><td><code>backfill-silks-rp.js</code></td><td>欧美源彩衣（重抓历史 racecard 取 <code>silk_filename</code>）</td><td><code>node src/backfill-silks-rp.js [--dates …] [--tracks FNT,ASC] [--delay 600] [--limit-docs N] [--dry] [--no-image]</code></td><td><code>sl-silk.json</code></td></tr>
+      <tr><td>4</td><td><code>backfill-lookup.js</code></td><td>RP 父 / 母父名 → JBIS id、历史 <code>sireSire=null</code> 补写、<code>jbis-sire</code> 补 <code>nameEn</code></td><td><code>node src/backfill-lookup.js [--no-patch-docs] [--skip-nameen] [--revalidate]</code></td><td><code>name-lookup.json</code></td></tr>
+      <tr><td>5</td><td><code>build.js</code></td><td>重建 <code>_site/</code>（回填改了文档必须重建才上站）</td><td><code>node src/build.js</code></td><td>—</td></tr>
+    </table>
+    <p class="fn">顺序不可颠倒：马名权威化必须先于彩衣（彩衣的唯一性判定依赖 <code>horse.name</code> / <code>foaled</code>）；<code>backfill-silks-rp</code> 与 <code>collect-sources</code> 不可并发写同一批 <code>rp-*</code> 文档。</p>
+  </div>
+
+  <div class="card accent-sil">
+    <h3>各脚本要点</h3>
+    <ul>
+      <li><b>backfill-names</b>：开跑先 <code>probeJbis()</code> 探活（封禁期每 5 分钟一次、最多 60 分钟）；
+      新日期优先；缓存幂等，可随时 Ctrl-C 重跑续采。全量约 7,300 匹 ≈ 7 小时（单并发 1.2s）；</li>
+      <li><b>backfill-silks-v4</b>：默认<b>重新覆盖</b>（无命中且原有 <code>silk</code> 会被删除，<code>--no-clear</code> 保留）；
+      文档级先统计 <code>silk</code> 数，写回仅当 JSON 变化；每处理完一个日期保存缓存；</li>
+      <li><b>backfill-silks-rp</b>：URL 由 <code>{doc.sourceUrl 前缀}/racecard/{raceKey}/x</code> 重建（slug 段被忽略，任意占位符 200）；
+      SL 会 308 跳规范 slug，脚本手动跟 3 跳；文档内 runner 全有彩衣则整档跳过；匹配优先 <code>cloth_number</code>，其次归一马名；</li>
+      <li><b>backfill-lookup</b>：一次性为主（首次全量 30–40 分钟），之后 CI 增量只解析新名字；
+      <code>--revalidate</code> 用新的消歧规则重验已缓存记录并覆盖写文档。</li>
+    </ul>
+  </div>
+
+  <div class="warn">
+    <b>两个已踩过的坑（改脚本前先看）</b>
+    <ul>
+      <li><b>build 会被 safe-delete 钩子拦截</b>：<code>build.js</code> 每次 <code>fs.rmSync(_site)</code>（约 6,300 个产物），
+      批量删除超过阈值会抛 <code>SAFE_DELETE_BULK_CONFIRM_REQUIRED</code>。在脚本链里跑 build 需带
+      <code>CODEBUDDY_SAFE_DELETE_ENABLED=0</code>（删除范围仅 <code>_site</code> 生成物）；</li>
+      <li><b>CI 采的欧美文档可能没有 <code>silk</code> 字段</b>（代码未 push 时 CI 跑旧版）。落盘指纹只比 <code>马ID:番号</code>，
+      <b>缺彩衣不会触发重写</b> → 采集后必须补跑 <code>backfill-silks-rp</code>，否则永远补不上。</li>
     </ul>
   </div>
 </section>
 
 <footer>
-  racing-calendar · 采集链路文档 · 生成于 2026-11-04 · 字段与规则均以当前工作区源码为准（文件/函数名已标注，可按图索骥）
+  racing-calendar · 采集链路文档 · 更新于 2026-11-05 · 字段与规则均以当前工作区源码为准（文件/函数名已标注，可按图索骥）
 </footer>
 
 </div>

@@ -5,6 +5,7 @@ JBIS（jbis.or.jp）**出走表**（出馬表）采集与检索：按 **中央 /
 纯 Node.js（零依赖，内置 `fetch`），数据以 JSON 文件存于 `data/`，构建为静态站点可部署 GitHub Pages。
 
 - **设计文档**：[docs/DESIGN.md](docs/DESIGN.md)（URL 结构、数据契约、比赛格归一、采集与导出）
+- **采集链路全景**：[docs/pipeline.html](docs/pipeline.html)（各源抓取步骤、彩衣/马名富化、缓存与幂等、CI 调度、回填脚本族）
 - **数据**：`data/races/{日期}/{场}.json`（每日 × 场一张出走表）+ `data/races/manifest.json`
 - **血统缓存**：`data/pedigree/`（父→父父、马→全血统、名字→JBIS id 解析；入库供 CI 增量复用）
 
@@ -86,7 +87,7 @@ node src/collect-sources.js --source racingpost --countries all
 站点为纯静态零依赖：`_site/` 即完整产物（全相对路径 + `.nojekyll`），任意 base path 可用。参照 yunji-web 的双 workflow 模式（[.github/workflows/](.github/workflows)）：
 
 - **deploy.yml** — push main（代码变更/首次推送）→ `node src/build.js` → 发布 `_site/` 到 Pages
-- **update-data.yml** — 每日两次：① UTC 22:00 = **北京 06:00**（JST 07:00）采集 JBIS + Racing Post（`--countries all` 全国家，美国等夜间卡唯一窗口）；② UTC 10:00 = **北京 18:00** 仅采集 JBIS（当天日本场次枠順/馬番確定后的补采）。两次都 → 构建 → 有变化则 commit `data/races/` + `data/pedigree/` 回 main → **同一 workflow 内重新部署静态页面**（GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故不能依赖 deploy.yml 被 push 触发）；可手动触发（视同 ① 全量）；运行日志上传为 artifact（保留 14 天）
+- **update-data.yml** — 每日两次：① UTC 22:00 = **北京 06:00**（JST 07:00）采集 JBIS + Racing Post（`--countries all` 全国家，美国等夜间卡唯一窗口）；② UTC 10:00 = **北京 18:00** 仅采集 JBIS（当天日本场次枠順/馬番確定后的补采）。两次都 → 构建 → 有变化则 commit `data/races/` + `data/pedigree/` 回 main → **同一 workflow 内重新部署静态页面**（GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故不能依赖 deploy.yml 被 push 触发）；可手动触发（视同 ① 全量）；`update-log-<run_id>` artifact 保留 **30 天**，内含 `test-logs/*.log`、诊断摘要与逐条 `requests-*.jsonl`）
 
 前置设置（一次性）：
 
@@ -94,7 +95,7 @@ node src/collect-sources.js --source racingpost --countries all
 2. Settings → Actions → General → Workflow permissions 勾选 **Read and write permissions**（update-data 需要写入仓库）
 3. 定时任务说明：cron 在高峰期可能延迟数分钟到数十分钟；定时 workflow 只在默认分支（main）生效；私有仓库连续 60 天无活动会被暂停、且每分钟计费（每日 1 次 × ~20 分钟 ≈ 600 分钟/月，免费额度 2,000 分钟；公开仓库不计费）
 
-数据落库范围：`data/races/`（源文档 `.json.gz`）+ `data/pedigree/`（血统缓存**单文件包** `jbis-sire.json` / `jbis-horse.json` / `rp-horse.json` / `name-lookup.json`，文件数恒定、体积线性增长）——CI 每次运行增量复用缓存，不为已抓过的马重复请求上游。
+数据落库范围：`data/races/`（源文档 `.json.gz`）+ `data/pedigree/`（血统/马名/彩衣缓存**单文件包**，`jbis-sire.json` / `jbis-horse.json` / `rp-horse.json` / `name-lookup.json` / `jbis-name.json` / `nk-*.json` / `wf-*.json` / `sl-silk.json`，文件数恒定、体积线性增长）+ `data/silks/`（按马主去重的彩衣图，必须入库，否则下次 checkout 会因缓存命中而永久缺图）——CI 每次运行增量复用缓存，不为已抓过的马重复请求上游。`.gitattributes` 将 `.gz` / `.gif` / `.png` 声明为二进制，避免行尾转换损坏快照。
 
 ## 马名归一（canonical 合并）
 
@@ -136,7 +137,18 @@ node src/backfill-names.js --dates 2026-11-04 --tracks 236 --limit-docs 1   # �
 - 展示：出馬表 `silk` 列（默认隐藏，列菜单可开）、分享卡分卡版式彩衣列；欧美与日本同一 `silk.url` 口径。
 
 ### 请求日志
-所有出站请求（JBIS / netkeiba / winfinal / Sporting Life / 彩衣图）逐条追加 `data/logs/requests-YYYYMMDD.jsonl`，字段 `ts / src / method / url / status / ok / ms / bytes / err`。关闭用 `RC_REQLOG=0`，改目录用 `RC_REQLOG_DIR`。
+所有出站请求（JBIS / netkeiba / winfinal / Sporting Life / 彩衣图）逐条追加 `data/logs/requests-YYYYMMDD.jsonl`（JST 日切），字段 `ts / src / method / url / status / ok / ms / bytes / err`。`appendFileSync` 逐条落盘，进程被杀/超时也不丢已发出的请求。关闭用 `RC_REQLOG=0`，改目录用 `RC_REQLOG_DIR`。
+
+**该目录已在 `.gitignore` 中，刻意不入库**：属于「每次运行」的诊断数据（今天本地 19,807 行 / 505 MB 传输量），入库会污染每日 data commit、放大 rebase 冲突。CI 里改为 artifact 留存 + 摘要直出：
+
+| 位置 | 内容 | 用途 |
+|---|---|---|
+| Actions → **Diagnostics from JSONL request log** step | 请求总量/失败率/按源 403·404·5xx、彩衣覆盖（全站 / JRA / NAR / 欧美）、马名权威化覆盖、彩衣引用缺图数、build 是否产出、判定 `OK / WARN / FAIL` | **不下载任何文件**就能判断跑挂没跑挂；异常项以 `::warning::` / `::error::` 注解显示 |
+| artifact `update-log-<run_id>/test-logs/summary.log`、`summary.json` | 同上，机器可读版 | 复盘、跨次对比 |
+| artifact `data/logs/requests-*.jsonl` | 每条请求原始记录（含具体 URL 与错误） | 定位到「哪个源、哪一页、什么时候开始 403」 |
+| artifact `test-logs/jbis.log` / `rp.log` / `build.log` | 采集与构建 stdout | 对应脚本报错堆栈 |
+
+本地也能复现同一份摘要：`node src/ci-summary.js [--rp] [--since-minutes 300] [--out-dir test-logs]`。CI 中该步骤带 `if: always()`，采集/构建失败或 step 超时（JBIS 80min / RP 25min / build 15min）后仍会执行；最终 **Gate on diagnostics** 步骤读 `verdict.txt`，判 FAIL 时让 job 显式失败，但因为放在 artifact 上传之后，日志一定留得下来。
 
 ## 已知限制
 
