@@ -636,7 +636,7 @@ const COLUMNS = [
   { k: "waku",     label: "枠番" },
   { k: "num",      label: "馬番" },
   { k: "sexage",   label: "性齢" },
-  { k: "silk",     label: "彩衣" },   // 勝負服小图（默认隐藏，列菜单可开；采集覆盖时才有值）
+  { k: "silk",     label: "彩衣" },   // 勝負服小图（默认展示；采集覆盖时才有值，无值则空）
   { k: "weight",   label: "斤量" },
   { k: "jockey",   label: "騎手", left: 1 },
   { k: "trainer",  label: "調教師", left: 1, defHide: 1 },
@@ -645,20 +645,19 @@ const COLUMNS = [
   { k: "dam",      label: "母", left: 1, defHide: 1 },
   { k: "bms",      label: "母父", left: 1 },
 ];
+// 骟马 JBIS 原文为「セン」，展示统一收成单字「セ」：性齢列不再超宽截断
+const sexShort = (s) => (s === "セン" ? "セ" : (s ?? ""));
 const COLS_KEY = "rc.cols.v4";
-const COLS_DEFAULT_HIDE = ["start", "trainer", "siresire", "dam", "silk"];
+const COLS_DEFAULT_HIDE = ["start", "trainer", "siresire", "dam"];
 let hiddenCols = loadHiddenCols();
 function loadHiddenCols() {
   try {
     const a = JSON.parse(localStorage.getItem(COLS_KEY));
     if (Array.isArray(a)) {
-      const s = new Set(a.filter((k) => COLUMNS.some((c) => c.k === k)));
-      // 彩衣列后加（v4 存量无此键）：老用户默认隐藏，列菜单手动开
-      if (!a.includes("silk")) s.add("silk");
-      return s;
+      return new Set(a.filter((k) => COLUMNS.some((c) => c.k === k)));
     }
   } catch {}
-  return new Set(COLS_DEFAULT_HIDE);   // 未保存过 = 新默认：比赛级信息由分隔行承载
+  return new Set(COLS_DEFAULT_HIDE);   // 未保存过 = 新默认：比赛级信息由分隔行承载，彩衣默认展示
 }
 const saveHiddenCols = () => { try { localStorage.setItem(COLS_KEY, JSON.stringify([...hiddenCols])); } catch {} };
 const visCols = () => COLUMNS.filter((c) => !hiddenCols.has(c.k));
@@ -684,7 +683,7 @@ function cellHtml(r, c) {
     case "waku": return frameBadge(r.frame);
     case "num":  return esc(r.num ?? "");
     case "name": return horseLink(r.horseId, r.horseName);
-    case "sexage": return esc((r.sex ?? "") + (r.age ?? ""));
+    case "sexage": return esc(sexShort(r.sex) + (r.age ?? ""));
     case "silk": {
       // 勝負服 73x55 小图（马主登记图，采集落盘）；懒加载，加载失败整图移除
       if (!r.silk) return "";
@@ -747,7 +746,7 @@ function mbCardHtml(r) {
     `<span class="yj-mb-horse">${horseLink(r.horseId, r.horseName)}</span>`,
     show("jockey") && r.jockey ? `<span class="yj-mb-jk">${esc(r.jockey)}</span>` : "",   // 騎手/斤量与馬名同排（用户定稿）
     show("weight") && r.weight != null ? `<span class="yj-mb-w">${esc(r.weight)}</span>` : "",
-    show("sexage") ? `<span class="yj-mb-sexage">${esc((r.sex ?? "") + (r.age ?? ""))}</span>` : "",
+    show("sexage") ? `<span class="yj-mb-sexage">${esc(sexShort(r.sex) + (r.age ?? ""))}</span>` : "",
   ].join("");
   const linePed = [
     show("trainer") ? item("調教師", esc(r.trainer ?? "")) : "",
@@ -1106,10 +1105,9 @@ async function main() {
   $("#d-prev").onclick = () => dateStep(-1);
   $("#d-next").onclick = () => dateStep(1);
   $("#d-today").onclick = () => {
-    const { first } = dataRange();
-    state.winStart = addDays(todayBJ(), -2);
-    if (first && state.winStart < first) state.winStart = first;
-    renderDateTabs();
+    // 回到今天：窗口与选中日一并重置（此前只平移窗口不动选中日，点了今天数据还停在原日期）
+    defaultDates();
+    refresh();
   };
   // 本周末：一次选中本周六日（北京时间的今天所在周；周日当天 = 昨天+今天）
   $("#d-weekend").onclick = () => {

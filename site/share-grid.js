@@ -89,7 +89,8 @@ export function createGrid(opts) {
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const clone = (o) => (o == null ? o : JSON.parse(JSON.stringify(o)));
   const commitVal = (v) => { const s = String(v ?? "").trim(); return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : s; };
-  const sexAgeGet = (r) => `${r.sex ?? ""}${r.age ?? ""}`;
+  const normSex = (s) => (s === "セン" ? "セ" : (s ?? ""));   // 展示统一单字，且能被下方正则 ^([牡牝セ]) 解析
+  const sexAgeGet = (r) => `${normSex(r.sex)}${r.age ?? ""}`;
   const sexAgeSet = (r, v) => {
     const m = /^([牡牝セ])\s*(\d+)?\s*$/.exec(String(v ?? "").trim());
     r.sex = m ? m[1] : (String(v ?? "").trim() || null);
