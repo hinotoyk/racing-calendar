@@ -1,0 +1,112 @@
+name: update-data · 枠順补采
+
+# 每日一档 JBIS 补采 → 构建 → 落库 data/ → 重新部署静态页面（Pages）：
+#   北京 12:00 = UTC 04:00：仅 JBIS 出馬表——当天日本场次枠順/馬番確定后的补采窗口
+#   不跑 Racing Post（欧美卡片只在全量档的夜间窗口可抓，见 update-data.yml）
+# 全量档见 update-data.yml：北京 02:00 = UTC 18:00，JBIS + RP --countries all。
+# 两档各自独立调度 / 独立手动触发 / 独立 run 历史；共用 concurrency group `pages` 串行发布。
+# 结构对齐 update-data.yml（采集→构建→提交数据→运行日志 artifact），差异仅在于少了 RP 步骤、
+#   诊断不带 --rp、job 超时更短、artifact 名独立；其余步骤保持一致。
+# 前置要求：Settings → Pages → Source = GitHub Actions；
+#           Settings → Actions → General → Workflow permissions = Read and write permissions
+on:
+  schedule:
+    - cron: '0 4 * * *'    # UTC 04:00 = 北京 12:00 · 仅 JBIS（枠順/馬番补采）
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 提交数据（data/races、data/pedigree）
+  pages: write      # 发布 Pages
+  id-token: write
+
+concurrency:
+  group: pages      # 与 update-data.yml / deploy.yml 共用 pages 组，避免两个发布并发
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100  # 无 RP 步骤：JBIS 80min + build 15min + 余量
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Collect JBIS racecards
+        timeout-minutes: 80
+        run: |
+          mkdir -p test-logs
+          node src/collect-races.js 2>&1 | tee test-logs/jbis.log
+
+      # 构建：数据归一 + _site 产出（_site 本身不入库）
+      - name: Build site
+        timeout-minutes: 15
+        run: node src/build.js 2>&1 | tee test-logs/build.log
+
+      # 逐条请求 JSONL（data/logs/，gitignore 不入库）聚合成可读摘要：
+      # 直接打印在 Actions step 日志里，无需下载 artifact 就能判断请求量/403/彩衣覆盖/归一结果。
+      # if: always() —— 采集或 build 失败/超时也要产出诊断。补采档不带 --rp（不检查欧美请求量）。
+      - name: Diagnostics from JSONL request log
+        if: always()
+        run: node src/ci-summary.js
+
+      - name: Commit data changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # data/pedigree/*.json 为血统/马名/彩衣缓存包（单文件存储 → 文件数恒定），入库后下次运行增量复用
+          # data/silks/：按马主去重的彩衣图（collect 内下载），必须一起入库——否则本次部署能显示、
+          #   下次 checkout 缺图 → 缓存命中不再重下 → 页面永久 404（2026-11-05 修）
+          git add data/races/ data/pedigree/ data/silks/
+          if ! git diff --cached --quiet; then
+            git commit -m "data: auto collect $(date -u +%Y-%m-%dT%H:%MZ)"
+            # 运行期间 main 可能被推进 → push 前 rebase；冲突则放弃本次（下次调度自动重算）
+            git pull --rebase origin main || { git rebase --abort; echo "::error::远端冲突，本次数据提交放弃"; exit 1; }
+            git push origin "HEAD:$GITHUB_REF_NAME"
+            echo "::notice::data 已更新并推送"
+          else
+            echo "::notice::无变化，跳过提交"
+          fi
+
+      # 更新完必须重新部署静态页面：由本 workflow 直接发布（不依赖 push 触发 deploy.yml）
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      # 运行日志（对齐 yunji-web：always 上传，便于排查采集失败/为空）
+      # data/logs/requests-*.jsonl = 逐条出站请求（src/url/status/ok/ms/bytes/err），
+      # 本地 gitignore 不入库，只在 CI 作为 artifact 留存；配合 summary.log 定位到具体 URL。
+      - name: Upload run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-jbis-log-${{ github.run_id }}
+          path: |
+            test-logs/
+            data/logs/requests-*.jsonl
+          if-no-files-found: warn
+          retention-days: 30
+
+      # 摘要判 FAIL 时让 job 显式失败（放最后，保证上面的 artifact 已经上传）
+      - name: Gate on diagnostics
+        if: always()
+        run: |
+          v="$(cat test-logs/verdict.txt 2>/dev/null || echo FAIL)"
+          echo "verdict=$v"
+          if [ "$v" = "FAIL" ]; then
+            echo "::error::采集/构建异常，见 update-jbis-log artifact 的 summary.log 与 requests-*.jsonl"
+            exit 1
+          fi

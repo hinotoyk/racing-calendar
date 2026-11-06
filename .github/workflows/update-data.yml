@@ -1,10 +1,10 @@
-name: update-data
+name: update-data · 全量采集
 
-# 每日两次采集 → 构建 → 落库 data/ → 重新部署静态页面（Pages）：
-#   ① UTC 22:00 = 北京 06:00：JBIS 出馬表（今天起 3 天）+ Racing Post（全国家，
-#      美国/中东等夜间卡还挂在 SL racecards 索引里，是抓它们的唯一窗口）
-#   ② UTC 10:00 = 北京 18:00：仅 JBIS 出馬表——当天日本场次的枠順/馬番確定后的补采窗口
-# 两个 schedule 用 github.event.schedule 区分；手动 dispatch 视同 ①（全量）。
+# 每日一档全量采集 → 构建 → 落库 data/ → 重新部署静态页面（Pages）：
+#   北京 02:00 = UTC 18:00：JBIS 出馬表（今天起 3 天）+ Racing Post（--countries all 全国家）
+#   美国/中东等夜间卡只在这个窗口还挂在 SL racecards 索引里，是抓它们的唯一窗口，缺一次即永久错过
+# 另一档「枠順补采」拆到 update-jbis.yml：北京 12:00 = UTC 04:00，仅 JBIS，不跑 RP。
+# 两档各自独立调度 / 独立手动触发 / 独立 run 历史；共用 concurrency group `pages` 串行发布。
 # 结构对齐 yunji-web 的 update-data.yml（采集→构建→提交数据→运行日志 artifact）；
 # 差异：GitHub 规定 GITHUB_TOKEN 的 push 不触发其它 workflow，故部署不能依赖 deploy.yml 被 push 触发，
 #       由本 workflow 在提交后直接 build + 发布 Pages。
@@ -12,8 +12,7 @@ name: update-data
 #           Settings → Actions → General → Workflow permissions = Read and write permissions
 on:
   schedule:
-    - cron: '0 22 * * *'   # 北京 06:00 · 全量（JBIS + RP all）
-    - cron: '0 10 * * *'   # 北京 18:00 · 仅 JBIS（枠順补采）
+    - cron: '0 18 * * *'   # UTC 18:00 = 北京 02:00 · 全量（JBIS + RP all）
   workflow_dispatch:
 
 permissions:
@@ -22,7 +21,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages      # 与 deploy.yml 共用 pages 组，避免两个发布并发
+  group: pages      # 与 update-jbis.yml / deploy.yml 共用 pages 组，避免两个发布并发
   cancel-in-progress: false
 
 jobs:
@@ -39,12 +38,6 @@ jobs:
         with:
           node-version: 22
 
-      - name: Resolve run mode
-        id: mode
-        run: |
-          # 18:00 的 JBIS 补采档（cron '0 10 * * *'）不跑 RP；其余（06:00 档/手动 dispatch）全量
-          echo "rp=${{ github.event.schedule != '0 10 * * *' }}" >> "$GITHUB_OUTPUT"
-
       - name: Collect JBIS racecards
         timeout-minutes: 80
         run: |
@@ -55,7 +48,6 @@ jobs:
       # countries=all：GB/IRE/USA/... 全国家（SL racecards index 只滚出「明天起」的会议，
       # 各国当日卡必须在各自的「当天窗口」内抓到，缺一次即错过——育马者杯 Keeneland 10-30/31 即为例证）
       - name: Collect Racing Post (via Sporting Life)
-        if: steps.mode.outputs.rp == 'true'
         timeout-minutes: 25
         continue-on-error: true
         run: node src/collect-sources.js --source racingpost --countries all 2>&1 | tee test-logs/rp.log
@@ -67,10 +59,10 @@ jobs:
 
       # 逐条请求 JSONL（data/logs/，gitignore 不入库）聚合成可读摘要：
       # 直接打印在 Actions step 日志里，无需下载 artifact 就能判断请求量/403/彩衣覆盖/归一结果。
-      # if: always() —— 采集或 build 失败/超时也要产出诊断。
+      # if: always() —— 采集或 build 失败/超时也要产出诊断。全量档带 --rp（应含欧美请求）。
       - name: Diagnostics from JSONL request log
         if: always()
-        run: node src/ci-summary.js ${{ steps.mode.outputs.rp == 'true' && '--rp' || '' }}
+        run: node src/ci-summary.js --rp
 
       - name: Commit data changes
         run: |
@@ -110,7 +102,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: update-log-${{ github.run_id }}
+          name: update-full-log-${{ github.run_id }}
           path: |
             test-logs/
             data/logs/requests-*.jsonl
@@ -124,6 +116,6 @@ jobs:
           v="$(cat test-logs/verdict.txt 2>/dev/null || echo FAIL)"
           echo "verdict=$v"
           if [ "$v" = "FAIL" ]; then
-            echo "::error::采集/构建异常，见 update-log artifact 的 summary.log 与 requests-*.jsonl"
+            echo "::error::采集/构建异常，见 update-full-log artifact 的 summary.log 与 requests-*.jsonl"
             exit 1
           fi

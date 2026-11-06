@@ -1,6 +1,7 @@
 name: Deploy to GitHub Pages
 
-# push main（含 update-data 的数据落库提交）→ 构建静态站点 → 发布 Pages
+# push main（人工推代码）→ 构建静态站点 → 发布 Pages
+# 注意：两条 update workflow 用 GITHUB_TOKEN 提交的数据不会触发本 workflow，故它们各自直接发布 Pages
 on:
   push:
     branches: [main]

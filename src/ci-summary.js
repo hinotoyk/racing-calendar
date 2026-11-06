@@ -18,7 +18,7 @@ const OUT_DIR = path.resolve(argOf("--out-dir") ?? "test-logs");
 const RACE_DIR = path.resolve("data", "races");
 const SILK_DIR = path.resolve("data", "silks");
 const SINCE_MIN = parseInt(argOf("--since-minutes") ?? "0", 10);
-const FULL_RUN = argv.includes("--rp"); // 06:00 档/手动 dispatch：应包含欧美请求
+const FULL_RUN = argv.includes("--rp"); // 全量档 update-data.yml（北京 02:00）/ 手动 dispatch：应包含欧美请求
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const lines = [];

@@ -617,18 +617,19 @@
     </ul>
   </div>
   <div class="card accent-sto">
-    <h3>CI 调度（GitHub Actions，每日两次）</h3>
+    <h3>CI 调度（GitHub Actions，每日两档 · 各自独立 workflow）</h3>
     <table>
-      <tr><th>档</th><th>触发</th><th>动作</th><th>step 超时</th></tr>
-      <tr><td><span class="kbd">06:00</span> 全量</td><td><code>cron 0 22 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 25 / 15 min</td></tr>
-      <tr><td><span class="kbd">18:00</span> 补采</td><td><code>cron 0 10 * * *</code></td><td>仅 collect-races（枠番/馬番通常前日傍晚公布）→ build</td><td>80 / 15 min</td></tr>
+      <tr><th>档 / workflow</th><th>触发（cron 按 UTC）</th><th>动作</th><th>step 超时</th></tr>
+      <tr><td><span class="kbd">北京 02:00</span> 全量 · <code>update-data.yml</code></td><td><code>cron 0 18 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 25 / 15 min</td></tr>
+      <tr><td><span class="kbd">北京 12:00</span> 补采 · <code>update-jbis.yml</code></td><td><code>cron 0 4 * * *</code> / 手动 dispatch</td><td>仅 collect-races（枠番/馬番通常前日傍晚公布）→ build</td><td>80 / 15 min</td></tr>
     </table>
     <ul>
+      <li>两档<b>拆成独立 workflow</b>：各自独立调度 / 手动触发 / run 历史，诊断分别带与不带 <code>--rp</code>；共用 <code>concurrency: group: pages</code> 串行发布；</li>
       <li>两档都跑 <code>ci-summary.js</code>（全量档带 <code>--rp</code>，欧美 0 请求才告警）→ 提交 <code>data/races/ data/pedigree/ data/silks/</code> → 同 workflow 内 <code>upload-pages-artifact</code> + <code>deploy-pages</code>（<code>GITHUB_TOKEN</code> 的 push 不触发其它 workflow，故不能依赖 deploy.yml）；</li>
-      <li>job 级 <code>timeout-minutes: 150</code> 只作安全网，时间约束放在各 step 上 —— step 超时后仍能跑摘要、上传日志、走 gate；</li>
+      <li>job 级 <code>timeout-minutes</code>：全量 <code>150</code> / 补采 <code>100</code>，只作安全网，时间约束放在各 step 上 —— step 超时后仍能跑摘要、上传日志、走 gate；</li>
       <li>提交前 <code>git pull --rebase</code>，冲突则放弃本次数据提交（下次调度自动重算）；无变化跳过提交；</li>
-      <li>artifact：<code>test-logs/</code> + <code>data/logs/requests-*.jsonl</code>，保留 <b>30 天</b>，<code>if: always()</code>；</li>
-      <li>缓存包随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求；<b>回填脚本（⑨）不在 CI 里跑</b>，避免长链路阻塞每日两次的发布窗口。</li>
+      <li>artifact：<code>update-full-log-&lt;run_id&gt;</code> / <code>update-jbis-log-&lt;run_id&gt;</code>，内含 <code>test-logs/</code> + <code>data/logs/requests-*.jsonl</code>，保留 <b>30 天</b>，<code>if: always()</code>；</li>
+      <li>缓存包随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求；<b>回填脚本（⑨）不在 CI 里跑</b>，避免长链路阻塞每日两档的发布窗口。</li>
     </ul>
   </div>
 </section>
