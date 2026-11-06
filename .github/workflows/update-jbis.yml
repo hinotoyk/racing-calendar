@@ -101,6 +101,7 @@ jobs:
           retention-days: 30
 
       # 摘要判 FAIL 时让 job 显式失败（放最后，保证上面的 artifact 已经上传）
+      # 补采档不跑 RP，故只读 verdict.txt；rp-verdict.txt 是全量档独有的第二个信号
       - name: Gate on diagnostics
         if: always()
         run: |

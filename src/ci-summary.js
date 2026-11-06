@@ -2,8 +2,9 @@
 // 直接打印到 GitHub Actions 的 step 日志（无需下载 artifact 也能判断成败），
 // 同时写 test-logs/summary.log / summary.json / verdict.txt 供 artifact 留存。
 //
-// 判定：FAIL = 明确跑挂（无任何请求 / 大面积网络失败 / build 未产出 / 无有效出馬表数据）
-//       WARN = 有异常但不致命（403 限流、5xx、欧美 0 请求、JRA 彩衣非 100%、彩衣缺图）
+// 判定：FAIL = 明确跑挂（无任何请求 / 大面积网络失败 / build 未产出 / 无有效出馬表数据
+//              / 全量档 Sporting Life 0 请求或 0 成功）
+//       WARN = 有异常但不致命（403 限流、5xx、SL 成功率偏低、JRA 彩衣非 100%、彩衣缺图）
 //       OK   = 正常
 // 退出码恒为 0，由 workflow 末尾的 gate 步骤读 verdict.txt 决定 job 成败，
 // 保证即使 FAIL 也能走到 artifact 上传。
@@ -57,7 +58,9 @@ const statusOf = (n) => req.status[String(n)] ?? 0;
 const n403 = statusOf(403) + statusOf(429);
 const n5xx = Object.entries(req.status).filter(([k]) => +k >= 500).reduce((a, [, v]) => a + v, 0);
 const nNetErr = statusOf(0);
-const slRequests = Object.entries(req.bySrc).filter(([k]) => /sportinglife|sl-silk/.test(k)).reduce((a, [, v]) => a + v.n, 0);
+const slEntries = Object.entries(req.bySrc).filter(([k]) => /sportinglife|sl-silk/.test(k));
+const slRequests = slEntries.reduce((a, [, v]) => a + v.n, 0);
+const slOk = slEntries.reduce((a, [, v]) => a + v.ok, 0);
 const jbisRequests = Object.entries(req.bySrc).filter(([k]) => /jbis/.test(k)).reduce((a, [, v]) => a + v.n, 0);
 
 // ---------- 2) 数据覆盖（彩衣 / 马名权威化） ----------
@@ -110,6 +113,7 @@ say(`日志: ${files.length} 个 jsonl 文件 ${files.map((f) => path.basename(f
 say(`窗口: ${req.firstTs ?? "-"} → ${req.lastTs ?? "-"}（${req.firstTs && req.lastTs ? ((new Date(req.lastTs) - new Date(req.firstTs)) / 60000).toFixed(1) + " min" : "n/a"}）`);
 say(`请求: 总 ${req.total} / 成功 ${req.ok} / 失败 ${req.err} / 字节 ${(req.bytes / 1048576).toFixed(1)} MB`);
 say(`状态: 403/429=${n403}  404=${statusOf(404)}  5xx=${n5xx}  网络异常(0)=${nNetErr}`);
+if (FULL_RUN) say(`Sporting Life: 请求 ${slRequests} / 成功 ${slOk} = ${pct(slOk, slRequests)}`);
 say("按源:");
 for (const [k, v] of Object.entries(req.bySrc).sort((a, b) => b[1].n - a[1].n)) {
   say(`  ${k.padEnd(16)} n=${String(v.n).padStart(5)} ok=${String(v.ok).padStart(5)} 403=${String(v["403"]).padStart(3)} 404=${String(v["404"]).padStart(3)} 5xx=${String(v["5xx"]).padStart(3)}`);
@@ -129,11 +133,14 @@ if (req.total === 0) fatals.push("无任何出站请求（采集脚本未启动�
 if (req.total >= 20 && req.err / req.total > 0.6) fatals.push(`请求失败率 ${pct(req.err, req.total)} > 60%`);
 if (cov.docsWithRunners === 0) fatals.push("没有任何含出走马的快照文档");
 if (!buildOk) fatals.push("build 未产出 [build] dates/rows 标志");
+// 分级闸门：只有「确定没采到欧美卡」才升 FAIL；偶发/部分失败留 WARN（仅全量档检查）
+if (FULL_RUN && slRequests === 0) fatals.push("全量档但 Sporting Life 请求为 0（RP 采集未启动）");
+if (FULL_RUN && slRequests > 0 && slOk === 0) fatals.push(`全量档 Sporting Life ${slRequests} 次请求全部失败（欧美卡未采）`);
 if (n403 > 0) warnings.push(`JBIS/SL 限流 403/429 共 ${n403} 次（看按源分布判断影响面）`);
 if (n5xx > 0) warnings.push(`服务端 5xx 共 ${n5xx} 次`);
 if (nNetErr > 0) warnings.push(`网络层异常 ${nNetErr} 次`);
 if (jbisRequests === 0) warnings.push("JBIS 相关请求为 0");
-if (FULL_RUN && slRequests === 0) warnings.push("全量档但 Sporting Life 请求为 0（欧美卡未采）");
+if (FULL_RUN && slRequests > 0 && slOk < slRequests * 0.5) warnings.push(`Sporting Life 成功率 ${pct(slOk, slRequests)} 偏低（${slOk}/${slRequests}）`);
 if (cov.central > 0 && cov.centralSilk < cov.central) warnings.push(`JRA 彩衣 ${cov.centralSilk}/${cov.central} 未满`);
 if (cov.nameOk < cov.jbisRows) warnings.push(`马名权威化缺 ${cov.jbisRows - cov.nameOk} 行`);
 if (cov.silkMissing.size) warnings.push(`彩衣引用缺图 ${cov.silkMissing.size} 张`);
@@ -150,7 +157,7 @@ fs.writeFileSync(path.join(OUT_DIR, "summary.json"), JSON.stringify({
   verdict, runAt: new Date().toISOString(), files: files.map((f) => path.basename(f)),
   window: { firstTs: req.firstTs, lastTs: req.lastTs },
   requests: { total: req.total, ok: req.ok, err: req.err, status: req.status, bySrc: req.bySrc,
-    n403, n5xx, nNetErr, jbisRequests, slRequests, bytes: req.bytes },
+    n403, n5xx, nNetErr, jbisRequests, slRequests, slOk, bytes: req.bytes },
   coverage: { ...cov, silkRefs: cov.silkRefs.size, silkMissing: [...cov.silkMissing] },
   buildOk, siteRows, fatals, warnings, errSamples: req.errSamples, logErrors,
 }, null, 2));

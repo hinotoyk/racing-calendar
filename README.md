@@ -151,7 +151,9 @@ node src/backfill-names.js --dates 2026-11-04 --tracks 236 --limit-docs 1   # �
 | artifact `data/logs/requests-*.jsonl` | 每条请求原始记录（含具体 URL 与错误） | 定位到「哪个源、哪一页、什么时候开始 403」 |
 | artifact `test-logs/jbis.log` / `rp.log` / `build.log` | 采集与构建 stdout（`rp.log` 仅全量档有） | 对应脚本报错堆栈 |
 
-本地也能复现同一份摘要：`node src/ci-summary.js [--rp] [--since-minutes 300] [--out-dir test-logs]`（全量档带 `--rp`，补采档不带）。CI 中该步骤带 `if: always()`，采集/构建失败或 step 超时（JBIS 80min / RP 25min 仅全量档 / build 15min）后仍会执行；最终 **Gate on diagnostics** 步骤读 `verdict.txt`，判 FAIL 时让 job 显式失败，但因为放在 artifact 上传之后，日志一定留得下来。
+本地也能复现同一份摘要：`node src/ci-summary.js [--rp] [--since-minutes 300] [--out-dir test-logs]`（全量档带 `--rp`，补采档不带）。CI 中该步骤带 `if: always()`，采集/构建失败或 step 超时（JBIS 80min / **RP 120min** 仅全量档 / build 15min；job 安全网全量 240min、补采 100min，平台上限 360min）后仍会执行；Gate 放在 artifact 上传之后，日志一定留得下来。
+
+**分级闸门（仅全量档）**：RP step 用 `shell: bash` + `${PIPESTATUS[0]}` 抓真实退出码（避免 `| tee` 吞掉），并写 `test-logs/rp-verdict.txt`——默认 `FAIL`，只有「退出码 0 + 打印 `manifest ->` 收尾行」才覆盖为 `OK`；step 被超时 kill 时文件仍是 `FAIL`。`ci-summary.js --rp` 另把「Sporting Life 0 请求 / 0 成功」判 FATAL，成功率低于一半只判 WARN。末尾 **Gate on diagnostics** 同时读 `verdict.txt` 与 `rp-verdict.txt`，任一 `FAIL` 才 `exit 1`。因为 `Deploy to Pages` 排在 Gate 之前，**标红只报警、不拦发布**，也不会像去掉 `continue-on-error` 那样把当天 JBIS 数据一起丢掉。
 
 ## 已知限制
 

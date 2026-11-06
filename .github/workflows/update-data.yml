@@ -27,7 +27,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 150  # 安全网；真正的时间约束放在各 step 上，超时的 step 失败后仍能跑日志摘要/上传
+    timeout-minutes: 240  # 安全网：JBIS 80 + RP 120 + build 15 = 215，留余量给提交/发布/诊断；平台上限 360min
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -47,10 +47,27 @@ jobs:
       # Sporting Life 对数据中心 IP 的容忍度未验证 → 失败只告警，不阻断 JBIS 数据落库
       # countries=all：GB/IRE/USA/... 全国家（SL racecards index 只滚出「明天起」的会议，
       # 各国当日卡必须在各自的「当天窗口」内抓到，缺一次即错过——育马者杯 Keeneland 10-30/31 即为例证）
+      # 超时 120min：历史实测 RP 需 46–55min；9fd66f6 曾设 25min，#22/#23 两次被砍在 25.2min 却判 success
+      # 分级闸门：rp-verdict.txt 默认写 FAIL，只有「退出码 0 + 打印 manifest -> 收尾行」才覆盖为 OK；
+      #   step 被超时 kill 时文件已落盘为 FAIL，末尾 Gate 读到会让 job 标红（Deploy 已先行，数据照常发布）
       - name: Collect Racing Post (via Sporting Life)
-        timeout-minutes: 25
+        id: rp
+        timeout-minutes: 120
         continue-on-error: true
-        run: node src/collect-sources.js --source racingpost --countries all 2>&1 | tee test-logs/rp.log
+        shell: bash
+        run: |
+          set +e
+          mkdir -p test-logs
+          echo "FAIL" > test-logs/rp-verdict.txt
+          node src/collect-sources.js --source racingpost --countries all 2>&1 | tee test-logs/rp.log
+          rc=${PIPESTATUS[0]}
+          # collect-sources.js 正常跑完才会打印 "manifest -> ...（written=N skipped=M）"
+          if [ "$rc" -eq 0 ] && grep -q '^manifest -> ' test-logs/rp.log; then
+            echo "OK" > test-logs/rp-verdict.txt
+          else
+            echo "::warning::RP 采集未正常收尾（rc=$rc），本次海外数据可能不全"
+          fi
+          exit "$rc"
 
       # 构建：数据归一 + _site 产出（_site 本身不入库）
       - name: Build site
@@ -59,7 +76,7 @@ jobs:
 
       # 逐条请求 JSONL（data/logs/，gitignore 不入库）聚合成可读摘要：
       # 直接打印在 Actions step 日志里，无需下载 artifact 就能判断请求量/403/彩衣覆盖/归一结果。
-      # if: always() —— 采集或 build 失败/超时也要产出诊断。全量档带 --rp（应含欧美请求）。
+      # if: always() —— 采集或 build 失败/超时也要产出诊断。全量档带 --rp（SL 0 请求 / 0 成功判 FAIL）。
       - name: Diagnostics from JSONL request log
         if: always()
         run: node src/ci-summary.js --rp
@@ -110,12 +127,15 @@ jobs:
           retention-days: 30
 
       # 摘要判 FAIL 时让 job 显式失败（放最后，保证上面的 artifact 已经上传）
+      # 两个信号：verdict.txt（ci-summary 的 OK/WARN/FAIL）+ rp-verdict.txt（RP 是否正常收尾）
+      # Deploy to Pages 在本步之前 → FAIL 只标红报警，页面和数据照常发布
       - name: Gate on diagnostics
         if: always()
         run: |
           v="$(cat test-logs/verdict.txt 2>/dev/null || echo FAIL)"
-          echo "verdict=$v"
-          if [ "$v" = "FAIL" ]; then
+          rp="$(cat test-logs/rp-verdict.txt 2>/dev/null || echo FAIL)"
+          echo "verdict=$v rp=$rp"
+          if [ "$v" = "FAIL" ] || [ "$rp" = "FAIL" ]; then
             echo "::error::采集/构建异常，见 update-full-log artifact 的 summary.log 与 requests-*.jsonl"
             exit 1
           fi

@@ -612,21 +612,23 @@
       <li>关闭：<code>RC_REQLOG=0</code>；改目录：<code>RC_REQLOG_DIR=/path</code>；</li>
       <li><b><code>ci-summary.js</code></b>：把 JSONL + 文档扫描聚合成一张摘要 —— 请求总量/失败率/按源 403·404·5xx、彩衣覆盖（全站 / JRA / NAR / 欧美）、马名权威化覆盖、彩衣引用缺图数、build 是否产出；
       产出 <code>test-logs/summary.log | summary.json | verdict.txt</code>，并写入 <code>::warning::</code> / <code>::error::</code> 注解；</li>
-      <li><b>判定语义</b>：FAIL = 无任何请求 / 失败率 &gt;60% / 无含出走马的文档 / build 未产出；WARN = 403 限流、5xx、欧美 0 请求、JRA 彩衣未满、马名缺行、彩衣缺图；
-      <b>退出码恒 0</b>，由 workflow 末尾 gate 步骤读 <code>verdict.txt</code> 决定 job 成败（保证 FAIL 也能上传 artifact）。</li>
+      <li><b>判定语义（分级）</b>：FAIL = 无任何请求 / 失败率 &gt;60% / 无含出走马的文档 / build 未产出 / 全量档 SL 0 请求或 0 成功；
+      WARN = 403 限流、5xx、SL 成功率偏低、JRA 彩衣未满、马名缺行、彩衣缺图；
+      <b>退出码恒 0</b>，由 workflow 末尾 gate 步骤读 <code>verdict.txt</code>（全量档另读 <code>rp-verdict.txt</code>）决定 job 成败（保证 FAIL 也能上传 artifact）。</li>
     </ul>
   </div>
   <div class="card accent-sto">
     <h3>CI 调度（GitHub Actions，每日两档 · 各自独立 workflow）</h3>
     <table>
       <tr><th>档 / workflow</th><th>触发（cron 按 UTC）</th><th>动作</th><th>step 超时</th></tr>
-      <tr><td><span class="kbd">北京 02:00</span> 全量 · <code>update-data.yml</code></td><td><code>cron 0 18 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 25 / 15 min</td></tr>
+      <tr><td><span class="kbd">北京 02:00</span> 全量 · <code>update-data.yml</code></td><td><code>cron 0 18 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 120 / 15 min</td></tr>
       <tr><td><span class="kbd">北京 12:00</span> 补采 · <code>update-jbis.yml</code></td><td><code>cron 0 4 * * *</code> / 手动 dispatch</td><td>仅 collect-races（枠番/馬番通常前日傍晚公布）→ build</td><td>80 / 15 min</td></tr>
     </table>
     <ul>
       <li>两档<b>拆成独立 workflow</b>：各自独立调度 / 手动触发 / run 历史，诊断分别带与不带 <code>--rp</code>；共用 <code>concurrency: group: pages</code> 串行发布；</li>
-      <li>两档都跑 <code>ci-summary.js</code>（全量档带 <code>--rp</code>，欧美 0 请求才告警）→ 提交 <code>data/races/ data/pedigree/ data/silks/</code> → 同 workflow 内 <code>upload-pages-artifact</code> + <code>deploy-pages</code>（<code>GITHUB_TOKEN</code> 的 push 不触发其它 workflow，故不能依赖 deploy.yml）；</li>
-      <li>job 级 <code>timeout-minutes</code>：全量 <code>150</code> / 补采 <code>100</code>，只作安全网，时间约束放在各 step 上 —— step 超时后仍能跑摘要、上传日志、走 gate；</li>
+      <li>两档都跑 <code>ci-summary.js</code>（全量档带 <code>--rp</code>，SL 0 请求 / 0 成功判 FAIL）→ 提交 <code>data/races/ data/pedigree/ data/silks/</code> → 同 workflow 内 <code>upload-pages-artifact</code> + <code>deploy-pages</code>（<code>GITHUB_TOKEN</code> 的 push 不触发其它 workflow，故不能依赖 deploy.yml）；</li>
+      <li>job 级 <code>timeout-minutes</code>：全量 <code>240</code> / 补采 <code>100</code>（平台上限 360），只作安全网；RP step 从 25min 放宽到 <b>120min</b>（历史实测 46–55min，25min 曾两次把采集砍断）；</li>
+      <li><b>分级闸门（全量档）</b>：<code>shell: bash</code> + <code>PIPESTATUS</code> 抓真实退出码，写 <code>test-logs/rp-verdict.txt</code>（默认 FAIL，正常收尾才覆盖 OK）；gate 读 <code>verdict.txt</code> + <code>rp-verdict.txt</code>，任一 FAIL 标红。deploy-pages 在 gate 之前 → <b>只报警不拦发布</b>，保留 <code>continue-on-error</code> 以免 RP 挂了把 JBIS 数据一起丢掉；</li>
       <li>提交前 <code>git pull --rebase</code>，冲突则放弃本次数据提交（下次调度自动重算）；无变化跳过提交；</li>
       <li>artifact：<code>update-full-log-&lt;run_id&gt;</code> / <code>update-jbis-log-&lt;run_id&gt;</code>，内含 <code>test-logs/</code> + <code>data/logs/requests-*.jsonl</code>，保留 <b>30 天</b>，<code>if: always()</code>；</li>
       <li>缓存包随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求；<b>回填脚本（⑨）不在 CI 里跑</b>，避免长链路阻塞每日两档的发布窗口。</li>
