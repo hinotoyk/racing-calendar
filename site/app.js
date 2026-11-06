@@ -2,8 +2,9 @@
 // 数据：_site/derived/index.json + {date}.json（按日懒加载；{date}.json 为字典包，经 codec.mjs 解包）
 // 约定（用户定稿 2026-10-22，均以北京时间为基准日）：
 //   - 日期标签每次加载按「今天」现算：默认窗口 = 今天±2 共 5 天，‹ › 翻页，可选任意有数据日
-//   - 场地 scope = JRA / NAR / 国家组码（GB、IRE、FR、USA…，来自 Racing Post 源）
-//   - 场 chips 常驻展示名单 17 场 + 有数据的海外场；级别 = 13 桶（index.levels，半角标签）
+//   - 场地 scope = JRA / NAR / 国家组码（GB、IRE、FR、USA…，来自 Racing Post 源）；分 中央/地方/海外 三段
+//   - 场 chips 按 中央/地方/海外 分组，且只列当前场地选择下存在的场（选 FR 才出现 FR 场；全部才三组全列）；
+//     级别 = 13 桶（index.levels，半角标签）
 //   - 表列：当地比赛时间（日付+発走，附场馆）/ 北京时间（由 startTimeInstant 换算）/ 比赛名 / 距离 /
 //           枠 / 番 / 馬名 / 性齢 / 斤量 / 騎手 / 調教師 / 父 / 父父 / 母 / 母父
 import { unpackRows } from "./codec.mjs";
@@ -147,10 +148,12 @@ function rowsForPick() {
 }
 
 // ---------- 筛选条 ----------
-function chip(label, value, on, key, count) {
+// tag：芯片内的细分标签（场地 row 用：JRA→中央 / NAR→地方），走 .wd 小字样式
+function chip(label, value, on, key, count, tag) {
   const badge = count != null ? `<small>${count}</small>` : "";
   const off = count === 0 && !on ? " off" : "";   // 已选中的 0 头 chip 不置灰（默认 JRA 今日无赛仍可选）
-  return `<button data-k="${key}" data-v="${esc(value)}" class="filter-chip${on ? " on" : ""}${off}">${esc(label)}${badge}</button>`;
+  const sub = tag ? `<i class="wd">${esc(tag)}</i>` : "";
+  return `<button data-k="${key}" data-v="${esc(value)}" class="filter-chip${on ? " on" : ""}${off}">${esc(label)}${sub}${badge}</button>`;
 }
 
 // 日期窗口：winStart 起 5 天；无数据日也展示并可点击（选中后表格为空态）
@@ -204,32 +207,66 @@ function syncUrl() {
   history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
 }
 
-// 场地 chips：全部 / JRA / NAR / 数据里出现的国家组码（动态，多选、带头数）
+// 场地 chips：全部 / 中央(JRA) / 地方(NAR) / 海外国家组码（动态，多选、带头数）
+// 分三段陈列（段间细竖线 + 「海外」组名）：中央·地方是日本国内，其余国家组码一律归海外
+const SCOPE_TAG = { JRA: "中央", NAR: "地方" };
+const isJpScope = (s) => s === "JRA" || s === "NAR";
 function renderScopes() {
   const counts = new Map();
   for (const r of allRows()) counts.set(r.scope, (counts.get(r.scope) ?? 0) + 1);
-  const rank = (s) => (s === "JRA" ? 0 : s === "NAR" ? 1 : 2);
-  const scopes = [...new Set(state.index.venues.map((v) => v.scope))].sort(
-    (a, b) => rank(a) - rank(b) || a.localeCompare(b)
-  );
+  const codes = [...new Set(state.index.venues.map((v) => v.scope))];
+  const jp = ["JRA", "NAR"].filter((s) => s === "JRA" || codes.includes(s));
+  const ov = codes.filter((s) => !isJpScope(s)).sort((a, b) => a.localeCompare(b));
+  const one = (sc) => chip(sc, sc, state.scope.has(sc), "scope", counts.get(sc) ?? 0, SCOPE_TAG[sc]);
   $("#scope-chips").innerHTML =
     chip("全部", "", state.scope.size === 0, "scope", null) +
-    scopes.map((sc) => chip(sc, sc, state.scope.has(sc), "scope", counts.get(sc) ?? 0)).join("");
+    `<i class="f-sep"></i>` + jp.map(one).join("") +
+    (ov.length ? `<i class="f-sep"></i><b class="f-glabel">海外</b>` + ov.map(one).join("") : "");
 }
 
-// 场：固定名单常驻（中央10 + 地方7）+ 有数据的海外场
+// 竞马场分组：中央 / 地方 / 海外[国家码]——只取当前「场地」选择下确实存在的场
+//   场地 = JRA → 仅中央 10 场；= NAR → 仅地方；含海外国家（FR / FR+GB / 多国）→ 仅这些国家的场
+//   （多国时一国一组，组名「海外 FR」）；场地 = 全部 → 三组全列
+// 切场地时 state.venues 已在 handler 里清空，不会残留不可见的选中场
+function venueGroups() {
+  const sel = state.scope, all = sel.size === 0;
+  const groups = [];
+  if (all || sel.has("JRA")) groups.push({ label: SCOPE_TAG.JRA, names: state.index.tracks.central });
+  if (all || sel.has("NAR")) groups.push({ label: SCOPE_TAG.NAR, names: state.index.tracks.local });
+  const byScope = new Map();
+  for (const v of state.index.venues) {
+    if (isJpScope(v.scope)) continue;                 // 中央 / 地方走上面固定名单（index 里只有当日有赛的场）
+    if (!all && !sel.has(v.scope)) continue;          // 未选中的国家不出场
+    let arr = byScope.get(v.scope);
+    if (!arr) byScope.set(v.scope, (arr = []));
+    if (!arr.includes(v.venue)) arr.push(v.venue);
+  }
+  const codes = [...byScope.keys()].sort((a, b) => a.localeCompare(b));
+  const sorted = (arr) => arr.slice().sort((a, b) => a.localeCompare(b));
+  // 选了多个国家 → 一国一组（组名「海外 FR」）；只选一个 / 场地=全部 → 合并成「海外」一组
+  if (codes.length > 1 && !all)
+    for (const c of codes) groups.push({ label: `海外 ${c}`, names: sorted(byScope.get(c)) });
+  else if (codes.length)
+    groups.push({ label: "海外", names: sorted(codes.flatMap((c) => byScope.get(c))) });
+  return groups;
+}
+
 function renderVenues() {
   const counts = new Map();
   for (const r of allRows()) counts.set(r.venue, (counts.get(r.venue) ?? 0) + 1);
-  const names = [
-    ...state.index.tracks.central,
-    ...state.index.tracks.local,
-    ...state.index.venues.filter((v) => v.scope !== "JRA" && v.scope !== "NAR").map((v) => v.venue).sort(),
-  ];
-  const seen = new Set();
-  const list = names.filter((n) => (seen.has(n) ? false : seen.add(n)));
-  $("#venue-chips").innerHTML = list
-    .map((n) => chip(n, n, state.venues.has(n), "venue", counts.get(n) ?? 0))
+  const groups = venueGroups();
+  if (!groups.length) {   // 手改 URL 传了不存在的国家组码时兜底
+    $("#venue-chips").innerHTML = `<span class="vg-empty">当前场地选择下没有可选竞马场</span>`;
+    return;
+  }
+  $("#venue-chips").innerHTML = groups
+    .map((g) => {
+      const seen = new Set();
+      const names = g.names.filter((n) => (seen.has(n) ? false : seen.add(n)));
+      return `<span class="vg"><b class="vg-k">${esc(g.label)}</b>` +
+        names.map((n) => chip(n, n, state.venues.has(n), "venue", counts.get(n) ?? 0)).join("") +
+        `</span>`;
+    })
     .join("");
 }
 

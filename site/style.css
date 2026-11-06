@@ -131,7 +131,8 @@ a { color: var(--primary); text-decoration: none; }
 .filter-card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px 16px 10px; box-shadow: 0 1px 3px rgba(var(--shadow-color), .04); }
 .filter-row { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; }
 .filter-label { flex: none; width: 64px; padding-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #8a8a8a; text-transform: uppercase; }
-.filter-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; align-items: center; }
+/* chips 间距：基准 6px，按 +20% 取 7.2px（filter-chips / 竞马场分组 / 快捷标签同步） */
+.filter-chips { display: flex; flex-wrap: wrap; gap: 7.2px; min-width: 0; align-items: center; }
 
 .filter-chip {
   display: inline-flex; align-items: center; height: 26px; padding: 0 11px;
@@ -149,9 +150,19 @@ a { color: var(--primary); text-decoration: none; }
 .filter-chip.off { opacity: .45; cursor: default; }
 .filter-chip.off:hover { border-color: var(--chip-border); background: var(--surface); color: var(--chip-fg); }
 
+/* 场地 row 分段：细竖线 + 「海外」组名（中央·地方 / 海外 三段一眼可分） */
+.f-sep { flex: none; width: 1px; height: 14px; background: var(--chip-border); margin: 0 3px; }
+.f-glabel { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #8a8a8a; margin-right: 1px; }
+
+/* 竞马场 chips 分组（中央 / 地方 / 海外[国家码]）：一组一行，组间虚线分隔，组名作左侧列 */
+.vg { display: flex; flex-wrap: wrap; align-items: center; gap: 7.2px; flex: 0 0 100%; min-width: 0; }
+.vg + .vg { margin-top: 2px; padding-top: 8px; border-top: 1px dashed var(--border-soft); }
+.vg-k { flex: none; width: 62px; font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #8a8a8a; white-space: nowrap; }
+.vg-empty { font-size: 11.5px; color: #b6b6b6; padding-top: 6px; }
+
 /* 血统快捷标签（点击 → 对应下拉选中；✕ 移除；＋当前 存标签） */
-.ped-tags { row-gap: 5px; }
-.qt-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ped-tags { row-gap: 6px; }
+.qt-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4.8px; }
 .qt-group + .qt-group { margin-left: 10px; }
 .qt-k { font-size: 11px; font-weight: 700; letter-spacing: .5px; color: #8a8a8a; margin-right: 2px; }
 .qt { cursor: pointer; }
@@ -653,6 +664,8 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
   .f-adv-btn { display: block; width: 100%; height: 34px; margin-top: 8px; border: 1px dashed var(--chip-border); border-radius: 8px; background: var(--card); color: var(--muted-foreground); font-size: 12px; cursor: pointer; transition: all .15s; }
   .f-adv-btn:hover { border-color: rgba(10, 167, 160, .55); color: var(--teal-ink, #0b6b64); background: #f7fdfd; }
   .filter-label { width: 52px; }
+  /* 竞马场组名 mb 不占固定列宽（窄屏省横向空间） */
+  .vg-k { width: auto; min-width: 22px; }
   /* chips 行拉满整行（搜索下拉/血统 chips 等 mb 惯例，同 yunji .f-csel） */
   .filter-chips { flex-grow: 1; }
   /* 日期行 mb：.f-strip（‹+chips+›）单行横滑占满首行，.f-quick（本周末/今天）换到第二行 */
