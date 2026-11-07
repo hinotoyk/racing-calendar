@@ -7,12 +7,27 @@
  *   一个挂载点 + 种马名，得到一个简洁的「该種牡馬产驹近期出走」结果视图。
  *   不照搬主站全功能页（无多维筛选卡/分享卡/CSV/Excel），只出结果。
  *
- * 视图（v1.2.0）= JBIS 出馬表式「按日期分组的表格」：
- *   「11月4日（水）」+ 绿色短线 → 表头 開催/レース名/芝ダ/距離/出走頭数/発走/
- *   枠番/馬番/出走馬/性齢/斤量/騎手 → 灰底表头、按场次交替底色、圆角边框。
- *   同一场比赛的多匹产驹共用一组 rowspan 场次单元格（= 出馬表原生读法）。
- *   v1.2.0 起：発走/性齢/斤量/騎手 由副行拆成独立列（PC 宽屏铺开），
- *   赛事名做显示层清洗（去「サラ系」前缀 / 去场次号前缀 / 超长欧美冠名只留类型短语）。
+ * 视图（v2.2.0）= **同一份数据的双形态 + 三档宽度自适应**（2026-11-07 定稿）：
+ *   宽容器再按宽度分三档（27 寸屏「太空洞」的反馈）：
+ *   · 头部带「全部 / JRA·中央 / NAR·地方 / 海外」分类 chips（2026-11-07）：纯前端过滤，
+ *     计数实时显示，**四个恒定展示**（0 条的也留着，点进去给空态）；状态存在挂载点上
+ *     （不写存储，刷新回到全部）。
+ *   · 头部带「全部 / JRA·中央 / NAR·地方 / 海外」分类 chips（2026-11-07）：纯前端过滤，
+ *     计数实时显示，**四个恒定展示**（0 条的也留着，点进去给空态）；状态存在挂载点上
+ *     （不写存储，刷新回到全部）。
+ *   · 档位：<720 卡片；720–1179 九列；≥1180 加「母父」列；≥1500 再加「調教師」列
+ *     —— 超宽屏把多出来的宽度换成信息，而不是把每列拉得更空；
+ *     字号/行距同步 fluid 放大（--re-k = clamp(1, w/1000, 1.3)，16px 级），密度不变但有分量。
+ *   · 宽容器（≥720px，PC）= 紧凑一览式的密表：比赛级 4 列按 rowspan 合并
+ *     （北京时间/场次/比赛名/赛道），逐马只占一行（枠番色块·馬名·性齢·斤量·騎手），
+ *     冷灰网格（表头浅灰 + 明细线 #f0f2f4 + 结构竖线 + 极浅斑马），无外框无圆角
+ *     —— 宿主卡片本身就是容器。
+ *   · 窄容器（<720px，MB）= 逐场卡片：一场一块（场次/北京时刻做条头，比赛名+赛道
+ *     一行，产驹每人两行），单列竖排。
+ *   ★ 为什么不用「收列」而用「换形态」：九列压进 390px 只能靠横滑或砍列，两者都难读；
+ *     卡片把「哪场 + 谁跑」摊成竖排，拇指滚动即可。
+ *   ★ 断点看**组件自身宽度**（ResizeObserver），不看视口——宿主有侧栏/90% 宽/卡片内距，
+ *     按视口算会误判（1024px 窗口实测曾把 11 列裁掉右半边）。
  *
  * 与 sire-rank-chart 的契约差异（有意为之）：出走表数据 = index + 逐日
  *   字典包多文件懒加载，编排成本不该转嫁给每个宿主 → 本组件自带 load()
@@ -28,7 +43,7 @@
  * API：
  *   RC_ENTRIES_EMBED.VERSION
  *   RC_ENTRIES_EMBED.load(base, opts)  → Promise<{dates, rows}>  数据编排（内存缓存）
- *   RC_ENTRIES_EMBED.render(el, data, opts)                      纯渲染
+ *   RC_ENTRIES_EMBED.render(el, data, opts)                      纯渲染（自适应形态）
  *   RC_ENTRIES_EMBED.mount(el, opts)   → Promise                load + render + 状态管理
  *
  * opts：
@@ -45,14 +60,15 @@
  *   单一出处 src/lib/rows-codec.mjs，内联副本改动必须同步该文件）。
  *
  * 视觉：亮色单主题；颜色走宿主 CSS 变量（--foreground/--muted-foreground/--border/
- *   --primary/--accent…，缺省回退 #0aa7a0 × shadcn Neutral 与本站同 token），
+ *   --primary/--card…，缺省回退 #0aa7a0 × shadcn Neutral 与本站同 token），
  *   与 friend-links.js 归一化变量同一做法——宿主换肤组件跟随。枠色/级别徽章 =
  *   JRA 官方枠色与 JBIS 徽章配色（数据语义，与主站 .waku/.yj-g* 同源写死）。
  * ============================================================ */
 (function () {
   "use strict";
 
-  var VERSION = "1.2.0";
+  var VERSION = "2.3.3";
+  var WIDE_MIN = 720;   /* 容器宽 ≥ 此值走九列密表，否则走逐场卡片 */
 
   /* ---------- 工具 ---------- */
   function esc(s) {
@@ -218,9 +234,9 @@
     return stripSponsor(s);
   }
 
-  /* ---------- 视觉素材（数据语义，与主站 .waku / .yj-g* 同源写死） ---------- */
+  /* ---------- 视觉素材（数据语义，与主站 share.js::drawDense / .waku 同源写死） ---------- */
   var WAKU = {
-    1: ["#ffffff", "#0a0a0a", "#b6bcc2"], 2: ["#26262a", "#ffffff"],
+    1: ["#ffffff", "#0a0a0a", "#c9ccd1"], 2: ["#26262a", "#ffffff"],
     3: ["#d0342c", "#ffffff"], 4: ["#2b62b0", "#ffffff"], 5: ["#f2c500", "#4a3b00"],
     6: ["#1e7d46", "#ffffff"], 7: ["#e8791e", "#ffffff"], 8: ["#ef8bab", "#8c2748"],
   };
@@ -228,91 +244,195 @@
     G1: "#d5302a", Jpn1: "#d5302a", JG1: "#d5302a", GI: "#d5302a",
     G2: "#0a3b7e", Jpn2: "#0a3b7e", JG2: "#0a3b7e", GII: "#0a3b7e",
     G3: "#087220", Jpn3: "#087220", JG3: "#087220", GIII: "#087220",
-    L: "#dca026", OP: "rgba(10,167,160,.15)", 地方重赏: "#c2318e",
+    L: "#dca026", OP: "#0aa7a0", 地方重赏: "#c2318e", 地方重賞: "#c2318e",
   };
-  var LEVEL_FG = { OP: "#0a7a75" };
-  /* 芝ダ列：芝=绿、ダ=褐、障=灰（与 JBIS 表内文字色同语义，弱化不抢眼） */
-  var SURF_FG = { 芝: "#0a7a3f", ダ: "#8a5a2b", 障: "#5c5c5c", AW: "#0a7a3f" };
+  var LEVEL_TXT = {
+    G1: "GⅠ", Jpn1: "JpnⅠ", JG1: "JGⅠ", G2: "GⅡ", Jpn2: "JpnⅡ", JG2: "JGⅡ",
+    G3: "GⅢ", Jpn3: "JpnⅢ", JG3: "JGⅢ", L: "L", OP: "OP",
+    地方重赏: "重賞", 地方重賞: "重賞",
+  };
+  var LEVEL_FG = { OP: "#ffffff", L: "#ffffff" };
+  /* 芝ダ列：芝=青绿墨、ダ=褐、障=绿（与 share.js::SURF_C 同色） */
+  var SURF_FG = { 芝: "#0b6b64", ダ: "#9a5b1f", 障: "#1e7d46", AW: "#0b6b64" };
+  /* 性別配色（与 share.js::SEX_C 同色） */
+  var SEX_FG = { 牡: "#2b62b0", 牝: "#c2318e", セ: "#0aa7a0" };
 
-  /* ---------- 样式（一次性注入；颜色走宿主 CSS 变量，缺省回退同站 token） ---------- */
+  /* ---------- 样式（一次性注入；颜色走宿主 CSS 变量，缺省回退同站 token） ----------
+   * 冷灰网格 token 与 share.js::drawDense 的 C_LINE/C_VLINE/C_ZEBRA/C_HEAD_LINE/C_RACE_LINE/
+   * C_DAY_LINE 一一对应，改色请两边同步（一眼看不出漂移，只有并排截图能发现）。 */
   var styleEl = null;
+  var SID = "rc-emb-style";
   function injectStyle() {
-    if (styleEl) return;
-    styleEl = document.createElement("style");
-    styleEl.id = "rc-emb-style";
+    if (styleEl && styleEl.parentNode) return;
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = SID;
+    }
     styleEl.textContent = [
-      ".rc-emb{--re-fg:var(--foreground,#171717);--re-muted:var(--muted-foreground,#737373);",
-      "--re-border:var(--border,#e5e5e5);--re-faint:var(--border-faint,#f0f0f0);",
-      "--re-primary:var(--primary,#0aa7a0);--re-accent:var(--accent,#e6f6f5);",
-      "--re-accent-fg:var(--accent-foreground,#0b6b64);--re-muted-bg:var(--muted,#f5f5f5);",
-      "--re-card:var(--card,#fff);",
-      "font-variant-numeric:tabular-nums;color:var(--re-fg)}",
+      ".rc-emb{--re-fg:var(--foreground,#131418);--re-body:var(--foreground,#40424a);",
+      "--re-muted:var(--muted-foreground,#7c8792);--re-border:var(--border,#e5e5e5);",
+      "--re-primary:var(--primary,#0aa7a0);--re-tealink:#0b6b64;--re-card:var(--card,#fff);",
+      "--re-headbg:var(--muted,#f3f5f7);--re-line:#f0f2f4;--re-vline:#eef1f4;--re-zebra:#fafbfc;",
+      "--re-headline:#dfe4e8;--re-racline:#e6eaee;--re-dayline:#cfd6dc;--re-soft:#f4f6f8;",
+      "font-variant-numeric:tabular-nums;color:var(--re-fg);",
+      "font-feature-settings:'palt' 1;letter-spacing:.002em}",
+      ".rc-emb *{box-sizing:border-box}",
+      /* 宿主常把内容放在 flex 布局里（yunji = 侧栏 + 主区），flex item 默认 min-width:auto
+         → 组件里任何 nowrap 长文本都会把整页撑宽（430px 手机实测溢出）。这里全部收到 0。 */
+      ".rc-emb{min-width:0}",
       ".rc-emb a{color:var(--re-primary)}",
       /* 头行 */
-      ".rc-emb-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-bottom:14px}",
-      ".rc-emb-title{font-size:14.5px;font-weight:700}",
-      ".rc-emb-sum{font-size:12.5px;color:var(--re-muted)}",
-      ".rc-emb-sum b{color:var(--re-primary);font-weight:600}",
-      ".rc-emb-tz{margin-left:3px;opacity:.8}",
-      ".rc-emb-home{margin-left:auto;font-size:11.5px;color:var(--re-muted)}",
+      ".rc-emb-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin-bottom:10px;min-width:0}",
+      ".rc-emb-title{font-size:calc(13.5px + (var(--re-k,1) - 1) * 6px);font-weight:700;",
+      "letter-spacing:.01em}",
+      ".rc-emb-sum{font-size:calc(12px + (var(--re-k,1) - 1) * 4px);color:var(--re-muted)}",
+      ".rc-emb-sum b{color:var(--re-primary);font-weight:600;margin:0 1px}",
+      ".rc-emb-sum i{font-style:normal;opacity:.75;margin:0 3px}",
+      ".rc-emb-home{margin-left:auto;font-size:11.5px;color:var(--re-muted);white-space:nowrap}",
       ".rc-emb-home a{color:var(--re-muted);text-decoration:none;border-bottom:1px dashed var(--re-border)}",
       ".rc-emb-home a:hover{color:var(--re-primary);border-bottom-color:var(--re-primary)}",
-      /* 日期分组头（「11月4日（水）」+ 绿色短线） */
-      ".rc-emb-day{margin-bottom:16px}",
-      ".rc-emb-day:last-child{margin-bottom:0}",
-      ".rc-emb-dayhead{display:flex;align-items:baseline;gap:0 5px;min-width:0}",
-      ".rc-emb-dayd{font-size:15px;font-weight:700;letter-spacing:.01em;white-space:nowrap}",
-      ".rc-emb-dayw{font-size:12.5px;font-weight:600;color:var(--re-muted);white-space:nowrap;margin-left:-3px}",
-      ".rc-emb-dayn{margin-left:auto;font-size:11.5px;color:var(--re-muted);white-space:nowrap}",
-      ".rc-emb-dayline{width:32px;height:2px;border-radius:1px;background:var(--re-primary);margin:6px 0 10px}",
-      /* 表格外框（容器过窄时横向滚动，保住出馬表列结构） */
-      ".rc-emb-scroll{overflow-x:auto;border:1px solid var(--re-border);border-radius:9px;",
-      "background:var(--re-card);-webkit-overflow-scrolling:touch}",
-      ".rc-emb-tbl{width:100%;min-width:700px;table-layout:fixed;border-collapse:separate;",
-      "border-spacing:0;font-size:13px}",
-      ".rc-emb-tbl th{background:var(--re-muted-bg);color:var(--re-muted);font-size:11.5px;font-weight:600;",
-      "padding:8px 7px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--re-border);",
-      "font-feature-settings:'palt' 1;letter-spacing:.01em}",
-      ".rc-emb-tbl th.c,.rc-emb-tbl td.c{text-align:center}",
-      ".rc-emb-tbl td{padding:8px 7px;border-top:1px solid var(--re-faint);vertical-align:middle}",
-      ".rc-emb-tbl tbody tr:first-child td{border-top:0}",
-      /* 按场次交替底色（rowspan 合并块整体同色，读起来是一场一段） */
-      ".rc-emb-tbl tr.alt td{background:rgba(10,167,160,.03)}",
-      ".rc-emb-tbl tbody tr:hover td{background:rgba(10,167,160,.065)}",
-      /* 開催 */
-      ".rc-emb-ven{display:block;font-size:13px;font-weight:600;white-space:nowrap;line-height:1.4}",
-      /* レース名 */
-      ".rc-emb-rname{font-size:13px;font-weight:600;line-height:1.45;word-break:break-word}",
-      ".rc-emb-rno{display:inline-block;min-width:25px;margin-right:6px;padding:0 4px;border-radius:4px;",
-      "background:var(--re-accent);color:var(--re-accent-fg);font-size:11px;font-weight:700;",
-      "text-align:center;vertical-align:1px}",
-      ".rc-emb-g{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:4px;font-size:10px;",
-      "font-weight:700;line-height:1.5;color:#fff;vertical-align:1px}",
-      /* 芝ダ / 距離 / 出走頭数 / 発走 */
-      ".rc-emb-surf{font-size:12.5px;font-weight:700}",
-      ".rc-emb-num2{font-size:12.5px;color:var(--re-fg)}",
-      ".rc-emb-time{font-size:13px;font-weight:600;color:var(--re-fg)}",
-      /* 枠番（JRA 枠色芯片） */
-      ".rc-emb-waku{display:inline-flex;width:19px;height:19px;align-items:center;justify-content:center;",
-      "border-radius:4px;font-size:10.5px;font-weight:700;line-height:1}",
-      /* 馬番 */
-      ".rc-emb-uma{font-size:13.5px;font-weight:600}",
-      /* 出走馬 */
-      ".rc-emb-hname{font-size:14px;font-weight:600;line-height:1.4;overflow:hidden;",
+      /* 赛事分类 chips（全部 / JRA·中央 / NAR·地方 / 海外）：跟在计数后面，宽屏一行、窄屏自动换行 */
+      ".rc-emb-scopes{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center;align-self:center;",
+      "margin-left:2px}",
+      ".rc-emb-scope{font-family:inherit;font-size:calc(11.5px * var(--re-k,1));line-height:1.75;",
+      "padding:0 9px;border-radius:999px;border:1px solid var(--re-border);background:transparent;",
+      "color:var(--re-body);cursor:pointer;white-space:nowrap;",
+      "transition:background .12s,border-color .12s,color .12s}",
+      ".rc-emb-scope b{font-weight:600;color:var(--re-muted);margin-left:4px;font-size:.92em}",
+      ".rc-emb-scope:hover{border-color:var(--re-primary);color:var(--re-tealink)}",
+      ".rc-emb-scope.is-zero{color:var(--re-muted)}",
+      ".rc-emb-scope.is-zero b{color:var(--re-muted);opacity:.7}",
+      ".rc-emb-scope.on{background:rgba(10,167,160,.10);border-color:rgba(10,167,160,.45);",
+      "color:var(--re-tealink)}",
+      ".rc-emb-scope.on b{color:var(--re-tealink)}",
+      /* ---------- 形态 A：九列密表（宽容器） ----------
+       * 所有字号/内距都乘 --re-k（1 → 1.3，由 paint() 按容器宽度写入）：
+       * 27 寸屏容器 1900px 时字体 12.5→16.25px、行高 29→38px，密度不变但视觉有分量。 */
+      ".rc-emb-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}",
+      ".rc-emb-tbl{width:100%;min-width:calc(680px * var(--re-k,1));table-layout:fixed;",
+      "border-collapse:separate;border-spacing:0;font-size:calc(12.5px * var(--re-k,1));line-height:1.35}",
+      ".rc-emb-tbl th{background:var(--re-headbg);color:var(--re-muted);",
+      "font-size:calc(11px * var(--re-k,1));font-weight:600;",
+      "padding:calc(6px * var(--re-k,1)) calc(8px * var(--re-k,1));text-align:left;white-space:nowrap;",
+      "border-bottom:1px solid var(--re-headline);letter-spacing:.02em}",
+      ".rc-emb-tbl th.c{text-align:center}",
+      /* 结构竖线：合并列区（时间/场次/比赛名/赛道）右缘 + 枠番列右缘，其余留白 */
+      ".rc-emb-tbl th.v{border-right:1px solid var(--re-vline)}",
+      ".rc-emb-tbl td{padding:calc(5px * var(--re-k,1)) calc(8px * var(--re-k,1));",
+      "vertical-align:middle;border-top:1px solid var(--re-line)}",
+      ".rc-emb-tbl td.c{text-align:center}",
+      /* 合并列顶端对齐：多匹产驹时时间/场次/比赛名贴首行，读者先看到「哪场」再往下看马 */
+      /* 合并列**垂直居中**（2026-11-07 用户反馈：宽表下顶端对齐时，两匹的场次左侧会空出
+         半块空白，很丑）。与分享卡 drawDense 的 midOf() 同口径 —— 比赛级信息落在整场的
+         视觉中心，一匹/两匹/四匹都不会出现"上方贴字、下方空白"的失衡。 */
+      ".rc-emb-tbl td.rs{border-top:0;border-right:1px solid var(--re-vline);vertical-align:middle}",
+      ".rc-emb-tbl td.wk{border-right:1px solid var(--re-vline)}",
+      /* 斑马：只刷逐马列（合并块内不穿色，与 drawDense 的 xPerRow 起刷同做法） */
+      ".rc-emb-tbl td.z{background:var(--re-zebra)}",
+      /* 比赛分隔线：每场首行整行加深（含合并单元格） */
+      ".rc-emb-tbl tr.rf td{border-top:1px solid var(--re-racline)}",
+      ".rc-emb-tbl tbody tr:hover td:not(.rs){background:rgba(10,167,160,.05)}",
+      /* 日期分组行（跨列）：teal 短竖条 + 「11月4日（水）」+ 右对齐头数 */
+      ".rc-emb-tbl th.rc-emb-daycell{padding:calc(15px * var(--re-k,1)) 2px calc(6px * var(--re-k,1));",
+      "background:transparent;border-bottom:0;border-top:1px solid var(--re-dayline);text-align:left}",
+      ".rc-emb-tbl tr.rc-emb-dayrow:first-child th.rc-emb-daycell{border-top:0;padding-top:2px}",
+      ".rc-emb-dayh{display:flex;align-items:baseline;gap:6px;border-bottom:1px solid var(--re-headline);",
+      "padding-bottom:calc(6px * var(--re-k,1))}",
+      ".rc-emb-dayd{display:flex;align-items:center;gap:7px;font-size:calc(13.5px * var(--re-k,1));",
+      "font-weight:700;color:var(--re-fg);white-space:nowrap;letter-spacing:.01em}",
+      ".rc-emb-dayd::before{content:'';width:3px;height:calc(12px * var(--re-k,1));border-radius:2px;",
+      "background:var(--re-primary)}",
+      ".rc-emb-dayw{font-size:calc(12px * var(--re-k,1));font-weight:600;color:var(--re-muted);",
+      "margin-left:-3px;white-space:nowrap}",
+      ".rc-emb-dayn{margin-left:auto;font-size:calc(11px * var(--re-k,1));font-weight:500;",
+      "color:var(--re-muted);white-space:nowrap;padding-right:4px}",
+      /* 北京时间 */
+      ".rc-emb-time{font-size:calc(12.5px * var(--re-k,1));font-weight:600;color:var(--re-tealink);",
+      "letter-spacing:.01em}",
+      /* 场次：场地名实心 + R 号弱化 */
+      /* 场次 = 「场地 + R 号」两段各自对齐（2026-11-07 用户要求「文字和文字、数字和数字对齐」）：
+         场地右对齐到同一列、R 号右对齐到同一列（最小 2.6ch 容下两位数），
+         于是 京都1R / 京都12R 的「R」落在同一条竖线上，不再因为多一位数字整体左移。 */
+      ".rc-emb-no{display:inline-grid;grid-template-columns:auto auto;column-gap:2px;",
+      "align-items:baseline;font-size:calc(12.5px * var(--re-k,1));font-weight:600;white-space:nowrap}",
+      ".rc-emb-no .v{text-align:right}",
+      ".rc-emb-no .n{text-align:right;min-width:3.2ch;font-size:calc(11px * var(--re-k,1));",
+      "color:var(--re-muted);letter-spacing:0}",
+      /* 比赛名 + 级别徽章（名字可省略，徽章永不挤出/压掉） */
+      ".rc-emb-rname{display:flex;align-items:center;gap:5px;min-width:0;",
+      "font-size:calc(13px * var(--re-k,1));font-weight:600;white-space:nowrap}",
+      ".rc-emb-rn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+      ".rc-emb-g{display:inline-block;flex:none;padding:1px 4px;border-radius:3px;",
+      "font-size:calc(9.5px * var(--re-k,1));font-weight:700;line-height:1.5;color:#fff}",
+      /* 赛道（芝/ダ/障 + 距离） */
+      ".rc-emb-dist{font-size:calc(12.5px * var(--re-k,1));font-weight:600;white-space:nowrap}",
+      /* 枠/番 单色块（块内写馬番，JRA 8 色；无枠番退化为灰块） */
+      ".rc-emb-waku{display:inline-flex;width:calc(26px * var(--re-k,1));height:calc(19px * var(--re-k,1));",
+      "align-items:center;justify-content:center;border-radius:4px;",
+      "font-size:calc(11px * var(--re-k,1));font-weight:700;line-height:1}",
+      ".rc-emb-waku.na{background:#eceff2;color:#9aa3ac}",
+      ".rc-emb-hname{font-size:calc(13px * var(--re-k,1));font-weight:600;overflow:hidden;",
       "text-overflow:ellipsis;white-space:nowrap}",
-      /* 性齢 / 斤量 / 騎手 */
-      ".rc-emb-age{font-size:12.5px;color:var(--re-muted);white-space:nowrap}",
-      ".rc-emb-wt{font-size:13px;color:var(--re-fg);white-space:nowrap}",
-      ".rc-emb-jk{font-size:12.5px;color:var(--re-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+      ".rc-emb-sex{font-size:calc(12.5px * var(--re-k,1));font-weight:600}",
+      ".rc-emb-age{font-size:calc(12px * var(--re-k,1));color:var(--re-muted);margin-left:1px}",
+      ".rc-emb-wt{font-size:calc(12.5px * var(--re-k,1));color:var(--re-body)}",
+      ".rc-emb-jk{font-size:calc(12.5px * var(--re-k,1));color:var(--re-body);",
+      "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}",
+      /* 超宽屏补充列（母父 / 調教師）：字号小半档 + 弱化色，主信息仍是馬名与比赛名 */
+      ".rc-emb-bms,.rc-emb-tr{font-size:calc(11.5px * var(--re-k,1));color:var(--re-muted);",
+      "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}",
+      /* ---------- 形态 B：逐场卡片（窄容器 / 手机） ---------- */
+      ".rc-emb-cards{display:flex;flex-direction:column;gap:9px;min-width:0}",
+      ".rc-emb-cday,.rc-emb-rc{min-width:0}",
+      /* 日期分隔（与表版同款：teal 短竖条 + 头数） */
+      ".rc-emb-cday{display:flex;align-items:baseline;gap:6px;margin:6px 0 1px;padding-bottom:5px;",
+      "border-bottom:1px solid var(--re-headline)}",
+      ".rc-emb-cday .d{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;",
+      "white-space:nowrap;letter-spacing:.01em}",
+      ".rc-emb-cday .d::before{content:'';width:3px;height:11px;border-radius:2px;background:var(--re-primary)}",
+      ".rc-emb-cday .w{font-size:11.5px;font-weight:600;color:var(--re-muted);margin-left:-2px}",
+      ".rc-emb-cday .n{margin-left:auto;font-size:11px;color:var(--re-muted);white-space:nowrap}",
+      /* 单场卡片 */
+      ".rc-emb-rc{border:1px solid var(--re-border);border-radius:10px;overflow:hidden;",
+      "background:var(--re-card)}",
+      /* 条头：场次 + 北京时间 */
+      ".rc-emb-rcband{display:flex;align-items:baseline;gap:8px;padding:6px 10px;",
+      "background:var(--re-soft);border-bottom:1px solid var(--re-line)}",
+      ".rc-emb-rcband .v{font-size:12px;font-weight:600;color:var(--re-body);min-width:0;",
+      "overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+      ".rc-emb-rcband .v i{font-style:normal;font-size:10.5px;color:var(--re-muted);margin-left:1px}",
+      ".rc-emb-rcband .tm{margin-left:auto;font-size:12px;font-weight:700;color:var(--re-tealink)}",
+      /* 比赛名 + 赛道 */
+      ".rc-emb-rcname{display:flex;align-items:center;gap:5px;padding:7px 10px 3px;min-width:0}",
+      ".rc-emb-rcname .rn{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;",
+      "white-space:nowrap;min-width:0}",
+      ".rc-emb-rcname .ds{margin-left:auto;flex:none;font-size:11px;font-weight:600;white-space:nowrap}",
+      /* 产驹行：第一行 枠番 + 馬名 + 性齢 + 斤量；第二行 騎手 + 母父 */
+      ".rc-emb-runs{padding:0 10px 7px}",
+      ".rc-emb-run{padding:5px 0;border-top:1px solid var(--re-line)}",
+      ".rc-emb-runs .rc-emb-run:first-child{border-top:0}",
+      ".rc-emb-run .l1{display:flex;align-items:center;gap:7px;min-width:0}",
+      ".rc-emb-run .l1 .hn{flex:1 1 auto;min-width:0;font-size:13px;font-weight:600;",
+      "overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+      ".rc-emb-run .l1 .rt{display:flex;align-items:baseline;gap:4px;flex:none}",
+      ".rc-emb-run .l1 .sa{font-size:11.5px;font-weight:600}",
+      ".rc-emb-run .l1 .ag{font-size:11.5px;color:var(--re-muted)}",
+      ".rc-emb-run .l1 .wt{flex:none;font-size:11.5px;color:var(--re-body)}",
+      ".rc-emb-run .l2{display:flex;align-items:baseline;gap:8px;margin-top:1px;padding-left:33px;",
+      "font-size:11px;color:var(--re-muted);min-width:0}",
+      ".rc-emb-run .l2 .jk{flex:1 1 auto;min-width:0;color:var(--re-body);overflow:hidden;",
+      "text-overflow:ellipsis;white-space:nowrap}",
+      ".rc-emb-run .l2 .bms{margin-left:auto;flex:0 1 auto;min-width:0;max-width:50%;overflow:hidden;",
+      "text-overflow:ellipsis;white-space:nowrap}",
       /* 折叠（最近一周） */
       ".rc-emb-past{margin-top:14px}",
       ".rc-emb-past>summary{cursor:pointer;list-style:none;font-size:11.5px;color:var(--re-muted);",
       "padding:7px 2px;border-top:1px dashed var(--re-border)}",
       ".rc-emb-past>summary::-webkit-details-marker{display:none}",
-      ".rc-emb-past>summary:hover{color:var(--re-accent-fg)}",
+      ".rc-emb-past>summary:hover{color:var(--re-primary)}",
       ".rc-emb-past>summary::before{content:'▸ ';font-size:10px}",
       ".rc-emb-past[open]>summary::before{content:'▾ '}",
-      ".rc-emb-past[open]>summary{border-bottom:1px dashed var(--re-border);margin-bottom:14px}",
+      ".rc-emb-past[open]>summary{border-bottom:1px dashed var(--re-border);margin-bottom:12px}",
       /* 状态 */
       ".rc-emb-state{display:flex;align-items:center;justify-content:center;gap:8px;",
       "padding:34px 16px;font-size:12.5px;color:var(--re-muted);text-align:center}",
@@ -323,198 +443,356 @@
       ".rc-emb-retry{border:1px solid var(--re-border);border-radius:8px;background:transparent;",
       "padding:4px 14px;font-size:12px;color:var(--re-fg);cursor:pointer;font-family:inherit}",
       ".rc-emb-retry:hover{border-color:var(--re-primary);color:var(--re-primary)}",
-      /* 窄容器：fit=1 收 芝ダ/距離/性齢/斤量，fit=2 再收 発走/騎手 →
-         只留 開催/レース名/枠番/馬番/出走馬（马名永不被挤出视口）。
-         注意：**不能用 @media**——组件挂在宿主 iframe 里，视口宽 ≠ 卡片内容宽
-         （宿主还要减去侧栏、90% 宽度、卡片内距），实测 1024px 窗口时按视口算会误判成「放得下」，
-         11 列被裁掉右半边。改用 ResizeObserver 量组件自身宽度后打 data-fit（见 fit()）。 */
-      '.rc-emb[data-fit="1"] .rc-emb-tbl,.rc-emb[data-fit="2"] .rc-emb-tbl{min-width:0;table-layout:auto}',
-      '.rc-emb[data-fit="1"] .rc-emb-tbl col,.rc-emb[data-fit="2"] .rc-emb-tbl col{width:auto!important}',
-      '.rc-emb[data-fit="1"] .nw1,.rc-emb[data-fit="2"] .nw1,.rc-emb[data-fit="2"] .nw2{display:none}',
-      '.rc-emb[data-fit="1"] .rc-emb-hname,.rc-emb[data-fit="2"] .rc-emb-hname{',
-      'white-space:normal;overflow:visible;text-overflow:clip}',
     ].join("");
     document.head.appendChild(styleEl);
   }
 
-  function wakuChip(f) {
-    var c = WAKU[f];
-    if (!c) return '<span class="rc-emb-num2">' + esc(f == null ? "" : f) + "</span>";
-    var bg = c[0], fg = c[1], line = c[2] ? "box-shadow:inset 0 0 0 1px " + c[2] + ";" : "";
-    return '<span class="rc-emb-waku" style="background:' + bg + ";color:" + fg + ";" + line + '">' +
-           esc(f) + "</span>";
+  /* 枠色块内写馬番（对齐分享卡 dense 定稿 A：一块只留一个数字） */
+  function wakuChip(frame, num) {
+    var c = WAKU[Number(frame)];
+    var t = num == null || num === "" ? "–" : num;
+    if (!c) return '<span class="rc-emb-waku na">' + esc(t) + "</span>";
+    var line = c[2] ? "box-shadow:inset 0 0 0 1px " + c[2] + ";" : "";
+    return '<span class="rc-emb-waku" style="background:' + c[0] + ";color:" + c[1] + ";" + line + '">' +
+           esc(t) + "</span>";
   }
   function levelBadge(level) {
     var bg = LEVEL_BG[level];
     if (!bg) return "";
     var fg = LEVEL_FG[level] || "#ffffff";
-    return '<span class="rc-emb-g" style="background:' + bg + ";color:" + fg + '">' + esc(level) + "</span>";
+    return '<span class="rc-emb-g" style="background:' + bg + ";color:" + fg + '">' +
+           esc(LEVEL_TXT[level] || level) + "</span>";
   }
 
   /* ---------- 渲染 ---------- */
   function raceKey(r) { return r.raceKey || (r.date + "|" + r.venue + "|" + (r.raceNo ?? "")); }
 
-  /* nw1 = ≤1080px 收起；nw2 = ≤620px 再收起。场次列（rowspan 组）在前，马列在后。
-     v1.2.1：発走 提到レース名 之后（时刻紧挨场次，符合读表顺序）；「出走頭数」删去
-     （对「看这匹马跑哪场」无信息量，且挤占字号空间）。 */
-  var COLS = [
-    { k: "開催", cls: "" },
-    { k: "レース名", cls: "" },
-    { k: "発走", cls: "c", nw: 2 },
-    { k: "芝ダ", cls: "c", nw: 1 },
-    { k: "距離", cls: "c", nw: 1 },
-    { k: "枠番", cls: "c" },
-    { k: "馬番", cls: "c" },
-    { k: "出走馬", cls: "" },
-    { k: "性齢", cls: "c", nw: 1 },
-    { k: "斤量", cls: "c", nw: 1 },
-    { k: "騎手", cls: "", nw: 2 },
+  /* 赛事分类：JRA=中央 / NAR=地方 / 其余（含国家组码 GB·IRE·FR·USA 与「海外」）= 海外。
+     与主站筛选卡的「场地」三段同口径（src/race-config.js::scopeOfVenue / countryGroupOf）。 */
+  function scopeOf(r) {
+    var s = String(r.scope || "");
+    return s === "JRA" ? "jra" : s === "NAR" ? "nar" : "ov";
+  }
+  var SCOPES = [
+    { k: "all", label: "全部" },
+    { k: "jra", label: "JRA·中央" },
+    { k: "nar", label: "NAR·地方" },
+    { k: "ov", label: "海外" },
   ];
-  /* 列宽（table-layout:fixed 下按百分比分配，合计 100%；min-width 720px 兜底） */
-  var COLW = ["7%", "19%", "7.5%", "5.5%", "6.5%", "5.5%", "5.5%", "20%", "5.5%", "7%", "11%"];
 
-  function colClass(c) {
-    return [c.cls, c.nw === 1 ? "nw1" : c.nw === 2 ? "nw2" : ""].filter(Boolean).join(" ");
-  }
-
-  /* 一个日期 → 一张表（场次按时间升序；同场多匹产驹共用一个 rowspan 块） */
-  function dayTable(date, weekday, rows) {
-    var races = [], map = {};
-    rows.forEach(function (r) {
-      var k = raceKey(r);
-      if (!map[k]) { map[k] = { rows: [] }; races.push(map[k]); }
-      map[k].rows.push(r);
-    });
-
-    var body = "";
-    races.forEach(function (race, ri) {
-      var alt = ri % 2 === 1 ? " alt" : "";
-      race.rows.forEach(function (r, i) {
-        body += "<tr" + alt + ">";
-        if (i === 0) {
-          var span = ' rowspan="' + race.rows.length + '"';
-          var surf = String(r.surface || "");
-          body +=
-            "<td" + span + '><span class="rc-emb-ven">' + esc(r.venue || "—") + "</span></td>" +
-            "<td" + span + '><div class="rc-emb-rname">' +
-              '<span class="rc-emb-rno">' + esc(r.raceNo ?? "") + "R</span>" +
-              esc(cleanRaceName(r.raceName)) + levelBadge(r.level) +
-            "</div></td>" +
-            '<td class="c nw2"' + span + '><span class="rc-emb-time">' + esc(bjTime(r.startTimeInstant)) + "</span></td>" +
-            '<td class="c nw1"' + span + '><span class="rc-emb-surf" style="color:' +
-              esc(SURF_FG[surf] || "inherit") + '">' + esc(surf || "—") + "</span></td>" +
-            '<td class="c nw1"' + span + '><span class="rc-emb-num2">' + esc(r.distance ?? "—") + "</span></td>";
-        }
-        body +=
-          '<td class="c">' + wakuChip(r.frame) + "</td>" +
-          '<td class="c"><span class="rc-emb-uma">' + esc(r.num ?? "") + "</span></td>" +
-          '<td><div class="rc-emb-hname" title="' + esc(r.horseName || "") + '">' + esc(r.horseName || "") + "</div></td>" +
-          '<td class="c nw1"><span class="rc-emb-age">' +
-            esc((r.sex || "") + (r.age != null ? r.age : "")) + "</span></td>" +
-          '<td class="c nw1"><span class="rc-emb-wt">' +
-            (r.weight != null ? esc(r.weight) + "kg" : "") + "</span></td>" +
-          '<td class="nw2"><span class="rc-emb-jk">' + esc(r.jockey || "") + "</span></td>" +
-          "</tr>";
-      });
-    });
-
-    return '<div class="rc-emb-day">' +
-      '<div class="rc-emb-dayhead">' +
-        '<span class="rc-emb-dayd">' + esc(mdJP(date)) + "</span>" +
-        (weekday ? '<span class="rc-emb-dayw">（' + esc(weekday) + "）</span>" : "") +
-        '<span class="rc-emb-dayn">' + rows.length + " 頭 / " + races.length + " R</span>" +
-      "</div>" +
-      '<div class="rc-emb-dayline"></div>' +
-      '<div class="rc-emb-scroll"><table class="rc-emb-tbl">' +
-        "<colgroup>" + COLW.map(function (w) {
-          return '<col style="width:' + w + '">';
-        }).join("") + "</colgroup>" +
-        "<thead><tr>" + COLS.map(function (c) {
-          var cls = colClass(c);
-          return "<th" + (cls ? ' class="' + cls + '"' : "") + ">" + esc(c.k) + "</th>";
-        }).join("") + "</tr></thead>" +
-        "<tbody>" + body + "</tbody>" +
-      "</table></div>" +
-    "</div>";
-  }
-
-  /* 行集 → 按日期分组的多张表（保持时间升序） */
-  function dayTables(rows) {
+  /* 按日期分组（两份形态共用）：[{date, weekday, rows, races:[{rows:[…]}]}] */
+  function groupByDate(rows) {
     var order = [], byDate = {};
     rows.forEach(function (r) {
       var d = r.date || "";
-      if (!byDate[d]) { byDate[d] = { weekday: r.weekday || "", rows: [] }; order.push(d); }
-      byDate[d].rows.push(r);
+      if (!byDate[d]) { byDate[d] = { date: d, weekday: r.weekday || "", rows: [], races: [], _m: {} }; order.push(d); }
+      var day = byDate[d];
+      day.rows.push(r);
+      var k = raceKey(r);
+      if (!day._m[k]) { day._m[k] = { rows: [] }; day.races.push(day._m[k]); }
+      day._m[k].rows.push(r);
     });
-    return order.map(function (d) {
-      return dayTable(d, byDate[d].weekday, byDate[d].rows);
-    }).join("");
+    return order.map(function (d) { return byDate[d]; });
+  }
+
+  /* ================= 形态 A：九列密表（宽容器） =================
+   * 2026-11-07：27 寸屏反馈「太空洞」→ 加两层自适应：
+   *   ① 字号/行距随容器宽度 fluid 放大（--re-k：1000px 起 1 → 1400px 封顶 1.3，见 paint()）；
+   *   ② 超宽屏把多出来的宽度**换成信息**而不是留白：≥1180px 加「母父」列，≥1500px 再加「調教師」列。
+   *      （父是常量——宿主就是按 sire 筛的，永不出现。）
+   * 列宽按档位给出百分比（每档合计 100%），table-layout:fixed 下不会被撑爆。 */
+  var COLS_TIERS = [
+    [ /* tier 0（720–1179）：基础九列 */
+      { k: "time", label: "北京时间", cls: "c v", w: 8.5 },
+      { k: "no",   label: "场次",     cls: "c v", w: 8.5 },
+      { k: "rn",   label: "比赛名",   cls: "v",   w: 26.5 },
+      { k: "ds",   label: "赛道",     cls: "c v", w: 7.5 },
+      { k: "wk",   label: "枠番",     cls: "c v", w: 7 },
+      { k: "hn",   label: "馬名",     cls: "",    w: 19 },
+      { k: "sa",   label: "性齢",     cls: "c",   w: 6.5 },
+      { k: "wt",   label: "斤量",     cls: "c",   w: 6.5 },
+      { k: "jk",   label: "騎手",     cls: "",    w: 10 },
+    ],
+    [ /* tier 1（≥1180）：补「母父」 */
+      { k: "time", label: "北京时间", cls: "c v", w: 8.5 },
+      { k: "no",   label: "场次",     cls: "c v", w: 8.5 },
+      { k: "rn",   label: "比赛名",   cls: "v",   w: 20 },
+      { k: "ds",   label: "赛道",     cls: "c v", w: 7 },
+      { k: "wk",   label: "枠番",     cls: "c v", w: 6.5 },
+      { k: "hn",   label: "馬名",     cls: "",    w: 16 },
+      { k: "sa",   label: "性齢",     cls: "c",   w: 6 },
+      { k: "wt",   label: "斤量",     cls: "c",   w: 6 },
+      { k: "jk",   label: "騎手",     cls: "",    w: 8 },
+      { k: "bms",  label: "母父",     cls: "",    w: 13.5 },
+    ],
+    [ /* tier 2（≥1500）：再补「調教師」 */
+      { k: "time", label: "北京时间", cls: "c v", w: 8 },
+      { k: "no",   label: "场次",     cls: "c v", w: 8 },
+      { k: "rn",   label: "比赛名",   cls: "v",   w: 16.5 },
+      { k: "ds",   label: "赛道",     cls: "c v", w: 6.5 },
+      { k: "wk",   label: "枠番",     cls: "c v", w: 6 },
+      { k: "hn",   label: "馬名",     cls: "",    w: 14.5 },
+      { k: "sa",   label: "性齢",     cls: "c",   w: 5.5 },
+      { k: "wt",   label: "斤量",     cls: "c",   w: 5.5 },
+      { k: "jk",   label: "騎手",     cls: "",    w: 7.5 },
+      { k: "bms",  label: "母父",     cls: "",    w: 11.5 },
+      { k: "tr",   label: "調教師",   cls: "",    w: 10.5 },
+    ],
+  ];
+  /* 容器宽 → 档位（与字号档同步，见 widthMeta()） */
+  function tierOf(w) { return w >= 1500 ? 2 : w >= 1180 ? 1 : 0; }
+
+  function tableHead(cols) {
+    return "<colgroup>" + cols.map(function (c) {
+      return '<col style="width:' + c.w + '%">';
+    }).join("") + "</colgroup>" +
+    "<thead><tr>" + cols.map(function (c) {
+      return "<th" + (c.cls ? ' class="' + c.cls + '"' : "") + ">" + esc(c.label) + "</th>";
+    }).join("") + "</tr></thead>";
+  }
+
+  /* 行集 → 连续 tbody 行（斑马按逐马行全局奇偶；parity 跨日累加，换日处不断色） */
+  function tableBody(rowsId, cols) {
+    var hasBms = false, hasTr = false;
+    cols.forEach(function (c) { if (c.k === "bms") hasBms = true; if (c.k === "tr") hasTr = true; });
+    var html = "", parity = 0;
+    groupByDate(rowsId).forEach(function (day) {
+      html += '<tr class="rc-emb-dayrow"><th class="rc-emb-daycell" colspan="' + cols.length + '">' +
+        '<div class="rc-emb-dayh">' +
+          '<span class="rc-emb-dayd">' + esc(mdJP(day.date)) + "</span>" +
+          (day.weekday ? '<span class="rc-emb-dayw">（' + esc(day.weekday) + "）</span>" : "") +
+          '<span class="rc-emb-dayn">' + day.rows.length + " 頭 / " + day.races.length + " R</span>" +
+        "</div></th></tr>";
+
+      day.races.forEach(function (race, ri) {
+        var n = race.rows.length;
+        race.rows.forEach(function (r, i) {
+          var z = parity++ % 2 ? " z" : "";
+          var first = i === 0;
+          /* rf = 本场首行（整行加深分隔线）；本日第一场不加（上面紧跟日期行） */
+          html += "<tr" + (first && ri > 0 ? ' class="rf"' : "") + ">";
+          if (first) {
+            var span = ' rowspan="' + n + '"';
+            var surf = String(r.surface || "");
+            var dist = (surf || "") + (r.distance != null ? r.distance : "");
+            html +=
+              '<td class="c rs"' + span + '><span class="rc-emb-time">' + esc(bjTime(r.startTimeInstant) || "–") + "</span></td>" +
+              '<td class="c rs"' + span + '><span class="rc-emb-no">' +
+                '<span class="v">' + esc(r.venue || "–") + "</span>" +
+                (r.raceNo != null ? '<span class="n">' + esc(r.raceNo) + "R</span>" : "") + "</span></td>" +
+              '<td class="rs"' + span + '><div class="rc-emb-rname" title="' + esc(r.raceName || "") + '">' +
+                '<span class="rc-emb-rn">' + esc(cleanRaceName(r.raceName) || "–") + "</span>" +
+                levelBadge(r.level) + "</div></td>" +
+              '<td class="c rs"' + span + '><span class="rc-emb-dist" style="color:' +
+                esc(SURF_FG[surf] || "inherit") + '">' + esc(dist || "–") + "</span></td>";
+          }
+          var sex = r.sex || "";
+          var bms = String(r.bms || ""), tr = String(r.trainer || "");
+          /* 斑马只刷逐马列：合并列（rs，纵向跨整场）不参与，否则同一场会被切成两种底色 */
+          html +=
+            '<td class="c wk' + z + '">' + wakuChip(r.frame, r.num) + "</td>" +
+            '<td class="' + (z ? "z" : "") + '"><div class="rc-emb-hname" title="' + esc(r.horseName || "") + '">' +
+              esc(r.horseName || "") + "</div></td>" +
+            '<td class="c' + z + '"><span class="rc-emb-sex" style="color:' + esc(SEX_FG[sex] || "inherit") + '">' +
+              esc(sex) + '</span><span class="rc-emb-age">' + esc(r.age != null ? r.age : "") + "</span></td>" +
+            '<td class="c' + z + '"><span class="rc-emb-wt">' +
+              (r.weight != null ? esc(r.weight) : "–") + "</span></td>" +
+            '<td class="' + (z ? "z" : "") + '"><span class="rc-emb-jk" title="' + esc(r.jockey || "") + '">' +
+              esc(r.jockey || "") + "</span></td>" +
+            (hasBms ? '<td class="' + (z ? "z" : "") + '"><span class="rc-emb-bms" title="' + esc(bms) + '">' +
+              esc(bms || "—") + "</span></td>" : "") +
+            (hasTr ? '<td class="' + (z ? "z" : "") + '"><span class="rc-emb-tr" title="' + esc(tr) + '">' +
+              esc(tr || "—") + "</span></td>" : "") +
+            "</tr>";
+        });
+      });
+    });
+    return html;
+  }
+
+  function tableHTML(rows, tier) {
+    var cols = COLS_TIERS[tier] || COLS_TIERS[0];
+    return '<div class="rc-emb-scroll"><table class="rc-emb-tbl">' + tableHead(cols) +
+      "<tbody>" + tableBody(rows, cols) + "</tbody></table></div>";
+  }
+
+  /* ================= 形态 B：逐场卡片（窄容器） ================= */
+  function cardsHTML(rows) {
+    var html = '<div class="rc-emb-cards">';
+    groupByDate(rows).forEach(function (day) {
+      html += '<div class="rc-emb-cday"><span class="d">' + esc(mdJP(day.date)) + "</span>" +
+        (day.weekday ? '<span class="w">（' + esc(day.weekday) + "）</span>" : "") +
+        '<span class="n">' + day.rows.length + " 頭 / " + day.races.length + " R</span></div>";
+
+      day.races.forEach(function (race) {
+        var r0 = race.rows[0];
+        var surf = String(r0.surface || "");
+        var dist = (surf || "") + (r0.distance != null ? r0.distance : "");
+        html += '<div class="rc-emb-rc">' +
+          '<div class="rc-emb-rcband">' +
+            '<span class="v">' + esc(r0.venue || "–") +
+              (r0.raceNo != null ? "<i>" + esc(r0.raceNo) + "R</i>" : "") + "</span>" +
+            '<span class="tm">' + esc(bjTime(r0.startTimeInstant) || "–") + "</span>" +
+          "</div>" +
+          '<div class="rc-emb-rcname">' +
+            '<span class="rn" title="' + esc(r0.raceName || "") + '">' + esc(cleanRaceName(r0.raceName) || "–") + "</span>" +
+            levelBadge(r0.level) +
+            '<span class="ds" style="color:' + esc(SURF_FG[surf] || "inherit") + '">' + esc(dist || "–") + "</span>" +
+          "</div>" +
+          '<div class="rc-emb-runs">' +
+            race.rows.map(function (r) {
+              var sex = r.sex || "";
+              var bms = String(r.bms || "");
+              return '<div class="rc-emb-run">' +
+                '<div class="l1">' + wakuChip(r.frame, r.num) +
+                  '<span class="hn" title="' + esc(r.horseName || "") + '">' + esc(r.horseName || "") + "</span>" +
+                  '<span class="rt">' +
+                    '<span class="sa" style="color:' + esc(SEX_FG[sex] || "inherit") + '">' + esc(sex) + "</span>" +
+                    '<span class="ag">' + esc(r.age != null ? r.age : "") + "</span>" +
+                    '<span class="wt">' + (r.weight != null ? esc(r.weight) : "–") + "</span>" +
+                  "</span>" +
+                "</div>" +
+                '<div class="l2"><span class="jk">' + esc(r.jockey || "") + "</span>" +
+                  (bms ? '<span class="bms" title="母父 ' + esc(bms) + '">母父 ' + esc(bms) + "</span>" : "") +
+                "</div>" +
+              "</div>";
+            }).join("") +
+          "</div>" +
+        "</div>";
+      });
+    });
+    return html + "</div>";
   }
 
   /* 所有输出统一套 .rc-emb 容器——CSS 变量（--re-*）定义在它身上，
-     少了这层包裹 var(--re-primary) 等全部失效（绿线/灰表头/边框会凭空消失） */
-  function setHTML(el, inner) {
-    el.innerHTML = '<div class="rc-emb">' + inner + "</div>";
-    fit(el);
-  }
+     少了这层包裹 var(--re-primary) 等全部失效（短线/灰表头/框线会凭空消失） */
+  function wrap(inner) { return '<div class="rc-emb">' + inner + "</div>"; }
 
-  /* 按组件自身宽度打收起档位（不依赖宿主视口）：
-     ≥700 全列（11 列 fixed 布局） / 560–700 收 4 列 / <560 再收 2 列 */
-  function fit(el) {
-    var root = el.firstElementChild;
-    if (!root) return;
+  /* 容器宽度 → 形态/档位/字号系数。宿主有侧栏/90% 宽/卡片内距，
+     必须量自身宽度，不能看视口（无 @media）。
+     · mode：<720 走卡片，否则走密表
+     · tier：0 = 九列 / 1（≥1180）= 加母父 / 2（≥1500）= 再加調教師
+     · k：字号与行距系数，1000px 起 1，1400px 封顶 1.3（27 寸屏上 12.5px 太小的反馈） */
+  function widthMeta(el) {
     var w = el.clientWidth || 0;
-    root.setAttribute("data-fit", w < 560 ? "2" : w < 700 ? "1" : "0");
-  }
-  var ro = null;
-  function observe(el) {
-    if (typeof ResizeObserver === "undefined") return;
-    if (!ro) {
-      ro = new ResizeObserver(function (entries) {
-        for (var i = 0; i < entries.length; i++) fit(entries[i].target);
-      });
-    }
-    ro.observe(el);
+    if (!w && el.parentNode) w = el.parentNode.clientWidth || 0;
+    if (!w) return { w: 0, mode: "table", tier: 0, k: 1 };   /* 量不到时按 PC 处理，ResizeObserver 会纠正 */
+    return {
+      w: w,
+      mode: w < WIDE_MIN ? "cards" : "table",
+      tier: w < WIDE_MIN ? 0 : tierOf(w),
+      k: Math.min(1.3, Math.max(1, w / 1000)),
+    };
   }
 
-  function render(el, data, opts) {
-    opts = opts || {};
-    injectStyle();
+  function paint(el) {
+    var st = el.__rc;
+    if (!st) return;
+    var data = st.data, opts = st.opts;
     var rows = data.rows || [];
     var sire = data.sire || "";
     var base = data.base || "";
+    var M = widthMeta(el);
+    el.__rcMode = M.mode + "|" + M.tier;
+
+    /* ---- 赛事分类过滤（中央 / 地方 / 海外）：纯前端过滤，不重新取数、不写存储 ---- */
+    var scope = el.__rcScope || "all";
+    var counts = { all: rows.length, jra: 0, nar: 0, ov: 0 };
+    rows.forEach(function (r) { counts[scopeOf(r)]++; });
+    el.__rcScope = scope;   /* 允许选中 0 条的分类（如海外），此时给出对应的空态而不是偷偷切回全部 */
+    var rowsF = scope === "all" ? rows : rows.filter(function (r) { return scopeOf(r) === scope; });
+
     var nR = 0, seen = {};
-    rows.forEach(function (r) { var k = raceKey(r); if (!seen[k]) { seen[k] = 1; nR++; } });
+    rowsF.forEach(function (r) { var k = raceKey(r); if (!seen[k]) { seen[k] = 1; nR++; } });
 
     var title = opts.title || (sire ? sire + " 产驹 · 近期出走" : "出走表 · 近期出走");
+    /* 四个分类恒定展示（2026-11-07 用户要求：海外没有比赛也要有按钮）。
+       计数为 0 的照样可点 —— 点进去是「暂无…」空态，比按钮直接消失更好理解。 */
+    var scopeHTML = rows.length
+      ? '<span class="rc-emb-scopes">' + SCOPES.map(function (x) {
+          return '<button type="button" class="rc-emb-scope' + (x.k === scope ? " on" : "") +
+            (counts[x.k] === 0 ? " is-zero" : "") +
+            '" data-scope="' + x.k + '">' + esc(x.label) +
+            "<b>" + counts[x.k] + "</b></button>";
+        }).join("") + "</span>"
+      : "";
     var h = '<div class="rc-emb-head">' +
       '<span class="rc-emb-title">' + esc(title) + "</span>" +
-      '<span class="rc-emb-sum">共 <b>' + rows.length + "</b> 頭 · " + nR + " R" +
-        '<span class="rc-emb-tz">· 北京時刻</span></span>' +
+      '<span class="rc-emb-sum">共 <b>' + rowsF.length + "</b> 頭<i>·</i>" + nR + " R</span>" +
+      scopeHTML +
       (opts.link !== false && base
         ? '<span class="rc-emb-home"><a href="' + esc(base + "/") + '" target="_blank" rel="noopener">Racing Calendar ↗</a></span>'
         : "") +
       "</div>";
 
-    if (!rows.length) {
-      h += '<div class="rc-emb-state"><div>窗口期内暂无' + (sire ? esc(sire) + " 产驹" : "") + "的出走记录" +
-        "<small>出馬表通常在开赛前 1–2 日公开；也可到 Racing Calendar 查看完整窗口</small></div></div>";
-      setHTML(el, h);
+    if (!rowsF.length) {
+      var scopeName = (SCOPES.filter(function (x) { return x.k === scope; })[0] || {}).label || "";
+      h += '<div class="rc-emb-state"><div>窗口期内暂无' + (sire ? esc(sire) + " 产驹" : "") +
+        (scope !== "all" ? "在" + esc(scopeName) + "的" : "的") + "出走记录</div></div>";
+      el.innerHTML = wrap(h);
       return;
     }
 
     var today = todayBJ();
-    var futureRows = rows.filter(function (r) { return r.date >= today; });
-    var pastRows = rows.filter(function (r) { return r.date < today; });
+    var futureRows = rowsF.filter(function (r) { return r.date >= today; });
+    var pastRows = rowsF.filter(function (r) { return r.date < today; });
+    var build = M.mode === "cards"
+      ? cardsHTML
+      : function (rs) { return tableHTML(rs, M.tier); };
 
-    h += futureRows.length ? dayTables(futureRows) : "";
+    if (futureRows.length) h += build(futureRows);
     if (pastRows.length) {
       var first = pastRows[0].date, last = pastRows[pastRows.length - 1].date;
       h += '<details class="rc-emb-past"><summary>最近一周 ' + pastRows.length + " 頭（" +
         esc(mdJP(first)) + " ~ " + esc(mdJP(last)) + "）</summary>" +
-        dayTables(pastRows) + "</details>";
+        build(pastRows) + "</details>";
     }
-    setHTML(el, h);
+    el.innerHTML = wrap(h);
+    /* 字号/行距系数写在容器上，CSS 用 calc(--re-k * Npx) 放大（卡片形态 k 恒为 1） */
+    var root = el.firstElementChild;
+    if (root && M.k > 1) root.style.setProperty("--re-k", M.k.toFixed(3));
+  }
+
+  /* 分类 chips 的点击：事件委托挂在挂载点本身，paint() 重建 innerHTML 后依然有效 */
+  function wire(el) {
+    if (el.__rcWired) return;
+    el.__rcWired = true;
+    el.addEventListener("click", function (e) {
+      var t = e.target;
+      while (t && t !== el && !(t.getAttribute && t.getAttribute("data-scope"))) t = t.parentNode;
+      if (!t || t === el) return;
+      var k = t.getAttribute("data-scope");
+      if (!k || k === el.__rcScope) return;
+      el.__rcScope = k;
+      paint(el);
+    });
+  }
+
+  function render(el, data, opts) {
+    injectStyle();
+    wire(el);
+    el.__rc = { data: data, opts: opts || {} };
+    paint(el);
+  }
+
+  /* 只监听「自身宽度跨过断点」：同形态内的尺寸变化不需要重绘 */
+  var ro = null;
+  function observe(el) {
+    if (typeof ResizeObserver === "undefined") return;
+    if (!ro) {
+      ro = new ResizeObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          var t = entries[i].target;
+          if (!t.__rc) continue;
+          var M = widthMeta(t);
+          if (t.__rcMode !== M.mode + "|" + M.tier) { paint(t); continue; }
+          /* 档位没变、只是宽度变了：只更新字号系数，不必重排 DOM */
+          var root = t.firstElementChild;
+          if (root) root.style.setProperty("--re-k", M.k.toFixed(3));
+        }
+      });
+    }
+    ro.observe(el);
   }
 
   /* ---------- mount（load + render + 状态管理；宿主一行挂载） ---------- */
@@ -523,15 +801,17 @@
     injectStyle();
     var base = String(opts.base || "").replace(/\/+$/, "");
     observe(el);
-    setHTML(el, '<div class="rc-emb-state"><span class="rc-emb-spin"></span>出走表加载中…</div>');
+    wire(el);
+    el.innerHTML = wrap('<div class="rc-emb-state"><span class="rc-emb-spin"></span>出走表加载中…</div>');
     return load(base, opts).then(function (data) {
       render(el, data, opts);
       return data;
     }).catch(function (e) {
-      setHTML(el, '<div class="rc-emb-state"><div>出走表暂时加载失败（' + esc(e.message || e) + "）" +
+      el.innerHTML = wrap('<div class="rc-emb-state"><div>出走表暂时加载失败（' + esc(e.message || e) + "）" +
         '<small>Racing Calendar 可能正在部署或网络不可达</small>' +
         '<button type="button" class="rc-emb-retry">重试</button></div></div>');
-      el.querySelector(".rc-emb-retry").addEventListener("click", function () { mount(el, opts); });
+      var btn = el.querySelector(".rc-emb-retry");
+      if (btn) btn.addEventListener("click", function () { mount(el, opts); });
       throw e;
     });
   }

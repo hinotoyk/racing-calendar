@@ -206,9 +206,14 @@ function draw(scale, races, extras) {
   else drawCards(scale, races, extras);
 }
 
-/* ================= 版式 A · 分卡（每场一块，2026-10-29 定稿） ================= */
+/* ================= 版式 A · 分卡（每场一块；块头 2026-11-07 改单行头） ================= */
 function drawCards(scale, races, extras) {
-  const MAST_H = CUR.MAST_H, HEAD_H = CUR.HEAD_H;
+  const MAST_H = CUR.MAST_H;
+  /* 块头高度：两行左对齐块（行1 名字 / 行2 meta），仍比原两行头（74）省 16px/场 */
+  const HEAD_H = 58;
+  /* 块头几何（drawing 与 H 累加共用，改一处必须同步）：
+     by+3..by+39  青绿竖条；by+19 行1基线；by+37 行2基线；by+45 hairline；by+58 表格顶 */
+  const HD_BAR_Y = 3, HD_BAR_H = 36, HD_BASE1 = 19, HD_BASE2 = 37, HD_LINE = 45;
   const ROW_H = CUR.ROW_H ?? 36, COLH = CUR.COLH ?? 27;   // 行高/表头高随主题（紧凑/舒展版式用）
   const GAP = CUR.GAP ?? 26;   // 块间距随主题（开放表用更大留白）
   const fs = CUR.fs ?? { head: 10, horse: 16, body: 13.5, extra: 13, num: 15.5 };
@@ -232,8 +237,9 @@ function drawCards(scale, races, extras) {
     const hasWaku = race.runners.some((h) => Number(h.frame) >= 1 && Number(h.frame) <= 8);
     const cols = [];
     if (hasWaku) {
-      // 枠番合一：枠色片 + 馬番同格，省出的列宽让给馬名（无枠的海外场只画馬番列）
-      cols.push({ k:'wknum', label:'枠番', w:60, align:'c' });
+      // 枠番合一（2026-11-07 与紧凑一览统一）：单色块，色 = 枠番、字 = 馬番，一块只留一个数字。
+      // 原来是「24px 枠色方块（块内写枠番）+ 右侧馬番」两个数并排，一块里两组数字、两种读法。
+      cols.push({ k:'wknum', label:'枠番', w:46, align:'c' });
     } else {
       cols.push({ k:'num', label:'馬番', w:46, align:'c' });
     }
@@ -270,31 +276,59 @@ function drawCards(scale, races, extras) {
   // ---- Masthead ----
   masthead(L, R, races.reduce((n, r) => n + r.runners.length, 0));
 
-  // ---- 比赛块（定稿 2026-10-29：不再画日期/场地分组标题，日期并入块头时间文案，避免重复） ----
+  // ---- 比赛块 ----
   let y = M + MAST_H + 8;
   for (const race of races) {
     const by = y;
-    /* 块头两段式：行1 = 比赛名 + 级别徽章 + 北京时间（同一基线）；
-       行2 = 副标题（場R · 距离 · 当地时间） */
+    /* ---- 块头（2026-11-07 定稿 D「两行左对齐块 · 比赛名在前」）----
+       ▎ サラ系３歳上１勝クラス [GⅡ]  [10-22 京都12R]
+         芝2000m · 当地 16:25 · 北京 15:25
+       演进：右对齐簇（信息散两头）→ 两行左对齐（日期+场次带头）→ 现在把**比赛名提到最前**，
+       日期+场次作为跟在名后的标签。块内所有元素共用一条左边界（DATE_X），行2 与行1 首字齐左，
+       标签宽度随内容收紧 —— 不留任何直角空白块。 */
     const bjStr = clockOpt.bj ? bjText(race) : '';
     const localStr = clockOpt.local ? localText(race) : '';
-    ctx.font = font(700, 16.5);
-    const bjW = bjStr ? tw(`北京 ${bjStr}`) : 0;
+    const vn = `${race.venue ?? ''}${race.raceNo ?? ''}R`;
     const hasBadge = !!(race.level && GRADE[race.level]);
-    const tText = fit(shortRaceName(race.raceName), Math.max(180, R - PAD * 2 - bjW - (hasBadge ? 66 : 0) - 48));
-    ctx.font = font(700, 19.5);
-    ctx.fillStyle = TT.ink; ctx.textAlign = 'left';
-    ctx.fillText(tText, PAD, by + 31);
-    let nx = PAD + tw(tText) + 10;
-    if (hasBadge) nx += gradeChip(nx, by + 15, race.level) || 0;
-    if (bjStr) {
-      ctx.font = font(700, 16.5); ctx.fillStyle = TT.tealInk;
-      ctx.fillText(`北京 ${bjStr}`, nx + 18, by + 27);   // 实测对齐：时间字面底缘 = 比赛名字面底缘（CJK 底缘在基线上方 ~2px）
-    }
-    const sub = [`${race.venue ?? ''}${race.raceNo ?? ''}R`, subStr(race), localStr ? `当地 ${localStr}` : ''].filter(Boolean).join(' · ');
-    ctx.font = font(500, 12); ctx.fillStyle = TT.sub;
-    ctx.fillText(fit(sub, R - PAD * 2 - 14), PAD, by + 53);
+
+    ctx.fillStyle = TT.teal;
+    ctx.fillRect(PAD, by + HD_BAR_Y, 4, HD_BAR_H);
+    const DATE_X = PAD + 14;   // 块内统一左边界（竖条右 14px）
+
+    /* 行1：只有比赛名 + 级别徽章（日期/场次/赛道/时刻全部下到行2 的赛事标签行）
+       2026-11-07 用户定稿：行2 读作「福島6R 芝2600 · 北京 11-07 11:35」——
+       场次紧挨赛道（JBIS 习惯的「場R + 芝ダ距離」写法）、距离不带 m、北京时刻带日期。 */
+    ctx.font = font(700, 11);
+    const badgeW = hasBadge ? tw(GRADE[race.level][0]) + 13 + 4 : 0;
+    ctx.font = font(700, 17);
+    const nameMax = Math.max(110, R - PAD - (hasBadge ? badgeW + 8 : 0) - DATE_X);
+    const tText = fit(shortRaceName(race.raceName), nameMax);
+    ctx.textAlign = 'left'; ctx.fillStyle = TT.ink;
+    ctx.fillText(tText, DATE_X, by + HD_BASE1);
+    if (hasBadge) gradeChip(DATE_X + tw(tText) + 10, by + HD_BASE1 - 15, race.level);
+
+    // 行2：场次 13/600 墨灰 → 赛道 12/400 灰（不带 m）→ 时刻 12.5/700 tealInk（带日期）
+    const parts = [];
+    parts.push({ t: vn, c: TT.sub, w: 600, s: 13 });
+    const subT = subStr(race).replace(/m$/, '');
+    if (subT) parts.push({ t: subT, c: TT.mut2, w: 400, s: 12 });
+    if (clockOpt.bj && localStr) parts.push({ t: `当地 ${localStr}`, c: TT.mut2, w: 400, s: 12 });
+    if (clockOpt.bj && bjStr) parts.push({ t: `北京 ${bjStr}`, c: TT.tealInk, w: 700, s: 12.5 });
+    else if (localStr) parts.push({ t: `当地 ${localStr}`, c: TT.tealInk, w: 700, s: 12.5 });
+    let mx = DATE_X;
+    parts.forEach((pt, i) => {
+      if (i) {
+        ctx.font = font(400, 12); ctx.fillStyle = TT.mut; ctx.textAlign = 'left';
+        ctx.fillText('·', mx, by + HD_BASE2); mx += tw('·') + 8;
+      }
+      ctx.font = font(pt.w, pt.s); ctx.fillStyle = pt.c; ctx.textAlign = 'left';
+      ctx.fillText(pt.t, mx, by + HD_BASE2); mx += tw(pt.t) + 8;
+    });
     ctx.textAlign = 'left';
+
+    // 头底 hairline：把「卡头 / 表格」分成两层（旧版没有这条线，头部像浮在表格上方）
+    ctx.strokeStyle = TT.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD, by + HD_LINE + .5); ctx.lineTo(R - PAD, by + HD_LINE + .5); ctx.stroke();
 
     /* ---- table 型网格：外框 + 竖向列分隔 + 表头底色 ---- */
     const cols = layoutCols(race);
@@ -342,24 +376,17 @@ function drawCards(scale, races, extras) {
       const ry = tTop + COLH + i * ROW_H;
       const mid = ry + ROW_H / 2 + 1;
       for (const c of cols) {
-        if (c.k === 'wknum') {   // 枠番合一：左侧枠色片 + 馬番
+        if (c.k === 'wknum') {   // 枠番合一（与紧凑一览同款）：单色块，色 = 枠番、块内只写馬番
           const fr = Number(h.frame);
-          if (fr >= 1 && fr <= 8) {
-            const wk = WAKU[fr];
-            const s = 24, wx = c.x + 10, wy = mid - s / 2;
-            ctx.fillStyle = wk.bg; rr(wx, wy, s, s, 6); ctx.fill();
-            if (wk.bd) { ctx.strokeStyle = wk.bd; ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 1; }
-            ctx.font = font(700, 12); ctx.fillStyle = wk.fg;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(String(fr), wx + s / 2, wy + s / 2 + .5);
-            ctx.textBaseline = 'alphabetic';
-            ctx.font = font(700, fs.num); ctx.fillStyle = TT.ink;
-            ctx.fillText(String(h.num ?? '–'), c.x + (c.w + 34) / 2, mid + fs.num * 0.34);
-          } else {
-            ctx.font = font(700, fs.num); ctx.fillStyle = TT.ink;
-            ctx.fillText(String(h.num ?? '–'), c.x + c.w / 2, mid + fs.num * 0.34);
-          }
-          ctx.textAlign = 'left';
+          const wk = (fr >= 1 && fr <= 8) ? WAKU[fr] : { bg: '#eceff2', fg: '#9aa3ac' };
+          const bw = 26, bh = 20;
+          const bx = c.x + (c.w - bw) / 2, byy = mid - bh / 2 - .5;
+          ctx.fillStyle = wk.bg; rr(bx, byy, bw, bh, 5); ctx.fill();
+          if (wk.bd) { ctx.strokeStyle = wk.bd; ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 1; }
+          ctx.font = font(700, 12.5); ctx.fillStyle = wk.fg;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(String(h.num ?? '–'), bx + bw / 2, byy + bh / 2 + .5);
+          ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
           continue;
         }
         if (c.k === 'num') {
