@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>表头译名编辑器 · racing-calendar</title>
+<style>
+  :root{
+    --teal:#0aa7a0; --teal-ink:#0b6b64; --ink:#17181c; --sub:#4b525b; --mut:#8b939c;
+    --line:#e6e9ec; --line2:#f0f2f4; --bg:#f4f5f6; --card:#fff; --chip:#fafbfc;
+    --warn:#c2410c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Geist","Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    font-size:13.5px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  code{font-family:"SF Mono",ui-monospace,Consolas,monospace;font-size:12px}
+
+  /* ---------- 顶栏 ---------- */
+  .bar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+       border-bottom:1px solid var(--line)}
+  .bar-in{max-width:1440px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .ttl h1{font-size:15.5px;margin:0;font-weight:700;letter-spacing:.01em}
+  .ttl p{margin:2px 0 0;font-size:11.5px;color:var(--mut)}
+  .tools{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tools input[type=search]{
+    font:inherit;font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;
+    background:#fff;width:220px;color:var(--ink)
+  }
+  .tools input[type=search]:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(10,167,160,.12)}
+  .ck{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--sub);cursor:pointer;user-select:none}
+  .ck input{accent-color:var(--teal)}
+  button{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);
+         background:#fff;color:var(--sub);cursor:pointer;transition:border-color .12s,color .12s,background .12s}
+  button:hover{border-color:var(--teal);color:var(--teal-ink)}
+  button.primary{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}
+  button.primary:hover{background:#099b95;color:#fff}
+  button.ghost{border-color:transparent;background:transparent;padding:3px 6px;font-size:11.5px;color:var(--mut)}
+  button.ghost:hover{color:var(--teal-ink);background:rgba(10,167,160,.07)}
+
+  /* ---------- 布局 ---------- */
+  .wrap{max-width:1440px;margin:0 auto;padding:16px 20px 80px;display:grid;
+        grid-template-columns:minmax(0,1fr) 372px;gap:20px;align-items:start}
+  @media (max-width:1120px){ .wrap{grid-template-columns:minmax(0,1fr)} }
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+
+  /* 防溢出：grid/flex 子项默认 min-width:auto，任何 nowrap 内容都会把版面撑破 */
+  .wrap>*,.row>*,.fv,.fed,.fv .chips{min-width:0}
+
+  /* ---------- 统计条 ---------- */
+  .stats{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 2px 10px;font-size:12px;color:var(--mut)}
+  .stats b{color:var(--ink);font-weight:700;font-size:13px}
+  .stats .dot{width:3px;height:3px;border-radius:50%;background:#c8ced4;display:inline-block}
+
+  /* ---------- 分组 ---------- */
+  .group{margin-bottom:14px;overflow:hidden}
+  .ghead{display:flex;align-items:baseline;gap:8px;padding:11px 14px;background:#fbfcfd;border-bottom:1px solid var(--line)}
+  .ghead h2{font-size:12.5px;margin:0;font-weight:700;letter-spacing:.02em}
+  .ghead .n{font-size:11.5px;color:var(--mut)}
+
+  /* ---------- 行 ---------- */
+  .row{display:grid;grid-template-columns:150px 202px minmax(0,1fr);gap:12px;
+       padding:9px 14px;border-top:1px solid var(--line2);align-items:start}
+  .row:first-of-type{border-top:0}
+  .row.hide{display:none}
+  .fid code{display:inline-block;background:#f3f5f7;border-radius:4px;padding:1px 5px;color:var(--sub)}
+  .fid .jp{margin-top:3px;font-size:12px;color:var(--ink);font-weight:600}
+  .fid .zh{margin-top:1px;font-size:11px;color:var(--mut)}
+  .fed input{
+    font:inherit;font-size:13px;width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;
+    background:#fff;color:var(--ink)
+  }
+  .fed input::placeholder{color:#b9bfc6;font-size:12.5px}
+  .fed input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(10,167,160,.12)}
+  .fed input.on{border-color:rgba(10,167,160,.55);background:rgba(10,167,160,.03);font-weight:600}
+  .fed .hint{margin-top:3px;font-size:10.5px;color:var(--mut);line-height:1.45}
+
+  /* grid 而不是 flex：chips 单元用 minmax(0,1fr) 硬约束宽度，wrap 一定生效（flex 下会被内容撑破） */
+  .fv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:start;min-height:26px}
+  .fv .chips{display:flex;flex-wrap:wrap;gap:5px;min-width:0}
+  .fv .more{flex:none;margin-top:1px;justify-self:end}
+  .chip{display:inline-flex;align-items:baseline;gap:4px;font-size:11.5px;line-height:1.6;
+        border:1px solid var(--line);border-radius:999px;padding:1px 8px;background:var(--chip);color:var(--sub);
+        white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .chip em{font-style:normal;color:var(--mut);font-size:10.5px}
+  .chip b{font-weight:600;color:var(--ink)}
+  .chip.changed{border-color:rgba(10,167,160,.45);background:rgba(10,167,160,.06)}
+  .chip.changed b{color:var(--teal-ink)}
+  .chip s{color:#b6bcc2;text-decoration:line-through;font-size:11px}
+
+  /* ---------- 单视图例外 ---------- */
+  .ov{display:none;padding:0 14px 12px 172px;border-top:1px dashed var(--line2);background:#fcfdfd}
+  .ov.open{display:block}
+  .ov .ovrow{display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;align-items:center;padding:5px 0}
+  .ov .ovrow span{font-size:11.5px;color:var(--sub)}
+  .ov .ovrow input{font:inherit;font-size:12.5px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+  .ov .ovrow input:focus{outline:none;border-color:var(--teal)}
+  .ov .ovrow input.on{border-color:rgba(10,167,160,.55);font-weight:600;color:var(--teal-ink)}
+
+  /* ---------- 右栏 ---------- */
+  .side{position:sticky;top:74px;display:flex;flex-direction:column;gap:14px}
+  @media (max-width:1120px){ .side{position:static} }
+  .side .card{padding:14px}
+  .side h3{font-size:12px;margin:0 0 9px;font-weight:700;letter-spacing:.02em;display:flex;align-items:baseline;gap:7px}
+  .side h3 span{font-weight:500;color:var(--mut);font-size:10.5px}
+  .pv-row{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f3f5f7}
+  .pv-c{padding:5px 8px;font-size:11.5px;font-weight:600;color:#7c8792;border-right:1px solid #e7ebee;white-space:nowrap}
+  .pv-c:last-child{border-right:0}
+  .pv-c.mono{color:var(--teal-ink)}
+  .pv-sub{font-size:10.5px;color:var(--mut);margin:6px 0 0}
+
+  .out{width:100%;min-height:120px;max-height:300px;overflow:auto;margin:0;padding:10px;
+       background:#fbfcfd;border:1px solid var(--line);border-radius:8px;
+       font-family:"SF Mono",ui-monospace,Consolas,monospace;font-size:11px;line-height:1.55;color:var(--sub);
+       white-space:pre-wrap;word-break:break-word}
+  .out.empty{color:#b9bfc6;font-style:normal}
+  .side .act{display:flex;gap:7px;margin-top:9px}
+  .side .act button{flex:1}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,10px);background:#17181c;color:#fff;
+         font-size:12.5px;padding:8px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:.18s;z-index:40}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  .foot{font-size:10.5px;color:var(--mut);line-height:1.6;margin-top:8px}
+
+  /* ---------- 窄屏：行改单列堆叠 ---------- */
+  @media (max-width:760px){
+    .bar-in{padding:10px 14px;gap:10px}
+    .tools{width:100%;margin-left:0}
+    .tools input[type=search]{flex:1 1 100%;width:100%}
+    .wrap{padding:12px 12px 70px}
+    .ghead{padding:10px 12px}
+    .row{grid-template-columns:minmax(0,1fr);gap:6px;padding:10px 12px}
+    .fid{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+    .fid .jp{margin-top:0}
+    .fid .zh{margin-top:0}
+    .fed .hint{margin-top:2px}
+    .fv{grid-template-columns:minmax(0,1fr)}
+    .fv .more{justify-self:start;margin-top:0}
+    .ov{padding:0 12px 10px}
+    .ov .ovrow{grid-template-columns:96px minmax(0,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="ttl">
+      <h1>表头译名编辑器</h1>
+      <p>改中间一栏 = 所有视图统一；要个别视图不同，点「单视图例外」。改完复制右侧 JSON 发我。</p>
+    </div>
+    <div class="tools">
+      <input type="search" id="q" placeholder="搜索字段 / 原名 / 现用名">
+      <label class="ck"><input type="checkbox" id="onlyChanged"> 只看已改</label>
+      <button id="reset">重置</button>
+      <button class="primary" id="copyTop">复制 JSON</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+    <div class="stats" id="stats"></div>
+    <div id="groups"></div>
+  </main>
+
+  <aside class="side">
+    <section class="card">
+      <h3>预览 · 主站 PC 表头</h3>
+      <div class="pv-row" id="pv-pc"></div>
+      <p class="pv-sub">顺序按 app.js 的 COLS；灰色为未改动。</p>
+    </section>
+    <section class="card">
+      <h3>预览 · 兄弟站嵌入表头</h3>
+      <div class="pv-row" id="pv-embed"></div>
+      <p class="pv-sub">窄屏卡片形态无表头，不受影响。</p>
+    </section>
+    <section class="card">
+      <h3>导出 <span id="outCount">0 处改动</span></h3>
+      <pre class="out empty" id="json">还没有改动。</pre>
+      <div class="act">
+        <button id="copyJson">复制 JSON</button>
+        <button id="copyMd">复制清单</button>
+      </div>
+      <p class="foot">JSON 里 <code>label</code> = 统一译名，<code>overrides</code> = 单视图例外。留空即保持现状。</p>
+    </section>
+  </aside>
+</div>
+
+<div class="toast" id="toast">已复制</div>
+
+<script>
+/* ============ 视图 ============ */
+const VIEWS = {
+  pc:    { name: '主站 PC 表', src: 'app.js · COLS' },
+  mb:    { name: '主站手机卡', src: 'app.js · mbCardHtml' },
+  dense: { name: '分享卡·紧凑', src: 'share.js · drawDense' },
+  cards: { name: '分享卡·分卡', src: 'share.js · drawCards' },
+  embed: { name: '嵌入组件',   src: 'entries-table.js · COLS_TIERS' },
+  excel: { name: 'Excel 导出', src: 'build.js · COLS' },
+  grid:  { name: '批量编辑表', src: 'share-grid.js' }
+};
+
+/* ============ 字段清单（views 里的值是「现状」文案） ============ */
+const FIELDS = [
+  /* ---- 比赛级 ---- */
+  { key:'venue', jp:'競馬場', zh:'场地名', g:'race', note:'分享卡/嵌入里与 R 号合并成「场次」一列',
+    views:{ pc:'竞马场', dense:'场次', cards:'场次', embed:'场次', excel:'竞马场', grid:'竞马场' } },
+  { key:'raceNo', jp:'R', zh:'第几场', g:'race', note:'分享卡/嵌入里与场地合并成「场次」',
+    views:{ pc:'R', dense:'场次', cards:'场次', embed:'场次', excel:'R', grid:'R' } },
+  { key:'raceName', jp:'レース名', zh:'比赛名', g:'race',
+    views:{ pc:'比赛', dense:'比赛', cards:'比赛', embed:'比赛', excel:'比赛', grid:'比赛' } },
+  { key:'surface', jp:'芝ダ', zh:'赛道类型', g:'race', note:'PC 表与距离同列（带色点）',
+    views:{ pc:'距离', dense:'赛道', cards:'赛道', embed:'赛道', excel:'赛道', grid:'赛道' } },
+  { key:'distance', jp:'距離', zh:'距离（米）', g:'race',
+    views:{ pc:'距离', dense:'赛道', cards:'赛道', embed:'赛道', excel:'距离', grid:'距离' } },
+  { key:'startTime', jp:'発走時刻', zh:'当地开跑时间', g:'race',
+    views:{ pc:'当地时间', dense:'当地时间', cards:'当地时间', excel:'当地时间', grid:'当地时间' } },
+  { key:'bj', jp:'—（派生）', zh:'北京时间', g:'race', note:'由 startTimeInstant 换算，非源字段',
+    views:{ pc:'北京时间', dense:'北京时间', embed:'北京时间' } },
+  { key:'klass', jp:'競走条件', zh:'具体格', g:'race', note:'新馬 / 未勝利 / 1勝 / OP / GⅠ…',
+    views:{ excel:'比赛条件' } },
+  { key:'klassGroup', jp:'—（派生）', zh:'粗分组', g:'race', note:'新馬 / 未勝利 / 重賞 / OP / 障害 / 一般',
+    views:{ excel:'分组' } },
+  { key:'level', jp:'格', zh:'重赏级别', g:'race', note:'其余视图走级别徽章，无表头文字',
+    views:{ grid:'级别' } },
+  { key:'heads', jp:'頭数', zh:'出走头数', g:'race', note:'主站分组行写「N 頭」，不是表头',
+    views:{ excel:'头数' } },
+  { key:'date', jp:'—（采集日）', zh:'比赛日', g:'race',
+    views:{ excel:'日期', grid:'日期' } },
+  { key:'weekday', jp:'—（派生）', zh:'星期', g:'race',
+    views:{ excel:'曜日' } },
+  { key:'scope', jp:'区分', zh:'中央/地方/海外', g:'race', note:'主站筛选卡另有一套「中央/地方/海外」文案',
+    views:{ excel:'区分' } },
+
+  /* ---- 出走马 ---- */
+  { key:'frame', jp:'枠番（地方写「枠」）', zh:'枠番 1–8', g:'runner', note:'分享卡/嵌入里与马号合并成单色块（列名用「马号」）',
+    views:{ pc:'枠番', dense:'马号', cards:'马号', embed:'马号', excel:'枠番', grid:'枠番' } },
+  { key:'num', jp:'馬番', zh:'马号', g:'runner', note:'分享卡/嵌入里并进「枠番」列',
+    views:{ pc:'马号', dense:'马号', cards:'马号', embed:'马号', excel:'马号', grid:'马号' } },
+  { key:'horseName', jp:'競走馬名', zh:'马名', g:'runner',
+    views:{ pc:'马名', dense:'马名', cards:'马名', embed:'马名', excel:'马名', grid:'马名' } },
+  { key:'sexage', jp:'性齢', zh:'性别 + 年龄', g:'runner',
+    views:{ pc:'性龄', dense:'性龄', cards:'性龄', embed:'性龄', excel:'性龄', grid:'性龄' } },
+  { key:'color', jp:'毛色', zh:'毛色', g:'runner',
+    views:{ excel:'毛色' } },
+  { key:'silk', jp:'勝負服', zh:'彩衣图', g:'runner', note:'有彩衣图时才出现',
+    views:{ pc:'彩衣', dense:'彩衣', cards:'彩衣' } },
+  { key:'jockey', jp:'騎手', zh:'骑手', g:'runner', note:'主站手机卡与马名同排，无标签',
+    views:{ pc:'骑手', dense:'骑手', cards:'骑手', embed:'骑手', excel:'骑手', grid:'骑手' } },
+  { key:'weight', jp:'斤量', zh:'负重（kg）', g:'runner',
+    views:{ pc:'负重', dense:'负重', cards:'负重', embed:'负重', excel:'负重', grid:'负重' } },
+  { key:'trainer', jp:'調教師', zh:'练马师', g:'runner',
+    views:{ pc:'练马师', mb:'练马师：', dense:'练马师', cards:'练马师', embed:'练马师', excel:'练马师', grid:'练马师' } },
+  { key:'belongs', jp:'所属', zh:'美浦 / 栗東', g:'runner',
+    views:{ excel:'所属' } },
+  { key:'owner', jp:'馬主', zh:'马主', g:'runner',
+    views:{ dense:'马主', cards:'马主', excel:'马主' } },
+  { key:'breeder', jp:'生産牧場', zh:'生产牧场', g:'runner',
+    views:{ dense:'生产牧场', cards:'生产牧场', excel:'生产牧场' } },
+  { key:'recent1', jp:'1走前', zh:'上一走', g:'runner',
+    views:{ excel:'1前走' } },
+  { key:'recent2', jp:'2走前', zh:'前二走', g:'runner',
+    views:{ excel:'2前走' } },
+  { key:'recent3', jp:'3走前', zh:'前三走', g:'runner',
+    views:{ excel:'3前走' } },
+
+  /* ---- 血统 ---- */
+  { key:'sire', jp:'父', zh:'父马', g:'ped',
+    views:{ pc:'父', mb:'父：', dense:'父', cards:'父', excel:'父', grid:'父' } },
+  { key:'sireSire', jp:'父父', zh:'父之父（祖父）', g:'ped',
+    views:{ pc:'祖父', mb:'祖父：', dense:'祖父', cards:'祖父', excel:'祖父' } },
+  { key:'dam', jp:'母', zh:'母马', g:'ped',
+    views:{ pc:'母', mb:'母：', dense:'母', cards:'母', excel:'母' } },
+  { key:'bms', jp:'母父', zh:'母之父（外祖父）', g:'ped',
+    views:{ pc:'母父', mb:'母父：', dense:'母父', cards:'母父', embed:'母父', excel:'母父' } }
+];
+
+const GROUPS = [
+  { g:'race',   name:'比赛级', desc:'整场共享，合并单元格 / 比赛块头' },
+  { g:'runner', name:'出走马', desc:'逐马一行' },
+  { g:'ped',    name:'血统',   desc:'父系 / 母系' }
+];
+
+/* ============ 状态 ============ */
+const LS_KEY = 'rc.fieldlabels.v1';
+const S = { labels:{}, overrides:{}, q:'', onlyChanged:false };
+try {
+  const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+  if (saved) { S.labels = saved.labels || {}; S.overrides = saved.overrides || {}; }
+} catch (e) {}
+/* ?fill=venue:竞马场,sire:父系 —— 自检用，不影响正常填写 */
+const fillParam = new URLSearchParams(location.search).get('fill');
+if (fillParam) fillParam.split(',').forEach((p) => {
+  const i = p.indexOf(':');
+  if (i > 0) S.labels[p.slice(0, i)] = p.slice(i + 1);
+});
+
+const byKey = {};
+FIELDS.forEach((f) => { byKey[f.key] = f; });
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const eff = (f, view) => {
+  const ov = S.overrides[f.key];
+  if (ov && ov[view] != null && ov[view] !== '') return ov[view];
+  const lb = S.labels[f.key];
+  if (lb != null && lb !== '') return lb;
+  return f.views[view] == null ? null : f.views[view];
+};
+const isChanged = (f) => (S.labels[f.key] || '').trim() !== '' ||
+  Object.values(S.overrides[f.key] || {}).some((v) => v && v.trim() !== '');
+
+/* ============ 渲染：一侧行 ============ */
+function chipsHTML(f) {
+  const out = [];
+  Object.keys(f.views).forEach((v) => {
+    const base = f.views[v];
+    const now = eff(f, v);
+    const changed = now != null && now !== base;
+    const ov = (S.overrides[f.key] || {})[v];
+    out.push(
+      '<span class="chip' + (changed ? ' changed' : '') + '" title="' + esc(VIEWS[v].name + ' · ' + VIEWS[v].src) + '">' +
+        '<em>' + esc(VIEWS[v].name) + '</em>' +
+        (changed ? '<s>' + esc(base) + '</s><b>' + esc(now) + '</b>' : '<b>' + esc(base) + '</b>') +
+        (ov ? '<em>·例外</em>' : '') +
+      '</span>'
+    );
+  });
+  return out.join('');
+}
+
+function ovHTML(f) {
+  return Object.keys(f.views).map((v) =>
+    '<div class="ovrow"><span>' + esc(VIEWS[v].name) + '</span>' +
+      '<input class="ovin" data-k="' + f.key + '" data-v="' + v + '" placeholder="' +
+        esc('留空 = 跟随统一译名（现状 ' + f.views[v] + '）') + '" value="' +
+        esc((S.overrides[f.key] || {})[v] || '') + '"></div>'
+  ).join('');
+}
+
+function rowHTML(f) {
+  const val = (S.labels[f.key] || '');
+  return '<div class="row" data-row="' + f.key + '">' +
+    '<div class="fid"><code>' + esc(f.key) + '</code>' +
+      '<div class="jp">' + esc(f.jp || '—') + '</div>' +
+      '<div class="zh">' + esc(f.zh) + '</div></div>' +
+    '<div class="fed"><input class="in" data-k="' + f.key + '" placeholder="保持现状" value="' + esc(val) + '">' +
+      (f.note ? '<div class="hint">' + esc(f.note) + '</div>' : '') + '</div>' +
+    '<div class="fv"><span class="chips" data-chips="' + f.key + '">' + chipsHTML(f) + '</span>' +
+      '<button class="ghost more" data-k="' + f.key + '">单视图例外</button></div>' +
+  '</div>' +
+  '<div class="ov" data-ov="' + f.key + '">' + ovHTML(f) + '</div>';
+}
+
+function renderGroups() {
+  const box = document.getElementById('groups');
+  box.innerHTML = GROUPS.map((gp) => {
+    const list = FIELDS.filter((f) => f.g === gp.g);
+    return '<section class="card group" data-g="' + gp.g + '">' +
+      '<div class="ghead"><h2>' + esc(gp.name) + '</h2><span class="n">' + list.length + ' 个字段 · ' + esc(gp.desc) + '</span></div>' +
+      list.map(rowHTML).join('') +
+    '</section>';
+  }).join('');
+}
+
+/* ============ 局部刷新 ============ */
+function refreshRow(key) {
+  const f = byKey[key];
+  const box = document.querySelector('[data-chips="' + key + '"]');
+  if (box) box.innerHTML = chipsHTML(f);
+  const inp = document.querySelector('.in[data-k="' + key + '"]');
+  if (inp) inp.classList.toggle('on', !!(S.labels[key] || '').trim());
+  const ovs = document.querySelectorAll('.ovin[data-k="' + key + '"]');
+  ovs.forEach((el) => el.classList.toggle('on', !!(el.value || '').trim()));
+}
+
+function refreshAll() {
+  FIELDS.forEach((f) => refreshRow(f.key));
+  renderStats();
+  renderPreview();
+  renderOut();
+  applyFilter();
+}
+
+/* ============ 统计 / 预览 / 导出 ============ */
+function changedFields() { return FIELDS.filter(isChanged); }
+function changedSpots() {
+  let n = 0;
+  changedFields().forEach((f) => {
+    if ((S.labels[f.key] || '').trim()) n += Object.keys(f.views).length;
+    Object.values(S.overrides[f.key] || {}).forEach((v) => { if (v && v.trim()) n += 1; });
+  });
+  return n;
+}
+
+function renderStats() {
+  const nf = changedFields().length;
+  document.getElementById('stats').innerHTML =
+    '共 <b>' + FIELDS.length + '</b> 个字段 <span class="dot"></span> ' +
+    (nf ? '已改 <b>' + nf + '</b> 个字段 / ' + changedSpots() + ' 处文案' : '尚未改动 <span class="dot"></span> 输入后右侧实时生成 JSON');
+}
+
+const PV_PC = ['venue','raceNo','raceName','distance','startTime','bj','horseName','frame','num','sexage','silk','weight','jockey','trainer','sire','sireSire','dam','bms'];
+const PV_EMB = ['bj','venue','raceName','surface','frame','horseName','sexage','weight','jockey'];
+
+function renderPreview() {
+  [['pv-pc', PV_PC, 'pc'], ['pv-embed', PV_EMB, 'embed']].forEach(([id, keys, view]) => {
+    const el = document.getElementById(id);
+    el.innerHTML = keys.map((k) => {
+      const f = byKey[k];
+      const t = eff(f, view);
+      if (t == null) return '';
+      const ch = t !== f.views[view];
+      return '<span class="pv-c' + (ch ? ' mono' : '') + '">' + esc(t) + '</span>';
+    }).join('');
+  });
+}
+
+function outJSON() {
+  const o = {};
+  changedFields().forEach((f) => {
+    const lb = (S.labels[f.key] || '').trim();
+    const ov = {};
+    Object.entries(S.overrides[f.key] || {}).forEach(([v, t]) => { if (t && t.trim()) ov[v] = t.trim(); });
+    const rec = {};
+    if (lb) rec.label = lb;
+    if (Object.keys(ov).length) rec.overrides = ov;
+    if (Object.keys(rec).length) o[f.key] = rec;
+  });
+  return o;
+}
+
+function outMd() {
+  const lines = [];
+  changedFields().forEach((f) => {
+    const lb = (S.labels[f.key] || '').trim();
+    lines.push('- ' + f.key + '（' + f.jp + '）' + (lb ? ' → ' + lb : ''));
+    Object.entries(S.overrides[f.key] || {}).forEach(([v, t]) => {
+      if (t && t.trim()) lines.push('  - 例外：' + VIEWS[v].name + ' → ' + t.trim());
+    });
+  });
+  return lines.join('\n') || '（无改动）';
+}
+
+function renderOut() {
+  const o = outJSON();
+  const empty = Object.keys(o).length === 0;
+  const el = document.getElementById('json');
+  el.textContent = empty ? '还没有改动。' : JSON.stringify(o, null, 2);
+  el.classList.toggle('empty', empty);
+  const n = changedSpots();
+  document.getElementById('outCount').textContent = n ? n + ' 处改动' : '0 处改动';
+}
+
+/* ============ 过滤 ============ */
+function applyFilter() {
+  const q = S.q.trim().toLowerCase();
+  FIELDS.forEach((f) => {
+    const hitQ = !q || [f.key, f.jp, f.zh, f.note || '', ...Object.values(f.views)]
+      .join(' ').toLowerCase().includes(q);
+    const hitC = !S.onlyChanged || isChanged(f);
+    const row = document.querySelector('[data-row="' + f.key + '"]');
+    const ov = document.querySelector('[data-ov="' + f.key + '"]');
+    if (row) row.classList.toggle('hide', !(hitQ && hitC));
+    if (ov && !hitQ) ov.classList.remove('open');
+  });
+  GROUPS.forEach((gp) => {
+    const sec = document.querySelector('[data-g="' + gp.g + '"]');
+    if (!sec) return;
+    const visible = sec.querySelectorAll('.row:not(.hide)').length;
+    sec.style.display = visible ? '' : 'none';
+  });
+}
+
+/* ============ 事件 ============ */
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ labels: S.labels, overrides: S.overrides })); } catch (e) {}
+}
+
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.classList.contains('in')) {
+    const k = t.dataset.k;
+    const v = t.value.trim();
+    if (v) S.labels[k] = v; else delete S.labels[k];
+    refreshRow(k); save(); renderStats(); renderPreview(); renderOut();
+  } else if (t.classList.contains('ovin')) {
+    const k = t.dataset.k, v = t.dataset.v;
+    S.overrides[k] = S.overrides[k] || {};
+    if (t.value.trim()) S.overrides[k][v] = t.value.trim(); else delete S.overrides[k][v];
+    if (!Object.keys(S.overrides[k]).length) delete S.overrides[k];
+    refreshRow(k); save(); renderStats(); renderPreview(); renderOut();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const more = e.target.closest('.more');
+  if (more) {
+    const k = more.dataset.k;
+    const ov = document.querySelector('[data-ov="' + k + '"]');
+    ov.classList.toggle('open');
+    more.textContent = ov.classList.contains('open') ? '收起例外' : '单视图例外';
+    return;
+  }
+  if (e.target.id === 'reset') {
+    if (!changedFields().length) return;
+    if (!confirm('清空所有改动？')) return;
+    S.labels = {}; S.overrides = {}; save();
+    renderGroups(); refreshAll();
+    toast('已重置');
+    return;
+  }
+  if (e.target.id === 'copyTop' || e.target.id === 'copyJson') return copyText(JSON.stringify(outJSON(), null, 2));
+  if (e.target.id === 'copyMd') return copyText(outMd());
+});
+
+document.getElementById('q').addEventListener('input', (e) => { S.q = e.target.value; applyFilter(); });
+document.getElementById('onlyChanged').addEventListener('change', (e) => { S.onlyChanged = e.target.checked; applyFilter(); });
+
+function copyText(txt) {
+  if (!txt || txt === '{}') { toast('还没有改动'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(() => toast('已复制'), () => fallback(txt));
+  } else fallback(txt);
+}
+function fallback(txt) {
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('已复制'); } catch (e) { toast('复制失败，请手动选中'); }
+  ta.remove();
+}
+let toastTimer = 0;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), 1600);
+}
+
+/* ============ 启动 ============ */
+renderGroups();
+refreshAll();
+</script>
+</body>
+</html>

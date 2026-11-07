@@ -14,25 +14,25 @@ const WD = ["日", "月", "火", "水", "木", "金", "土"];
  * → 后面补固定的日期/场/R 等上下文列。race:1 = 比赛级（只在比赛头行可编辑，出走馬行灰显回显）；
  * front:1 = 比赛头行的前置段；num = 右对齐数字 */
 const RACE_FRONT_COLS = [
-  { k: "raceName", label: "比赛名", w: 210, race: 1, front: 1 },
-  { k: "level", label: "格", w: 82, race: 1, type: "select", opts: ["", "G1", "G2", "G3", "L", "OP", "地方重赏"], front: 1 },
+  { k: "raceName", label: "比赛", w: 210, race: 1, front: 1 },
+  { k: "level", label: "级别", w: 82, race: 1, type: "select", opts: ["", "G1", "G2", "G3", "L", "OP", "地方重赏"], front: 1 },
 ];
 const RACE_BACK_COLS = [
   { k: "date", label: "日期", w: 88, race: 1 },
-  { k: "venue", label: "场", w: 58, race: 1 },
+  { k: "venue", label: "竞马场", w: 58, race: 1 },
   { k: "raceNo", label: "R", w: 36, race: 1, num: 1 },
-  { k: "surface", label: "芝ダ", w: 52, race: 1, type: "select", opts: ["芝", "ダ", "障"] },
+  { k: "surface", label: "赛道", w: 52, race: 1, type: "select", opts: ["芝", "ダ", "障"] },
   { k: "distance", label: "距离", w: 58, race: 1, num: 1 },
-  { k: "startTime", label: "当地", w: 58, race: 1 },
+  { k: "startTime", label: "当地时间", w: 58, race: 1 },
 ];
 const RUN_COLS = [
-  { k: "frame", label: "枠", w: 38, num: 1 },
-  { k: "num", label: "番", w: 38, num: 1 },
-  { k: "horseName", label: "馬名", w: 150 },
-  { k: "sexage", label: "性齢", w: 52, virt: 1 },
-  { k: "jockey", label: "騎手", w: 96 },
-  { k: "weight", label: "斤量", w: 48, num: 1 },
-  { k: "trainer", label: "調教師", w: 104 },
+  { k: "frame", label: "枠番", w: 38, num: 1 },
+  { k: "num", label: "马号", w: 38, num: 1 },
+  { k: "horseName", label: "马名", w: 150 },
+  { k: "sexage", label: "性龄", w: 52, virt: 1 },
+  { k: "jockey", label: "骑手", w: 96 },
+  { k: "weight", label: "负重", w: 48, num: 1 },
+  { k: "trainer", label: "练马师", w: 104 },
 ];
 const LEVEL_LABEL = { "": "普通", G1: "G1", G2: "G2", G3: "G3", L: "L", OP: "OP", 地方重赏: "重賞" };
 

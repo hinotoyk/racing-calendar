@@ -43,10 +43,10 @@ const state = {
 // 分组选项（血统下拉同款：v = 分组键，label = 展示名）；空 = 不分组
 const GROUP_OPTIONS = [
   { v: "sire", label: "按 父" },
-  { v: "sireSire", label: "按 父父" },
+  { v: "sireSire", label: "按 祖父" },
   { v: "bms", label: "按 母父" },
-  { v: "jockey", label: "按 騎手" },
-  { v: "trainer", label: "按 調教師" },
+  { v: "jockey", label: "按 骑手" },
+  { v: "trainer", label: "按 练马师" },
 ];
 
 // ---------- 设备判定（yunji-web front/public/device.js 精简版）与分页状态 ----------
@@ -305,7 +305,7 @@ const PED_TAGS_DEFAULT = {
   bms: ["ディープインパクト"],
 };
 const PED_TAG_KEYS = ["sire", "sireSire", "bms"];
-const PED_TAG_LABEL = { sire: "父", sireSire: "父父", bms: "母父" };
+const PED_TAG_LABEL = { sire: "父", sireSire: "祖父", bms: "母父" };
 let pedTags = loadPedTags();
 
 function loadPedTags() {
@@ -349,7 +349,7 @@ function renderPedTags() {
   };
   wrap.innerHTML =
     PED_TAG_KEYS.map(group).join("") +
-    `<button class="qt-reset" id="qt-reset" title="恢复默认快捷标签（父：コントレイル / キズナ / シルバーステート / リアルスティール；父父·母父：ディープインパクト）">恢复默认</button>`;
+    `<button class="qt-reset" id="qt-reset" title="恢复默认快捷标签（父：コントレイル / キズナ / シルバーステート / リアルスティール；祖父·母父：ディープインパクト）">恢复默认</button>`;
 }
 
 function pickPedTag(key, tag) {
@@ -663,22 +663,22 @@ async function gridSelfTest(full) {
 // 默认展示：競馬場 R 比赛名 距离 北京时间 馬名 枠番 馬番 性齢 斤量 騎手 父 母父；
 // 発走 / 調教師 / 父父 / 母 默认隐藏（発走在比赛分隔行里，其余经「自定义显示列」开回）。
 const COLUMNS = [
-  { k: "venue",    label: "競馬場", left: 1 },
+  { k: "venue",    label: "竞马场", left: 1 },
   { k: "raceno",   label: "R" },
-  { k: "race",     label: "比赛名", left: 1 },
+  { k: "race",     label: "比赛", left: 1 },
   { k: "dist",     label: "距离" },
-  { k: "start",    label: "発走", defHide: 1 },
+  { k: "start",    label: "当地时间", defHide: 1 },
   { k: "bj",       label: "北京时间" },
-  { k: "name",     label: "馬名", left: 1 },
+  { k: "name",     label: "马名", left: 1 },
   { k: "waku",     label: "枠番" },
-  { k: "num",      label: "馬番" },
-  { k: "sexage",   label: "性齢" },
+  { k: "num",      label: "马号" },
+  { k: "sexage",   label: "性龄" },
   { k: "silk",     label: "彩衣" },   // 勝負服小图（默认展示；采集覆盖时才有值，无值则空）
-  { k: "weight",   label: "斤量" },
-  { k: "jockey",   label: "騎手", left: 1 },
-  { k: "trainer",  label: "調教師", left: 1, defHide: 1 },
+  { k: "weight",   label: "负重" },
+  { k: "jockey",   label: "骑手", left: 1 },
+  { k: "trainer",  label: "练马师", left: 1, defHide: 1 },
   { k: "sire",     label: "父", left: 1 },
-  { k: "siresire", label: "父父", left: 1, f: "sireSire", defHide: 1 },   // 数据字段为驼峰 sireSire，f 指明取值键
+  { k: "siresire", label: "祖父", left: 1, f: "sireSire", defHide: 1 },   // 数据字段为驼峰 sireSire，f 指明取值键
   { k: "dam",      label: "母", left: 1, defHide: 1 },
   { k: "bms",      label: "母父", left: 1 },
 ];
@@ -749,7 +749,7 @@ function raceSepHtml(r, heads) {
     ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
     : esc(r.raceName ?? "");
   const bj = bjTime(r.startTimeInstant);
-  const meta = [distText(r), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
+  const meta = [distText(r), r.startTime ? `当地时间 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
     .filter(Boolean).join(" · ");
   return `<tr class="sep"><td colspan="${visCols().length}"><b>${esc(r.venue)}${r.raceNo}R</b>${nm}${levelBadge(r.level)}` +
     `${bj ? `<span class="sep-bj">${esc(bj)} 北京</span>` : ""}` +
@@ -763,7 +763,7 @@ function mbSepHtml(r, heads) {
     ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
     : esc(r.raceName ?? "");
   const bj = bjTime(r.startTimeInstant);
-  const meta = [distText(r), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
+  const meta = [distText(r), r.startTime ? `当地时间 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
     .filter(Boolean).join(" · ");
   return `<div class="yj-mb-sep"><b>${esc(r.venue)}${r.raceNo}R</b>${nm}${levelBadge(r.level)}` +
     `${bj ? `<span class="sep-bj">${esc(bj)} 北京</span>` : ""}` +
@@ -786,9 +786,9 @@ function mbCardHtml(r) {
     show("sexage") ? `<span class="yj-mb-sexage">${esc(sexShort(r.sex) + (r.age ?? ""))}</span>` : "",
   ].join("");
   const linePed = [
-    show("trainer") ? item("調教師", esc(r.trainer ?? "")) : "",
+    show("trainer") ? item("练马师", esc(r.trainer ?? "")) : "",
     show("sire") ? item("父", esc(r.sire ?? "")) : "",
-    show("siresire") ? item("父父", esc(r.sireSire ?? "")) : "",
+    show("siresire") ? item("祖父", esc(r.sireSire ?? "")) : "",
     show("dam") ? item("母", esc(r.dam ?? "")) : "",
     show("bms") ? item("母父", esc(r.bms ?? "")) : "",
   ].join("");
@@ -900,7 +900,7 @@ function render() {
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(r);
     }
-    const label = { sire: "父", sireSire: "父父", bms: "母父", jockey: "騎手", trainer: "調教師" }[key] ?? key;
+    const label = { sire: "父", sireSire: "祖父", bms: "母父", jockey: "骑手", trainer: "练马师" }[key] ?? key;
     const segs = [...groups.entries()]
       .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ja"))
       .map(([k, list]) => ({ k, list }));
@@ -1075,7 +1075,7 @@ async function main() {
 
   // 血统选择器（参考 yunji selector.js：搜索下拉 + 键盘导航 + 点击外部关闭）
   sireSel = makeSelector({ mount: $("#m-sire"), placeholder: "父", onPick: (v) => { state.sire = v || ""; apply(); renderPedTags(); } });
-  sireSireSel = makeSelector({ mount: $("#m-siresire"), placeholder: "父父", onPick: (v) => { state.sireSire = v || ""; apply(); renderPedTags(); } });
+  sireSireSel = makeSelector({ mount: $("#m-siresire"), placeholder: "祖父", onPick: (v) => { state.sireSire = v || ""; apply(); renderPedTags(); } });
   bmsSel = makeSelector({ mount: $("#m-bms"), placeholder: "母父", onPick: (v) => { state.bms = v || ""; apply(); renderPedTags(); } });
   // 分组选择器：与血统下拉同款；空 = 不分组
   groupSel = makeSelector({ mount: $("#m-group"), placeholder: "不分组", onPick: (v) => { state.group = v || ""; render(); } });

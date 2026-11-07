@@ -105,7 +105,7 @@ XLSX 由 `src/lib/xlsx.js` 零依赖写出（ZIP store + inlineStr），Excel / 
 - 场地 chips 默认 JRA（当日无中央出走表时退回 NAR；全部 = 清空多选），分三段陈列：`全部 ｜ JRA·中央 NAR·地方 ｜ 海外 + 国家组码`（段间细竖线 + 「海外」组名）；竞马场 chips 按 **中央 / 地方 / 海外** 分组、**只列当前场地选择下存在的场**（JRA → 中央固定 10 场；NAR → 地方固定 15 场；选中海外国家 → 仅这些国家的场，多国时一国一组「海外 FR」；全部 → 三组全列），切场地即清空竞马场选择；级别 chips（计数，无数据置灰），级别展示名「无级别」→「普通比赛」；
 - 父 / 父父 / 母父 下拉（按入头数排序，取前 400）：按 canonical 合并同名马——两源写法不同（JBIS「Saxon Warrior(JPN)」/ RP「Saxon Warrior」、JBIS「ディープインパクト」/ RP「Deep Impact」）归为一条，展示名取行内最多写法，搜索匹配全部别名（`src/lib/horse-name.mjs` 归一 + `derived/horse-aliases.json` 别名）；过滤、分组、Excel 透视同口径，表格/CSV 保留原始写法；
 - 血统快捷标签行（血统行下方）：点标签 → 对应下拉按 canonical 自动选中（再点取消）；「＋当前」把下拉当前选择存为标签（每项上限 12 个）；✕ 移除；「恢复默认」还原出厂。默认 父=コントレイル / キズナ / シルバーステート / リアルスティール、父父=母父=ディープインパクト；存 localStorage（`rc.ped.tags.v1`），保存过就完全以本地为准（清空也是合法状态）；
-- 关键字过滤；分组下拉与血统下拉同款（父 / 父父 / 母父 / 騎手 / 調教師，空 = 不分组）；表格行全局按北京时间升序（早的发走排上，跨日期交叉排；同时刻按场次R/竞马场兜底，`cmpBjTime`）；
+- 关键字过滤；分组下拉与血统下拉同款（父 / 祖父 / 母父 / 骑手 / 练马师，空 = 不分组）；表格行全局按北京时间升序（早的发走排上，跨日期交叉排；同时刻按场次R/竞马场兜底，`cmpBjTime`）；
 - 前端内存分页：PC 一页 100 条、mb（<768px）一页 20 条，每页条数按设备固定不可选；页码按钮式分页条（移植 yunji-web races.html `.pager`），768px 断点 matchMedia 实时切换（老 Safari addListener 兜底）；筛选条件变化归第 1 页；分组视图整组分页——页内按整组装填，装不下整组移到下一页（最后一组不截断），单组超过一页容量才组内截断，跨页组自动重复组头，组头 `tr.sub` 不占条数；
 - CSV 导出（UTF-8 BOM）与每周 Excel 下载；
 - 深链：`?group=sire|sireSire|bms|jockey|trainer`；
@@ -203,8 +203,8 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 主表「勾选比赛」→ 浮动条「生成分享卡」（或「完成勾选」）→ canvas 渲染的分享卡页（新开一页数据、从顶部开始；返回列表保留勾选）。
 
 - **选择（行级）**：`#pick-mode` 开启勾选模式，复选框按行（馬）勾选，行键 = 比赛 + 馬番（`rowKeyOf`）；分享卡只包含勾选的行，同一场比赛的勾选行归入同一块（不整场塞入）。勾选框绝对定位在首格左侧预留区，不影响行内容排版。浮动条：已选 N 頭（点击展开上拉预览列表：馬名 · 场R · 比赛名，按北京时间升序，逐条可取消）+ 生成分享卡 + 清空；「完成勾选」在有勾选时直接进分享卡页；汇总条「全选本页 / 取消本页」按钮（仅勾选模式显示，内联跟在计数文字后）= 当前筛选 + 当前页展示的全部行（含分组视图页内区间，`pageRows`）。`?pick=demo` / `?share=demo` 为视觉自检深链（demoPick 按级别优先 G1→地方重赏→G2→G3→L 各取一场并展开为行级勾选）。
-- **编辑**：分享卡下方 = **Excel 式批量编辑表格**（`site/share-grid.js`，交互移植 yunji-web editor-table.js §104）：**三段式列序（2026-10-29 定稿）**——前段固定「比赛名 + 格」（先看是哪场）→ 中段出走馬编辑列（枠/番/馬名/性齢/騎手/斤量/調教師）→ 后段固定上下文列（日期/场/R/芝ダ/距离/当地），比赛头行的场操作（↑↓ ＋ ✕）跨中段列区；比赛级列只在比赛头行可编辑（改日期/时间自动重算 weekday/dateLabel/startTimeInstant），出走馬行灰显回显；键盘流按行内实际存在的列移动（比赛头行跳过中段跨列区）。行首勾选（表头全选 + 各场行头全选本场）→「删除所选」。就地编辑（输入框绝对定位盖满本格，不撑列宽）、Enter↓ / Tab→ / 方向键、Delete 清格、Ctrl+Z / Ctrl+Y 撤销重做（内存操作日志 ≤80 步，结构操作重建视图）；「📋 粘贴导入」读剪贴板 TSV（Excel 直接复制），按可见出走馬列序追加到目标比赛（最后点击的比赛 / 最后一场）。列显隐菜单（列 ▾）+ CSS 伪全屏（⛶，fixed inset-0，不依赖 Fullscreen API）。所有编辑即时回调 share.js 重绘画布；手机端隐藏表格只留提示。「＋ 手动添加比赛」表单保留（日期 / 场 / R / 比赛名 / 级别 / 芝ダ / 距离 / 当地时间 / 时区 + 出走馬文本区每行 `枠 番 馬名 性齢 騎手`，性齢/騎手可省略，全角数字自动归一；北京时间由 startTimeInstant 现算，跨日自动带 MM-dd）。`?share=demo&edit=1|2` 为编辑链路端到端自检深链（edit=2 顺带撤销 3 步复原）。
-- **列配置**：附加列 chips（斤量 調教師 父 父父 母父 母 毛色 所属 馬主 生産牧場），默认斤量+父+母父；列宽按内容实测（每场独立），余量均摊占满行宽，超限按余量收缩 + 单元格省略号。配置存 localStorage（`rc.share.cols.v3` / `rc.share.scale`），追加列顺序恒按 EXTRA_COLS 排列。
+- **编辑**：分享卡下方 = **Excel 式批量编辑表格**（`site/share-grid.js`，交互移植 yunji-web editor-table.js §104）：**三段式列序（2026-10-29 定稿）**——前段固定「比赛 + 级别」（先看是哪场）→ 中段出走马编辑列（枠番/马号/马名/性龄/骑手/负重/练马师）→ 后段固定上下文列（日期/竞马场/R/赛道/距离/当地时间），比赛头行的场操作（↑↓ ＋ ✕）跨中段列区；比赛级列只在比赛头行可编辑（改日期/时间自动重算 weekday/dateLabel/startTimeInstant），出走馬行灰显回显；键盘流按行内实际存在的列移动（比赛头行跳过中段跨列区）。行首勾选（表头全选 + 各场行头全选本场）→「删除所选」。就地编辑（输入框绝对定位盖满本格，不撑列宽）、Enter↓ / Tab→ / 方向键、Delete 清格、Ctrl+Z / Ctrl+Y 撤销重做（内存操作日志 ≤80 步，结构操作重建视图）；「📋 粘贴导入」读剪贴板 TSV（Excel 直接复制），按可见出走馬列序追加到目标比赛（最后点击的比赛 / 最后一场）。列显隐菜单（列 ▾）+ CSS 伪全屏（⛶，fixed inset-0，不依赖 Fullscreen API）。所有编辑即时回调 share.js 重绘画布；手机端隐藏表格只留提示。「＋ 手动添加比赛」表单保留（日期 / 场 / R / 比赛名 / 级别 / 芝ダ / 距离 / 当地时间 / 时区 + 出走馬文本区每行 `枠 番 馬名 性齢 騎手`，性齢/騎手可省略，全角数字自动归一；北京时间由 startTimeInstant 现算，跨日自动带 MM-dd）。`?share=demo&edit=1|2` 为编辑链路端到端自检深链（edit=2 顺带撤销 3 步复原）。
+- **列配置**：附加列 chips（负重 练马师 父 祖父 母父 母 毛色 所属 马主 生产牧场），默认负重+父+母父；列宽按内容实测（每场独立），余量均摊占满行宽，超限按余量收缩 + 单元格省略号。配置存 localStorage（`rc.share.cols.v3` / `rc.share.scale`），追加列顺序恒按 EXTRA_COLS 排列。
 - **出图**：纯 canvas 零依赖（无 html2canvas），默认 2×（≈1976px 宽，可选 1×/3×），「导出 PNG」或「复制到剪贴板」（ClipboardItem，需安全上下文）。
 - **版式 v1.9.0 · 分卡（2026-11-07 定稿：比赛名独占行1 + 行2 赛事标签行，枠番单色块）**：
   - **块头两行、块内齐左**：
@@ -219,13 +219,13 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
   - 青绿只出现两处：左侧 4×36 竖条 + 行2 的北京时刻。
   - `HEAD_H` 74 → **58**；几何常量 `HD_BAR_Y/HD_BAR_H/HD_BASE1/HD_BASE2/HD_LINE`（3/36/19/37/45），绘制与 H 累加共用，改一处必须同步。
   - **枠番合一一列 = 单色块**（与紧凑一览 `drawDense` 同款）：26×20 圆角块，**色 = 枠番、块内只写馬番**，一块一个数字；列宽 60 → 46。无枠海外场（整列无 1–8）仍退化为纯馬番列、不套灰块。
-  - 其余不变：table 型网格（外框 + 竖向列分隔 + 表头底色）、行高 41 / 馬名 18 / 表头 30（tokens `fs:{head:11,horse:18,body:15,extra:14.5,num:17}` + `ROW_H/COLH/GAP`）、级别徽章紧跟比赛名（「地方重賞」写全不缩写）、报头「共 N 頭出走 M 场」、时间开关 `rc.share.clock.v1`（至少一路，`&clock=local` 深链）、附加列默认 斤量+父+母父（`rc.share.cols.v3`）。
+  - 其余不变：table 型网格（外框 + 竖向列分隔 + 表头底色）、行高 41 / 马名 18 / 表头 30（tokens `fs:{head:11,horse:18,body:15,extra:14.5,num:17}` + `ROW_H/COLH/GAP`）、级别徽章紧跟比赛名（「地方重賞」写全不缩写）、报头「共 N 頭出走 M 场」、时间开关 `rc.share.clock.v1`（至少一路，`&clock=local` 深链）、附加列默认 斤量+父+母父（`rc.share.cols.v3`）。
 - **新标签页**：「生成分享卡」/「完成勾选」把载荷写 sessionStorage（`rc.share.payload`，新标签页自动复制 opener 的 sessionStorage）后 `window.open('?share=open')`；新页 main() 读取并渲染，返回列表即关窗。
 - **勾选数据源**：`rowsForPick()` 汇总**全部已加载日期**的行（不受当前筛选影响）——清空条件换场地继续勾选，之前勾的馬仍在卡里；卡片内比赛块按**北京时间升序**（跨日交叉排，同刻按 场次R/竞马场 兜底，`collectShareRaces` 输出排序；手动添加漏填时刻殿后），画布按数组顺序换天 / 换场地画标题。
 - **品牌**：顶部 6px 青绿条；页脚 RACING CALENDAR 字标 + `hinotoyk.github.io/racing-calendar` + QR 码（`site/vendor/qrcode.js`，MIT · Kazuhiko Arase，typeNumber 自动 / ECC M，`isDark` 逐模块画进 canvas）。
 - **比赛名缩短**（2026-10-29）：`shortRaceName()`（share-grid.js 导出，卡片块头 + 批量表格显示共用，**纯展示**——原始数据与编辑值不变）。UK/IRE 命名规律：`赞助商… 类型 (级别) (Registered As The 注册名) (GBB Race) (Div n)`。规则：① 有 `(Registered As X)` → 直接采用官方注册名（跨年稳定；赞助商前缀无词典不可剥，如 squareintheair.com）；② 噪声标签剔除：GBB Race / GBBPlus / GBB/GBBPlus（繁育奖金计划）、Registered As 本体、Grade/Group/Listed（级别已由徽章与「格」列表达）；③ 其余标签**原位保留**：Div/Division（同场分流必须保留否则同名）、0-100 评级、Q.R.、F & M。例：`Oddschecker Novices' Hurdle (Grade 2) (Registered As The Sharp Novices' Hurdle) (GBB Race)` → `The Sharp Novices' Hurdle`。
 - **版式参数**：主题 tokens 携带 `ROW_H`/`COLH`/`GAP`/`fs:{head,horse,body,extra,num}`（现值 41/30/26/{11,18,15,14.5,17}），枠号芯片尺寸随行高自适应；候选版式机制（masthead bar/press/thin、waku mono/frame/band、开放表、层级块头）已随样式下线一并移除，仅保留 strip 报头 + chip 枠号 + wakuNum 合列。
-- **设计约定**：与主站 style.css 同 token（#0aa7a0 × shadcn Neutral，仅亮色）；枠番用 JRA 官方 8 枠色芯片（1白2黒3赤4青5黄6緑7橙8桃），级别徽章沿用主站 JBIS 配色；比赛名 / 距离 / 当地·北京时间都编码在**块头单行**里（不逐行重复），行列为 枠番(合一一列) / 馬名 / 性齢 / 騎手（+ 附加列）。设计稿原型：`design/share-card.html`（样例数据由 `design/_extract.mjs` 生成）。
+- **设计约定**：与主站 style.css 同 token（#0aa7a0 × shadcn Neutral，仅亮色）；枠番用 JRA 官方 8 枠色芯片（1白2黒3赤4青5黄6緑7橙8桃），级别徽章沿用主站 JBIS 配色；比赛名 / 距离 / 当地时间·北京时间都编码在**块头单行**里（不逐行重复），行列为 马号(枠番色块+马号合一列) / 马名 / 性龄 / 骑手（+ 附加列）。设计稿原型：`design/share-card.html`（样例数据由 `design/_extract.mjs` 生成）。
 
 > 实现教训：canvas 重设 `width/height` 会重置画布状态（含变换矩阵）——必须先设尺寸再 `setTransform(scale)`，否则导出 PNG 内容缩在左上角、其余全透明。
 
@@ -237,11 +237,11 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 - **宿主用法**：动态加载组件脚本（Promise 缓存）后 `RC_ENTRIES_EMBED.mount(el, { base: "https://hinotoyk.github.io/racing-calendar/", sire: "コントレイル" })`。`sire` = 種牡馬日文名（JBIS 原形，宿主从自家 config 取，与数据行 sire 字段同源）；`days` 控制未来侧有数据日期数（默认 4）。
 - **视图（v2.3.0，2026-11-07 定稿：双形态 + 三档宽度自适应 + 赛事分类过滤）**：
   - **分类 chips**（头部计数右侧）：`全部 / JRA·中央 / NAR·地方 / 海外`，各带实时条数；点击即筛（纯前端 filter，不重新取数）。口径与主站筛选卡「场地」三段一致（`scope`：JRA / NAR / 其余国家组码与「海外」→ 海外）。**四个恒定展示**：计数为 0 的分类（如无海外出马时的「海外 0」）按钮照样在、样式更淡，点进去给对应空态而不是偷偷切回「全部」（用户要求：海外没有比赛也要有按钮）。选择只存在挂载点（`el.__rcScope`），不写任何存储键，刷新回到「全部」。
-  - **形态/档位判定 = 组件自身宽度**（`ResizeObserver`，只在跨档时重绘；同档只更新字号系数不重排）：`<720` 卡片 / `720–1179` 九列 / `≥1180` 加「母父」/ `≥1500` 再加「調教師」。
+  - **形态/档位判定 = 组件自身宽度**（`ResizeObserver`，只在跨档时重绘；同档只更新字号系数不重排）：`<720` 卡片 / `720–1179` 九列 / `≥1180` 加「母父」/ `≥1500` 再加「练马师」。
   - **字号 fluid**：`--re-k = clamp(1, w/1000, 1.3)` 写在 `.rc-emb` 上，表格里所有字号与内距都写成 `calc(Npx * var(--re-k))` → 27 寸屏（容器 ~2000px）时正文 12.5→16.25px、行高 29→38px。头部标题用更缓的斜率（`13.5px + (k-1)*6px`），避免比表格还小。
-  - **为什么加列而不是继续放大**：27 寸屏宽 2000px 时，九列的百分比布局会把每列拉得很空；母父 / 調教師 本来就在数据里（sire 站的父是常量、无信息量），正好把宽度换成信息。
-  - **宽容器 = 密表**：比赛级 4 列按 `rowspan` 合并（北京时间 / 场次=「场地 + R 号」两段各自对齐 / 比赛名+级别徽章 / 赛道），**合并列垂直居中**（与分享卡 `drawDense` 的 `midOf()` 同口径；顶端对齐会让两匹的场次左侧空出半块，宽表下很丑），逐马列（枠番单色块 / 馬名 / 性齢 / 斤量 / 騎手 + 母父 + 調教師）；日期 = 跨列行「11月7日（土）」+ teal 短竖条；冷灰网格（表头 `#f3f5f7`、明细线 `#f0f2f4`、结构竖线 `#eef1f4`、斑马 `#fafbfc`），无外框无圆角。
-  - **窄容器（MB）= 逐场卡片**：日期分隔 → 一场一块（条头 `京都1R … 09:05` → 比赛名 + 赛道 → 产驹两行「枠番 馬名 性齢 斤量」/「騎手 母父」）。换形态而不是收列：九列压进 390px 只能横滑或砍列。
+  - **为什么加列而不是继续放大**：27 寸屏宽 2000px 时，九列的百分比布局会把每列拉得很空；母父 / 练马师 本来就在数据里（sire 站的父是常量、无信息量），正好把宽度换成信息。
+  - **宽容器 = 密表**：比赛级 4 列按 `rowspan` 合并（北京时间 / 场次=「场地 + R 号」两段各自对齐 / 比赛+级别徽章 / 赛道），**合并列垂直居中**（与分享卡 `drawDense` 的 `midOf()` 同口径；顶端对齐会让两匹的场次左侧空出半块，宽表下很丑），逐马列（马号单色块：色=枠番、字=马号 / 马名 / 性龄 / 负重 / 骑手 + 母父 + 练马师）；日期 = 跨列行「11月7日（土）」+ teal 短竖条；冷灰网格（表头 `#f3f5f7`、明细线 `#f0f2f4`、结构竖线 `#eef1f4`、斑马 `#fafbfc`），无外框无圆角。
+  - **窄容器（MB）= 逐场卡片**：日期分隔 → 一场一块（条头 `京都1R … 09:05` → 比赛 + 赛道 → 产驹两行「枠番 马名 性龄 负重」/「骑手 母父」）。换形态而不是收列：九列压进 390px 只能横滑或砍列。
   - 两形态共用：`groupByDate()`、`cleanRaceName()`、`wakuChip()`/`levelBadge()`、头部、最近一周折叠、空/加载/失败态。列宽按档位各给一套百分比（每档合计 100%），`table-layout:fixed` 下不会撑爆。
 - **数据**：组件自带 load——fetch `derived/index.json` + `derived/{date}.json`（字典包，`unpackRows` 内联自 `src/lib/rows-codec.mjs`，两处同步改），**不写任何存储键**（缓存仅内存）。与 sire-rank-chart「宿主 fetch 数据」的契约差异是有意的：出走表多文件懒加载的编排成本不转嫁给宿主。
 - **变量**：亮色单主题；颜色走宿主 CSS 变量（`--foreground/--muted-foreground/--border/--primary/--card` 等，缺省回退 #0aa7a0 × shadcn Neutral），与 friend-links.js 归一化变量同一做法——宿主换肤组件跟随；枠色/级别徽章 = JRA 官方枠色与 JBIS 配色（数据语义写死，同主站 `.waku`/`.yj-g*`）。冷灰网格的 `--re-line/--re-vline/--re-zebra/--re-headline/--re-racline/--re-dayline` 与 `share.js::drawDense` 的 `C_LINE/C_VLINE/C_ZEBRA/C_HEAD_LINE/C_RACE_LINE/C_DAY_LINE` 一一对应，**改色必须两边同步**（漂移只有并排截图能发现）。

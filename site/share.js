@@ -9,14 +9,14 @@ const WEEKDAY = ["日", "月", "火", "水", "木", "金", "土"];
 
 // 分享卡可追加的列（主表已采集字段；顺序即勾选后的列序）
 const EXTRA_COLS = [
-  { k:'weight',  label:'斤量' },
-  { k:'trainer', label:'調教師' },
+  { k:'weight',  label:'负重' },
+  { k:'trainer', label:'练马师' },
   { k:'sire',    label:'父' },
-  { k:'sireSire',label:'父父' },
+  { k:'sireSire',label:'祖父' },
   { k:'bms',     label:'母父' },
   { k:'dam',     label:'母' },
-  { k:'owner',   label:'馬主' },
-  { k:'breeder', label:'生産牧場' },
+  { k:'owner',   label:'马主' },
+  { k:'breeder', label:'生产牧场' },
 ];
 
 /* ================= 版式（定稿 2026-10-29：单一青绿样式） =================
@@ -239,18 +239,18 @@ function drawCards(scale, races, extras) {
     if (hasWaku) {
       // 枠番合一（2026-11-07 与紧凑一览统一）：单色块，色 = 枠番、字 = 馬番，一块只留一个数字。
       // 原来是「24px 枠色方块（块内写枠番）+ 右侧馬番」两个数并排，一块里两组数字、两种读法。
-      cols.push({ k:'wknum', label:'枠番', w:46, align:'c' });
+      cols.push({ k:'wknum', label:'马号', w:46, align:'c' });
     } else {
-      cols.push({ k:'num', label:'馬番', w:46, align:'c' });
+      cols.push({ k:'num', label:'马号', w:46, align:'c' });
     }
     // 彩衣列：该场有已加载的彩衣图才出现（73x55 源图缩至 21x16 居中）
     if (race.runners.some((h) => h.silk && silkImgs.get(h.silk))) {
       cols.push({ k:'silk', label:'彩衣', w:32, align:'c' });
     }
     cols.push(
-      { k:'horse',  label:'馬名', demand:demandW(race, 'horseName', 600, fs.horse, 120, 340), min:120, align:'l' },
-      { k:'sexage', label:'性齢', w:58, align:'c', size:fs.body, c:TT.sub },
-      { k:'jockey', label:'騎手', demand:demandW(race, 'jockey', 400, fs.body, 72, 180), min:72, align:'l', size:fs.body, c:TT.sub },
+      { k:'horse',  label:'马名', demand:demandW(race, 'horseName', 600, fs.horse, 120, 340), min:120, align:'l' },
+      { k:'sexage', label:'性龄', w:58, align:'c', size:fs.body, c:TT.sub },
+      { k:'jockey', label:'骑手', demand:demandW(race, 'jockey', 400, fs.body, 72, 180), min:72, align:'l', size:fs.body, c:TT.sub },
     );
     for (const k of extras) {
       const e = EXTRA_COLS.find((c) => c.k === k);
@@ -312,9 +312,9 @@ function drawCards(scale, races, extras) {
     parts.push({ t: vn, c: TT.sub, w: 600, s: 13 });
     const subT = subStr(race).replace(/m$/, '');
     if (subT) parts.push({ t: subT, c: TT.mut2, w: 400, s: 12 });
-    if (clockOpt.bj && localStr) parts.push({ t: `当地 ${localStr}`, c: TT.mut2, w: 400, s: 12 });
+    if (clockOpt.bj && localStr) parts.push({ t: `当地时间 ${localStr}`, c: TT.mut2, w: 400, s: 12 });
     if (clockOpt.bj && bjStr) parts.push({ t: `北京 ${bjStr}`, c: TT.tealInk, w: 700, s: 12.5 });
-    else if (localStr) parts.push({ t: `当地 ${localStr}`, c: TT.tealInk, w: 700, s: 12.5 });
+    else if (localStr) parts.push({ t: `当地时间 ${localStr}`, c: TT.tealInk, w: 700, s: 12.5 });
     let mx = DATE_X;
     parts.forEach((pt, i) => {
       if (i) {
@@ -376,16 +376,31 @@ function drawCards(scale, races, extras) {
       const ry = tTop + COLH + i * ROW_H;
       const mid = ry + ROW_H / 2 + 1;
       for (const c of cols) {
-        if (c.k === 'wknum') {   // 枠番合一（与紧凑一览同款）：单色块，色 = 枠番、块内只写馬番
+        if (c.k === 'wknum') {   // 马号列：整格底色 = 枠番色（2026-11-07 改，旧版是 26×20 小方块）
           const fr = Number(h.frame);
-          const wk = (fr >= 1 && fr <= 8) ? WAKU[fr] : { bg: '#eceff2', fg: '#9aa3ac' };
-          const bw = 26, bh = 20;
-          const bx = c.x + (c.w - bw) / 2, byy = mid - bh / 2 - .5;
-          ctx.fillStyle = wk.bg; rr(bx, byy, bw, bh, 5); ctx.fill();
-          if (wk.bd) { ctx.strokeStyle = wk.bd; ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 1; }
-          ctx.font = font(700, 12.5); ctx.fillStyle = wk.fg;
+          const wk = (fr >= 1 && fr <= 8) ? WAKU[fr] : { bg: '#eceff2', fg: '#8a949e', bd: '#dfe3e7' };
+          /* 铺满整格 —— 底色会盖住网格线，填完把四边重画一遍，表格结构才不散 */
+          ctx.fillStyle = wk.bg;
+          ctx.fillRect(c.x, ry, c.w, ROW_H);
+          if (wk.bd) {
+            ctx.strokeStyle = wk.bd; ctx.lineWidth = 1;
+            ctx.strokeRect(c.x + .5, ry + .5, c.w - 1, ROW_H - 1);
+          }
+          ctx.strokeStyle = G.v; ctx.lineWidth = 1;
+          const vxR = Math.round(c.x + c.w) + .5;
+          ctx.beginPath(); ctx.moveTo(vxR, ry); ctx.lineTo(vxR, ry + ROW_H); ctx.stroke();
+          if (Math.abs(c.x - PAD) < 1) {
+            ctx.strokeStyle = G.outer; ctx.lineWidth = G.outerW;
+            ctx.beginPath(); ctx.moveTo(PAD + .5, ry); ctx.lineTo(PAD + .5, ry + ROW_H); ctx.stroke();
+            ctx.lineWidth = 1;
+          }
+          if (i < race.runners.length - 1) {
+            ctx.strokeStyle = TT.row;
+            ctx.beginPath(); ctx.moveTo(c.x, ry + ROW_H + .5); ctx.lineTo(c.x + c.w, ry + ROW_H + .5); ctx.stroke();
+          }
+          ctx.font = font(700, fs.num); ctx.fillStyle = wk.fg;
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(String(h.num ?? '–'), bx + bw / 2, byy + bh / 2 + .5);
+          ctx.fillText(String(h.num ?? '–'), c.x + c.w / 2, ry + ROW_H / 2 + 1);
           ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
           continue;
         }
@@ -473,7 +488,7 @@ function drawDense(scale, races, extras) {
   for (const r of races) timeNeed = Math.max(timeNeed, tw(bjText(r) || '–'), tw(localText(r) || '–'));
   if (clockOpt.local && clockOpt.bj) {
     ctx.font = font(400, 10);
-    for (const r of races) timeNeed = Math.max(timeNeed, r.startTime ? tw(`当地 ${r.startTime}`) : 0);
+    for (const r of races) timeNeed = Math.max(timeNeed, r.startTime ? tw(`当地时间 ${r.startTime}`) : 0);
   }
   const cols = [{ k: timeCol, label: clockOpt.bj ? '北京时间' : '当地时间', w: Math.max(78, timeNeed + 16), align: 'c', merge: 'race', prio: 3 }];
   // 场次列：按最长「競馬場+R」实测（此前固定 48 会把「京都11R」截成「京都1…」）
@@ -482,17 +497,17 @@ function drawDense(scale, races, extras) {
   for (const r of races) noNeed = Math.max(noNeed, tw(`${r.venue ?? ''}${r.raceNo ? r.raceNo + 'R' : ''}` || '–'));
   cols.push({ k:'no', label:'场次', w: Math.min(120, Math.max(48, noNeed + 14)), align:'c', merge:'race', prio: 3 });
   cols.push(
-    { k:'rname', label:'比赛名', min:96, align:'l', merge:'race', prio: 2 },
+    { k:'rname', label:'比赛', min:96, align:'l', merge:'race', prio: 2 },
     { k:'dist', label:'赛道', w:54, align:'c', merge:'race', prio: 2 },
-    { k:'wknum', label:'枠番', w:46, align:'c' },
+    { k:'wknum', label:'马号', w:46, align:'c' },
   );
   // 彩衣列：与分卡版式同规则——该场有已加载的图才出现（24px 行高内缩至 18×14）
   const hasSilkD = races.some((r) => (r.runners ?? []).some((h) => h.silk && silkImgs.get(h.silk)));
   if (hasSilkD) cols.push({ k:'silk', label:'彩衣', w:26, align:'c', prio: 3 });
   cols.push(
-    { k:'horse', label:'馬名', min:108, align:'l', prio: 3 },
-    { k:'sexage', label:'性齢', w:42, align:'c' },
-    { k:'jockey', label:'騎手', min:64, align:'l', prio: 1 },
+    { k:'horse', label:'马名', min:108, align:'l', prio: 3 },
+    { k:'sexage', label:'性龄', w:42, align:'c' },
+    { k:'jockey', label:'骑手', min:64, align:'l', prio: 1 },
   );
   for (const k of extras) {
     const e = EXTRA_COLS.find((c) => c.k === k);
@@ -634,7 +649,7 @@ function drawDense(scale, races, extras) {
       ctx.font = font(600, two ? fsR.time : 12); ctx.fillStyle = TT.tealInk;
       ctx.fillText(fit(main || '–', c.w - 8), c.x + c.w / 2, two ? mid - 7 : mid - 5.5);
       ctx.font = font(400, two ? 10.5 : 10); ctx.fillStyle = TT.mut2;
-      ctx.fillText(race.startTime ? `当地 ${race.startTime}` : '', c.x + c.w / 2, two ? mid + 8 : mid + 6.5);
+      ctx.fillText(race.startTime ? `当地时间 ${race.startTime}` : '', c.x + c.w / 2, two ? mid + 8 : mid + 6.5);
     } else {
       ctx.font = font(600, fsR.time); ctx.fillStyle = TT.tealInk;
       ctx.fillText(fit(main || '–', c.w - 8), c.x + c.w / 2, mid);
@@ -669,17 +684,25 @@ function drawDense(scale, races, extras) {
   const drawRunCell = (c, h, mid, span) => {
     ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
     if (c.k === 'wknum') {
-      // 定稿：方案 C 网格 + 方案 A 枠番样式 —— 单个色块，颜色编码枠番（JRA 8 色）、块内只写馬番。
-      // 一列只留一个数字，一位/两位数天然对齐；无枠番（海外场等）退化为灰块。
+      /* 马号列：整格底色 = 枠番色（2026-11-07 与分卡统一，旧版是 24×18 小方块）。
+         紧凑表无外框，铺满后只需补回右缘结构线与行分隔线。 */
       const fr = Number(h.frame);
-      const bw = 24, bh = 18;
-      const x0 = c.x + (c.w - bw) / 2;
-      const wk = (fr >= 1 && fr <= 8) ? WAKU[fr] : { bg: '#e9ecef', fg: '#8a949e' };
-      ctx.fillStyle = wk.bg; rr(x0, mid - bh / 2, bw, bh, 4); ctx.fill();
-      if (wk.bd) { ctx.strokeStyle = wk.bd; ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 1; }
+      const wk = (fr >= 1 && fr <= 8) ? WAKU[fr] : { bg: '#e9ecef', fg: '#8a949e', bd: '#dfe3e7' };
+      const rTop = mid - ROW_H / 2 - .5;
+      ctx.fillStyle = wk.bg;
+      ctx.fillRect(c.x, rTop, c.w, ROW_H);
+      if (wk.bd) {
+        ctx.strokeStyle = wk.bd; ctx.lineWidth = 1;
+        ctx.strokeRect(c.x + .5, rTop + .5, c.w - 1, ROW_H - 1);
+      }
+      ctx.strokeStyle = C_VLINE; ctx.lineWidth = 1;
+      const vxR = Math.round(c.x + c.w) + .5;
+      ctx.beginPath(); ctx.moveTo(vxR, rTop); ctx.lineTo(vxR, rTop + ROW_H); ctx.stroke();
+      ctx.strokeStyle = C_LINE;
+      ctx.beginPath(); ctx.moveTo(c.x, rTop + ROW_H + .5); ctx.lineTo(c.x + c.w, rTop + ROW_H + .5); ctx.stroke();
       ctx.font = font(700, fsD.num); ctx.fillStyle = wk.fg;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(String(h.num ?? '–'), x0 + bw / 2, mid + .5);
+      ctx.fillText(String(h.num ?? '–'), c.x + c.w / 2, mid + .5);
       ctx.textAlign = 'left';
       return;
     }
@@ -721,6 +744,12 @@ function drawDense(scale, races, extras) {
     }
     for (const s of spans) s.race.runners.forEach((h, i) => drawRunCell(c, h, rowY(s.start + i), s));
   }
+
+  /* ---- 表格封边（2026-11-07 用户反馈：无外框时表格左右两端直接消失在白底里，很散）----
+     只画最外一圈，颜色比分卡的外框略浅（紧凑表本身线条很淡，框太重会像 Excel 框线）。
+     日期分组行在 tTop 之上，不纳入框内。 */
+  ctx.strokeStyle = '#c7ced5'; ctx.lineWidth = 1;
+  ctx.strokeRect(PAD + .5, tTop + .5, tW - 1, tBot - tTop - 1);
 
   // ---- Footer ----
   footer(L, R, tBot);

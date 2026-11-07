@@ -67,7 +67,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "2.3.3";
+  var VERSION = "2.4.0";
   var WIDE_MIN = 720;   /* 容器宽 ≥ 此值走九列密表，否则走逐场卡片 */
 
   /* ---------- 工具 ---------- */
@@ -505,38 +505,38 @@
     [ /* tier 0（720–1179）：基础九列 */
       { k: "time", label: "北京时间", cls: "c v", w: 8.5 },
       { k: "no",   label: "场次",     cls: "c v", w: 8.5 },
-      { k: "rn",   label: "比赛名",   cls: "v",   w: 26.5 },
+      { k: "rn",   label: "比赛",     cls: "v",   w: 26.5 },
       { k: "ds",   label: "赛道",     cls: "c v", w: 7.5 },
-      { k: "wk",   label: "枠番",     cls: "c v", w: 7 },
-      { k: "hn",   label: "馬名",     cls: "",    w: 19 },
-      { k: "sa",   label: "性齢",     cls: "c",   w: 6.5 },
-      { k: "wt",   label: "斤量",     cls: "c",   w: 6.5 },
-      { k: "jk",   label: "騎手",     cls: "",    w: 10 },
+      { k: "wk",   label: "马号",     cls: "c v", w: 7 },
+      { k: "hn",   label: "马名",     cls: "",    w: 19 },
+      { k: "sa",   label: "性龄",     cls: "c",   w: 6.5 },
+      { k: "wt",   label: "负重",     cls: "c",   w: 6.5 },
+      { k: "jk",   label: "骑手",     cls: "",    w: 10 },
     ],
     [ /* tier 1（≥1180）：补「母父」 */
       { k: "time", label: "北京时间", cls: "c v", w: 8.5 },
       { k: "no",   label: "场次",     cls: "c v", w: 8.5 },
-      { k: "rn",   label: "比赛名",   cls: "v",   w: 20 },
+      { k: "rn",   label: "比赛",     cls: "v",   w: 20 },
       { k: "ds",   label: "赛道",     cls: "c v", w: 7 },
-      { k: "wk",   label: "枠番",     cls: "c v", w: 6.5 },
-      { k: "hn",   label: "馬名",     cls: "",    w: 16 },
-      { k: "sa",   label: "性齢",     cls: "c",   w: 6 },
-      { k: "wt",   label: "斤量",     cls: "c",   w: 6 },
-      { k: "jk",   label: "騎手",     cls: "",    w: 8 },
+      { k: "wk",   label: "马号",     cls: "c v", w: 6.5 },
+      { k: "hn",   label: "马名",     cls: "",    w: 16 },
+      { k: "sa",   label: "性龄",     cls: "c",   w: 6 },
+      { k: "wt",   label: "负重",     cls: "c",   w: 6 },
+      { k: "jk",   label: "骑手",     cls: "",    w: 8 },
       { k: "bms",  label: "母父",     cls: "",    w: 13.5 },
     ],
     [ /* tier 2（≥1500）：再补「調教師」 */
       { k: "time", label: "北京时间", cls: "c v", w: 8 },
       { k: "no",   label: "场次",     cls: "c v", w: 8 },
-      { k: "rn",   label: "比赛名",   cls: "v",   w: 16.5 },
+      { k: "rn",   label: "比赛",     cls: "v",   w: 16.5 },
       { k: "ds",   label: "赛道",     cls: "c v", w: 6.5 },
-      { k: "wk",   label: "枠番",     cls: "c v", w: 6 },
-      { k: "hn",   label: "馬名",     cls: "",    w: 14.5 },
-      { k: "sa",   label: "性齢",     cls: "c",   w: 5.5 },
-      { k: "wt",   label: "斤量",     cls: "c",   w: 5.5 },
-      { k: "jk",   label: "騎手",     cls: "",    w: 7.5 },
+      { k: "wk",   label: "马号",     cls: "c v", w: 6 },
+      { k: "hn",   label: "马名",     cls: "",    w: 14.5 },
+      { k: "sa",   label: "性龄",     cls: "c",   w: 5.5 },
+      { k: "wt",   label: "负重",     cls: "c",   w: 5.5 },
+      { k: "jk",   label: "骑手",     cls: "",    w: 7.5 },
       { k: "bms",  label: "母父",     cls: "",    w: 11.5 },
-      { k: "tr",   label: "調教師",   cls: "",    w: 10.5 },
+      { k: "tr",   label: "练马师",   cls: "",    w: 10.5 },
     ],
   ];
   /* 容器宽 → 档位（与字号档同步，见 widthMeta()） */
