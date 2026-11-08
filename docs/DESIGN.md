@@ -245,6 +245,6 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
   - 两形态共用：`groupByDate()`、`cleanRaceName()`、`wakuChip()`/`levelBadge()`、头部、最近一周折叠、空/加载/失败态。列宽按档位各给一套百分比（每档合计 100%），`table-layout:fixed` 下不会撑爆。
 - **数据**：组件自带 load——fetch `derived/index.json` + `derived/{date}.json`（字典包，`unpackRows` 内联自 `src/lib/rows-codec.mjs`，两处同步改），**不写任何存储键**（缓存仅内存）。与 sire-rank-chart「宿主 fetch 数据」的契约差异是有意的：出走表多文件懒加载的编排成本不转嫁给宿主。
 - **变量**：亮色单主题；颜色走宿主 CSS 变量（`--foreground/--muted-foreground/--border/--primary/--card` 等，缺省回退 #0aa7a0 × shadcn Neutral），与 friend-links.js 归一化变量同一做法——宿主换肤组件跟随；枠色/级别徽章 = JRA 官方枠色与 JBIS 配色（数据语义写死，同主站 `.waku`/`.yj-g*`）。冷灰网格的 `--re-line/--re-vline/--re-zebra/--re-headline/--re-racline/--re-dayline` 与 `share.js::drawDense` 的 `C_LINE/C_VLINE/C_ZEBRA/C_HEAD_LINE/C_RACE_LINE/C_DAY_LINE` 一一对应，**改色必须两边同步**（漂移只有并排截图能发现）。
-- **CORS**：GitHub Pages 全站带 `Access-Control-Allow-Origin: *`；本地 `npm run serve` 已对齐（`src/server.js` 全响应头补 ACAO *），供宿主站 `?rcdev=1` 式本地联调（宿主把 base 切到 `http://127.0.0.1:9090/`）。
+- **CORS**：GitHub Pages 全站带 `Access-Control-Allow-Origin: *`；本地 `npm run serve` 已对齐（`src/server.js` 全响应头补 ACAO *），供宿主站本地联调（宿主把 base 切到 `http://127.0.0.1:9093/`）。本站端口单源 = 项目根 `serve.config.json`（9093，四兄弟站之一）。
 - **主站完整页嵌入（附录，一般不用）**：`index.html?embed=1` + §6 筛选深链——`<html data-embed>`（head 内联脚本）收起装饰层（页头/页脚/站群导航）、`#page` 占满、锁亮色（暗色 token 收窄为 `:root:not([data-embed])`）；`app.js` syncUrl 保留 `embed=1`。适合确需完整功能（多维筛选/分享卡）的 iframe 场景，日常引用一律走组件。
 

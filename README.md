@@ -13,11 +13,16 @@ JBIS（jbis.or.jp）**出走表**（出馬表）采集与检索：按 **中央 /
 ## 快速开始
 
 ```bash
-npm start              # 采集 → 构建 → 启动 http://127.0.0.1:9090/ 并打开浏览器
+npm start              # 采集 → 构建 → 启动 http://127.0.0.1:9093/ 并打开浏览器
 npm run collect        # 仅采集（今天起 3 天）
 npm run build          # 仅构建（生成 _site/，含每周 Excel）
-npm run serve          # 仅启动本地服务（默认 9090；可 npm run serve -- --port 9180 --no-open）
+npm run serve          # 仅启动本地服务（端口固定 9093；--no-open 不弹浏览器）
 ```
+
+> 端口 / 服务根 / 绑址单源 = 项目根 **`serve.config.json`**（本站 9093）。四兄弟站约定
+> yunji-web 9090 / kzn-web 9091 / jbis-sire-rank-history 9092 / 本站 9093。端口被占用时**直接报错退出，
+> 不自动顺延**，也不再支持 `--port` 临时改口——宿主站云迹 `entries.html` 把本站端口写死成 9093，
+> 改端口必须两边同步。
 
 按日期抓取：
 
