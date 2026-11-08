@@ -124,12 +124,44 @@ function rowOf(doc, race, r) {
         : String(race.raceKey ?? "").match(/^\d{8}\/\w+\/\d{2}$/)
           ? `https://www.jbis.or.jp/race/${race.raceKey}/`
           : (doc.source ?? null),
+    // 前走（embed「前走」列：比赛名 · 人气 · 着顺）：比赛名/着顺来自出馬表的前 3 走，
+    //   人气出馬表没有 → 由 collect-recent-pop 从馬頁競走成績补，按 raceKey 对齐后才采信
+    ...lastRunOf(r),
     // 前走预渲染为文本（UI 已不用逐场对象；字典包里字符串远小于对象数组，且仅 Excel 消费）
     recent1: recentText(r.recent?.[0]) || null,
     recent2: recentText(r.recent?.[1]) || null,
     recent3: recentText(r.recent?.[2]) || null,
     dateLabel: `${m}-${d}`,
   };
+}
+
+function lastRunOf(r) {
+  const la = r.recent?.[0];
+  if (!la) return {};                       // 新馬未出走 → 四个字段全不出现（UI 显示「新馬」）
+  const id = r.horse?.id;
+  const hit = id ? POP_CACHE.horses?.[id] : null;
+  const runs = hit?.runs ?? (hit?.last ? [hit.last] : []);        // last = 旧版单场缓存，兼容
+  const run = la.raceKey ? runs.find((x) => x.raceKey === la.raceKey) : null;
+  const okPop = run ? run.pop : null;
+  if (okPop != null) popHit++;
+  else popMiss++;
+  return {
+    lastRace: la.raceName ?? null,
+    lastRank: normLastRank(la.rank),
+    lastRaceKey: la.raceKey ?? null,
+    lastPop: okPop,
+  };
+}
+
+// 着順归一：出馬表写作「9着」；除外/中止/取消等保留单字；「**」等占位当无值
+function normLastRank(v) {
+  const t = String(v ?? "").trim();
+  if (!t) return null;
+  const m = t.match(/^(\d+)\s*着$/);
+  if (m) return m[1];
+  if (/^\d+$/.test(t)) return t;
+  if (/^[除中失取止]$/.test(t)) return t;
+  return null;
 }
 
 function recentText(x) {
@@ -176,6 +208,17 @@ if (fs.existsSync(EMBED_JS)) {
   );
   console.log(`[embed] entries-table.js v${version} sha1:${hash} ${buf.length}B → embed/manifest.json`);
 }
+
+// 前走人气缓存（src/collect-recent-pop.js 从 JBIS 馬頁競走成績抓；按种马圈定，非全量）
+//   命中条件 = 缓存里那条 raceKey 与本行 recent[0].raceKey 一致（马又跑了一场 → 自动判为未命中，不串数据）
+const POP_CACHE = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.resolve("data", "recent-pop.json"), "utf8"));
+  } catch {
+    return { horses: {} };
+  }
+})();
+let popHit = 0, popMiss = 0;
 
 fs.mkdirSync(DERIVED, { recursive: true });
 
@@ -447,3 +490,4 @@ fs.writeFileSync(path.join(DERIVED, "index.json"), JSON.stringify(index));
 // GitHub Pages 项目站：禁用 Jekyll 处理（防下划线/特殊文件被吞），且全站均为相对路径，任意 base path 可用
 fs.writeFileSync(path.join(OUT_DIR, ".nojekyll"), "");
 console.log(`[build] dates=${index.dates.length} rows=${index.dates.reduce((n, d) => n + d.runners, 0)} -> ${OUT_DIR}`);
+if (popHit || popMiss) console.log(`[recent-pop] 前走人气命中 ${popHit} 行 / 未命中 ${popMiss} 行（缓存 ${Object.keys(POP_CACHE.horses ?? {}).length} 匹）`);

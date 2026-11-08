@@ -235,9 +235,9 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 
 - **组件**：`site/embed/entries-table.js`（构建进 `_site/embed/`，零依赖单文件 IIFE，挂 `window.RC_ENTRIES_EMBED`）。API = `VERSION` / `load(base, opts)`（数据编排）/ `render(el, data, opts)`（纯渲染）/ `mount(el, opts)`（load + render + 内建加载/失败/重试态，宿主一行挂载）。
 - **宿主用法**：动态加载组件脚本（Promise 缓存）后 `RC_ENTRIES_EMBED.mount(el, { base: "https://hinotoyk.github.io/racing-calendar/", sire: "コントレイル" })`。`sire` = 種牡馬日文名（JBIS 原形，宿主从自家 config 取，与数据行 sire 字段同源）；`days` 控制未来侧有数据日期数（默认 4）。
-- **视图（v2.5.0，2026-11-08 定稿：马号色带 + 彩衣列）**：
+- **视图（v2.6.0，2026-11-08 定稿：马号色带 + 彩衣列 + 宿主联动 + 前走列）**：
   - **分类 chips**（头部计数右侧）：`全部 / JRA·中央 / NAR·地方 / 海外`，各带实时条数；点击即筛（纯前端 filter，不重新取数）。口径与主站筛选卡「场地」三段一致（`scope`：JRA / NAR / 其余国家组码与「海外」→ 海外）。**四个恒定展示**：计数为 0 的分类（如无海外出马时的「海外 0」）按钮照样在、样式更淡，点进去给对应空态而不是偷偷切回「全部」（用户要求：海外没有比赛也要有按钮）。选择只存在挂载点（`el.__rcScope`），不写任何存储键，刷新回到「全部」。
-  - **形态/档位判定 = 组件自身宽度**（`ResizeObserver`，只在跨档时重绘；同档只更新字号系数不重排）：`<720` 卡片 / `720–1179` 十列 / `≥1180` 加「母父」/ `≥1500` 再加「练马师」。
+  - **形态/档位判定 = 组件自身宽度**（`ResizeObserver`，只在跨档时重绘；同档只更新字号系数不重排）：`<720` 卡片 / `720–1179` 十列 / `≥1180` 加「母父」/ `≥1500` 再加「练马师」+「前走」（十三列）。
   - **字号 fluid**：`--re-k = clamp(1, w/1000, 1.3)` 写在 `.rc-emb` 上，表格里所有字号与内距都写成 `calc(Npx * var(--re-k))` → 27 寸屏（容器 ~2000px）时正文 12.5→16.25px、行高 29→38px。头部标题用更缓的斜率（`13.5px + (k-1)*6px`），避免比表格还小。
   - **为什么加列而不是继续放大**：27 寸屏宽 2000px 时，九列的百分比布局会把每列拉得很空；母父 / 练马师 本来就在数据里（sire 站的父是常量、无信息量），正好把宽度换成信息。
   - **宽容器 = 密表**：比赛级 4 列按 `rowspan` 合并（北京时间 / 场次=「场地 + R 号」两段各自对齐 / 比赛+级别徽章 / 赛道），**合并列垂直居中**（与分享卡 `drawDense` 的 `midOf()` 同口径；顶端对齐会让两匹的场次左侧空出半块，宽表下很丑），逐马列（马号满格色带 / 彩衣 / 马名 / 性龄 / 负重 / 骑手 + 母父 + 练马师）；日期 = 跨列行「11月7日（土）」+ teal 短竖条；冷灰网格（表头 `#f3f5f7`、明细线 `#f0f2f4`、结构竖线 `#eef1f4`、斑马 `#fafbfc`），无外框无圆角。
@@ -254,5 +254,36 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
   - **也不用纯随机数**（`?v=` + `Math.random()`）：每个随机 URL 都是一次缓存未命中 —— 52KB 组件每次进页面重下、CDN 每个伪 URL 各自回源，还失去「用户报障能对上是哪个版本」这条线索。随机数买到的是「绝对新鲜」，代价是把缓存收益整份扔掉；内容哈希两者都要。
   - 唯一残留延迟来自 `manifest.json` 自身的 CDN 缓存（Pages 约 10 分钟，浏览器侧 `no-store` 已绕过）——这是平台地板，不是方案缺陷。
   - 取不到 manifest（旧部署 / 断网 / `file://`）时宿主退回裸 URL：功能不受影响，最多吃一次旧缓存。
+- **宿主联动（v2.6.0，2026-11-08 定稿）**：组件**只管显示**；与宿主相关的事一律由宿主注入，`mount(el, { base, sire, host })`：
+
+  | 回调 | 签名 | 语义 | 缺省（未注入） |
+  |---|---|---|---|
+  | `name` | `(jbisId) → { zh, kind } \| null` | 中文译名；`kind`：`"hk"` 港译 / `"self"` 自译 | 不显示译名 |
+  | `horse` | `(jbisId) → url \| null` | 马名点击跳转（新标签） | 纯文本、不可点 |
+  | `race` | `(row) → url \| null` | 比赛页地址覆盖 | 行内 `raceUrl`（JBIS 出馬表/結果页） |
+
+  - **全部同步**（宿主先 await 自己的数据再 mount，云迹侧 `YJ.cache.fetch("basic")` 12h 缓存）；任一回调抛错或返回空 → 该能力静默降级，组件不崩、不留空行。
+  - **译名优先级在宿主**（云迹：`香港馬名` → `自译馬名`）。组件只做两件事：自译名前置 `*`；在表格下方补一行 `* 为自译名`（**只在真有自译名时出现**，没译名就整行不摆）。显示形如 `ゴーイントゥスカイ/通天飞`、`セイウンサイフィー/*剑影星云`——同一行、中文名灰一档、长名一起省略，hover 出「（自译：xxx）」。
+  - **相对 URL 直接用**：组件跑在**宿主 DOM 里**（不是 iframe），`href="profile.html?horse=39"` 天然按宿主页面解析。但宿主的马匹页认自家内部 id，`jbis_id → 内部 id` 的映射留在宿主侧，组件不掺和。
+  - **为什么不做「RC 去拉宿主的名字表」**：跨域、数据格式耦合、版本得两头对，三样都不值当；回调注入零协议成本，宿主换数据源组件也不用改。
+  - 宿主参考实现（云迹 `front/pages/entries.html`，kzn 模板站照抄这段即可）：
+    ```js
+    var MAP = null;                                  // jbis_id → basic.json 里的马记录
+    function ensureMap() { return YJ.cache.fetch("basic").then(function (b) {
+      MAP = new Map(((b && b.horses) || []).filter(h => h.jbis_id).map(h => [String(h.jbis_id), h]));
+      return MAP; }); }
+    ensureMap().then(function () { RC_ENTRIES_EMBED.mount(el, { base: RC_BASE, sire: SIRE, host: {
+      name:  function (id) { var h = MAP.get(String(id)); if (!h) return null;
+               return h["香港馬名"] ? { zh: h["香港馬名"], kind: "hk" }
+                    : h["自译馬名"] ? { zh: h["自译馬名"], kind: "self" } : null; },
+      horse: function (id) { var h = MAP.get(String(id)); return h && h.id != null ? "profile.html?horse=" + h.id : null; }
+    } }); });
+    ```
+- **前走列（v2.6.0）**：`比赛名 · 人气 · 着顺` 一列三段（比赛名可省略、数字不省略），只在 tier2（≥1500）出现、排在练马师之后；点比赛名跳该场結果页。
+  - 比赛名/着顺 = 出馬表前 3 走（已有）；**人气出馬表没有** → `src/collect-recent-pop.js`（`npm run collect:pop -- --sire コントレイル`）从 JBIS 馬頁競走成績回填 `data/recent-pop.json`：该页表头含「人気」，每行比赛名直链 `/race/result/{raceKey}/`，一匹马一次请求、永久缓存。
+  - **按种马圈定而非全量**：20 天窗口有 2 万匹在跑，全量是 6 小时级；兄弟站都是按种马筛产驹，200~400 匹/种马（≈5 分钟），周增量只碰新出走的马（`seenDate` / 12h TTL 判重）。
+  - **命中判定 = raceKey 一致**：缓存里那条前走必须与本行 `recent[0].raceKey` 对上才采信（马又跑了一场 → 自动判未命中，绝不串数据）；没跑过的新馬显示「新馬」，缺人气就只显示两段。
+  - 每匹马缓存最近 3 场：本场行与「最近一周」历史行各自都能对上自己的前走。
+
 - **主站完整页嵌入（附录，一般不用）**：`index.html?embed=1` + §6 筛选深链——`<html data-embed>`（head 内联脚本）收起装饰层（页头/页脚/站群导航）、`#page` 占满、锁亮色（暗色 token 收窄为 `:root:not([data-embed])`）；`app.js` syncUrl 保留 `embed=1`。适合确需完整功能（多维筛选/分享卡）的 iframe 场景，日常引用一律走组件。
 

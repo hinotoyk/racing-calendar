@@ -7,6 +7,7 @@
   "scripts": {
     "collect": "node src/collect-races.js",
     "collect:rp": "node src/collect-sources.js --source racingpost",
+    "collect:pop": "node src/collect-recent-pop.js",
     "build": "node src/build.js",
     "serve": "node src/server.js",
     "start": "node src/collect-races.js && node src/build.js && node src/server.js"
