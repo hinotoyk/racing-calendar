@@ -2,6 +2,7 @@
 // site/ + data/races → _site；生成派生 JSON（derived/，字典包）与每周 Excel（excel/）
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { buildXlsx } from "./lib/xlsx.js";
 import { readGz } from "./lib/bundle.js";
 import { assertRoundTrip, packRows, unpackRows } from "./lib/rows-codec.mjs";
@@ -153,6 +154,27 @@ if (fs.existsSync(DATA_DIR)) {
 const SILKS_SRC = path.resolve("data", "silks");
 if (fs.existsSync(SILKS_SRC)) {
   fs.cpSync(SILKS_SRC, path.join(OUT_DIR, "data", "silks"), { recursive: true });
+}
+
+// embed 组件内容哈希 → embed/manifest.json（docs/DESIGN.md §10「缓存与版本戳」）
+//   宿主运行时先读这个小文件，再拼 ?v=<sha1 前 10 位> 插 script：
+//   内容不变 → URL 不变 → 浏览器/CDN 缓存命中；改一行 → 哈希变 → 立即取新文件。
+//   与宿主站自身的 vite autoVersionPlugin 同一约定（sha1 前 10 位），
+//   页面源码不写 ?v=、也禁止手改哈希（手写版本串必然忘记 bump → 线上永远是旧版）。
+const EMBED_JS = path.join(OUT_DIR, "embed", "entries-table.js");
+if (fs.existsSync(EMBED_JS)) {
+  const buf = fs.readFileSync(EMBED_JS);
+  const hash = crypto.createHash("sha1").update(buf).digest("hex").slice(0, 10);
+  const version = (buf.toString("utf8").match(/var VERSION = "([^"]+)"/) || [])[1] ?? null;
+  fs.writeFileSync(
+    path.join(OUT_DIR, "embed", "manifest.json"),
+    JSON.stringify(
+      { file: "entries-table.js", hash, version, bytes: buf.length, builtAt: new Date().toISOString() },
+      null,
+      2,
+    ) + "\n",
+  );
+  console.log(`[embed] entries-table.js v${version} sha1:${hash} ${buf.length}B → embed/manifest.json`);
 }
 
 fs.mkdirSync(DERIVED, { recursive: true });

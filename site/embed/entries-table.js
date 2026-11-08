@@ -19,12 +19,19 @@
  *     —— 超宽屏把多出来的宽度换成信息，而不是把每列拉得更空；
  *     字号/行距同步 fluid 放大（--re-k = clamp(1, w/1000, 1.3)，16px 级），密度不变但有分量。
  *   · 宽容器（≥720px，PC）= 紧凑一览式的密表：比赛级 4 列按 rowspan 合并
- *     （北京时间/场次/比赛名/赛道），逐马只占一行（枠番色块·馬名·性齢·斤量·騎手），
+ *     （北京时间/场次/比赛名/赛道），逐马只占一行（马号色带·彩衣·馬名·性齢·斤量·騎手），
  *     冷灰网格（表头浅灰 + 明细线 #f0f2f4 + 结构竖线 + 极浅斑马），无外框无圆角
  *     —— 宿主卡片本身就是容器。
+ *   · **马号 + 彩衣（v2.5.0，2026-11-08 用户按参考站定稿）**：马号列从「圆角小芯片」改为
+ *     **满格色带**——色 = 枠番（JRA 官方 8 色）、字 = 馬番，单元格零内距、无圆角、无左右留白，
+ *     上下相邻两格的颜色直接相接成一条竖带（同枠的产驹一眼连成一段）；右侧紧跟**彩衣**列
+ *     （马主勝負服小图，高 19px×系数、等比、白底细描边）。参考站是「马号 彩衣」两列挨着，
+ *     色带负责扫读、彩衣负责辨认马主，二者互补，不能只留其一。
+ *   · 色带只在**确有枠番**时着色：无枠番（海外/未確定）退化为普通居中的馬番文本（不刷灰底，
+ *     灰底会让整列像一堆坏掉的占位块——v2.4.0 的实测问题）；連馬番都没有时显示极淡的「–」。
  *   · 窄容器（<720px，MB）= 逐场卡片：一场一块（场次/北京时刻做条头，比赛名+赛道
- *     一行，产驹每人两行），单列竖排。
- *   ★ 为什么不用「收列」而用「换形态」：九列压进 390px 只能靠横滑或砍列，两者都难读；
+ *     一行，产驹两行：马号 + 彩衣 + 馬名 + 性齢 + 斤量 / 騎手 + 母父），单列竖排。
+ *   ★ 为什么不用「收列」而用「换形态」：十列压进 390px 只能靠横滑或砍列，两者都难读；
  *     卡片把「哪场 + 谁跑」摊成竖排，拇指滚动即可。
  *   ★ 断点看**组件自身宽度**（ResizeObserver），不看视口——宿主有侧栏/90% 宽/卡片内距，
  *     按视口算会误判（1024px 窗口实测曾把 11 列裁掉右半边）。
@@ -67,8 +74,8 @@
 (function () {
   "use strict";
 
-  var VERSION = "2.4.0";
-  var WIDE_MIN = 720;   /* 容器宽 ≥ 此值走九列密表，否则走逐场卡片 */
+  var VERSION = "2.5.0";
+  var WIDE_MIN = 720;   /* 容器宽 ≥ 此值走十列密表，否则走逐场卡片 */
 
   /* ---------- 工具 ---------- */
   function esc(s) {
@@ -316,7 +323,8 @@
       "padding:calc(6px * var(--re-k,1)) calc(8px * var(--re-k,1));text-align:left;white-space:nowrap;",
       "border-bottom:1px solid var(--re-headline);letter-spacing:.02em}",
       ".rc-emb-tbl th.c{text-align:center}",
-      /* 结构竖线：合并列区（时间/场次/比赛名/赛道）右缘 + 枠番列右缘，其余留白 */
+      /* 结构竖线：合并列区（时间/场次/比赛名/赛道）右缘 + 彩衣列右缘（马号色带本身即边界，
+         不再额外画线，否则色带右边会出现一条割裂的浅线），其余留白 */
       ".rc-emb-tbl th.v{border-right:1px solid var(--re-vline)}",
       ".rc-emb-tbl td{padding:calc(5px * var(--re-k,1)) calc(8px * var(--re-k,1));",
       "vertical-align:middle;border-top:1px solid var(--re-line)}",
@@ -326,11 +334,26 @@
          半块空白，很丑）。与分享卡 drawDense 的 midOf() 同口径 —— 比赛级信息落在整场的
          视觉中心，一匹/两匹/四匹都不会出现"上方贴字、下方空白"的失衡。 */
       ".rc-emb-tbl td.rs{border-top:0;border-right:1px solid var(--re-vline);vertical-align:middle}",
-      ".rc-emb-tbl td.wk{border-right:1px solid var(--re-vline)}",
+      /* ---------- 马号列 = 满格色带（v2.5.0） ----------
+       * td 自己刷底色（表格单元格背景一定填满整个单元格盒，不受内容高度影响），
+       * 上下**不画横向分隔线** → 相邻两格颜色直接相接，同枠的产驹连成一条竖带。
+       * 零左右内距 + 居中：两位数也不会把色带挤成两半。 */
+      ".rc-emb-tbl td.nm{padding:calc(5px * var(--re-k,1)) 0;text-align:center;border-top:0;",
+      "font-size:calc(12.5px * var(--re-k,1));font-weight:700;line-height:1.35;letter-spacing:0}",
+      /* 无枠番（海外/未確定）：不刷色，退回普通文本，但保留行分隔线，免得整列看着像断开的占位 */
+      ".rc-emb-tbl td.nm.nb{border-top:1px solid var(--re-line);color:var(--re-muted);font-weight:600}",
+      /* ---------- 彩衣列：马主勝負服小图（等比缩放，不裁切） ---------- */
+      ".rc-emb-tbl td.sk{padding:calc(2px * var(--re-k,1)) calc(4px * var(--re-k,1));",
+      "border-right:1px solid var(--re-vline)}",
+      ".rc-emb-silk{display:block;height:calc(19px * var(--re-k,1));width:auto;max-width:none;",
+      "margin:0 auto;border-radius:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.08)}",
+
       /* 斑马：只刷逐马列（合并块内不穿色，与 drawDense 的 xPerRow 起刷同做法） */
       ".rc-emb-tbl td.z{background:var(--re-zebra)}",
-      /* 比赛分隔线：每场首行整行加深（含合并单元格） */
+      /* 比赛分隔线：每场首行整行加深（含合并单元格）；马号色带例外——在色带上压一条线
+         会把「同枠连成一条」的竖带切成一格一格，而场次的切换本身已由色带断点表达 */
       ".rc-emb-tbl tr.rf td{border-top:1px solid var(--re-racline)}",
+      ".rc-emb-tbl tr.rf td.nm.bd{border-top:0}",
       ".rc-emb-tbl tbody tr:hover td:not(.rs){background:rgba(10,167,160,.05)}",
       /* 日期分组行（跨列）：teal 短竖条 + 「11月4日（水）」+ 右对齐头数 */
       ".rc-emb-tbl th.rc-emb-daycell{padding:calc(15px * var(--re-k,1)) 2px calc(6px * var(--re-k,1));",
@@ -366,11 +389,11 @@
       "font-size:calc(9.5px * var(--re-k,1));font-weight:700;line-height:1.5;color:#fff}",
       /* 赛道（芝/ダ/障 + 距离） */
       ".rc-emb-dist{font-size:calc(12.5px * var(--re-k,1));font-weight:600;white-space:nowrap}",
-      /* 枠/番 单色块（块内写馬番，JRA 8 色；无枠番退化为灰块） */
-      ".rc-emb-waku{display:inline-flex;width:calc(26px * var(--re-k,1));height:calc(19px * var(--re-k,1));",
-      "align-items:center;justify-content:center;border-radius:4px;",
+      /* 马号（卡片态）：色块 = 枠番、字 = 馬番；方角只留 3px 圆角，与宽表色带同一手感 */
+      ".rc-emb-waku{display:inline-flex;width:calc(24px * var(--re-k,1));height:calc(19px * var(--re-k,1));",
+      "align-items:center;justify-content:center;border-radius:3px;flex:none;",
       "font-size:calc(11px * var(--re-k,1));font-weight:700;line-height:1}",
-      ".rc-emb-waku.na{background:#eceff2;color:#9aa3ac}",
+      ".rc-emb-waku.na{background:transparent;color:var(--re-muted)}",
       ".rc-emb-hname{font-size:calc(13px * var(--re-k,1));font-weight:600;overflow:hidden;",
       "text-overflow:ellipsis;white-space:nowrap}",
       ".rc-emb-sex{font-size:calc(12.5px * var(--re-k,1));font-weight:600}",
@@ -407,18 +430,19 @@
       ".rc-emb-rcname .rn{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;",
       "white-space:nowrap;min-width:0}",
       ".rc-emb-rcname .ds{margin-left:auto;flex:none;font-size:11px;font-weight:600;white-space:nowrap}",
-      /* 产驹行：第一行 枠番 + 馬名 + 性齢 + 斤量；第二行 騎手 + 母父 */
+      /* 产驹行：第一行 马号 + 彩衣 + 馬名 + 性齢 + 斤量；第二行 騎手 + 母父 */
       ".rc-emb-runs{padding:0 10px 7px}",
       ".rc-emb-run{padding:5px 0;border-top:1px solid var(--re-line)}",
       ".rc-emb-runs .rc-emb-run:first-child{border-top:0}",
       ".rc-emb-run .l1{display:flex;align-items:center;gap:7px;min-width:0}",
+      ".rc-emb-run .l1 .rc-emb-silk{height:17px;flex:none;margin:0}",
       ".rc-emb-run .l1 .hn{flex:1 1 auto;min-width:0;font-size:13px;font-weight:600;",
       "overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
       ".rc-emb-run .l1 .rt{display:flex;align-items:baseline;gap:4px;flex:none}",
       ".rc-emb-run .l1 .sa{font-size:11.5px;font-weight:600}",
       ".rc-emb-run .l1 .ag{font-size:11.5px;color:var(--re-muted)}",
       ".rc-emb-run .l1 .wt{flex:none;font-size:11.5px;color:var(--re-body)}",
-      ".rc-emb-run .l2{display:flex;align-items:baseline;gap:8px;margin-top:1px;padding-left:33px;",
+      ".rc-emb-run .l2{display:flex;align-items:baseline;gap:8px;margin-top:1px;padding-left:61px;",
       "font-size:11px;color:var(--re-muted);min-width:0}",
       ".rc-emb-run .l2 .jk{flex:1 1 auto;min-width:0;color:var(--re-body);overflow:hidden;",
       "text-overflow:ellipsis;white-space:nowrap}",
@@ -447,14 +471,32 @@
     document.head.appendChild(styleEl);
   }
 
-  /* 枠色块内写馬番（对齐分享卡 dense 定稿 A：一块只留一个数字） */
+  /* 马号：色 = 枠番（JRA 官方 8 色）、字 = 馬番（对齐分享卡 dense 定稿 A：一块只留一个数字）。
+   * 宽表用它刷满整格（td 背景），卡片用它做小方块。无枠番 → 透明（不刷灰，灰块会被读成坏数据）。 */
+  function frameBg(frame) {
+    var c = WAKU[Number(frame)];
+    if (!c) return "";
+    return "background:" + c[0] + ";color:" + c[1] + (c[2] ? ";box-shadow:inset 0 0 0 1px " + c[2] : "");
+  }
   function wakuChip(frame, num) {
     var c = WAKU[Number(frame)];
     var t = num == null || num === "" ? "–" : num;
     if (!c) return '<span class="rc-emb-waku na">' + esc(t) + "</span>";
-    var line = c[2] ? "box-shadow:inset 0 0 0 1px " + c[2] + ";" : "";
-    return '<span class="rc-emb-waku" style="background:' + c[0] + ";color:" + c[1] + ";" + line + '">' +
-           esc(t) + "</span>";
+    return '<span class="rc-emb-waku" style="' + frameBg(frame) + '">' + esc(t) + "</span>";
+  }
+  /* 彩衣图：行里存的是站点根相对路径（data/silks/{ownerId}.gif），这里补 base；
+   * 已是绝对 URL 的原样用。缺图（海外源 / 未覆盖的马主）返回空串 —— 空着比一排破图好。 */
+  function silkURL(base, silk) {
+    var s = String(silk == null ? "" : silk).trim();
+    if (!s) return "";
+    if (/^(?:https?:)?\/\//.test(s)) return s;
+    return String(base || "").replace(/\/+$/, "") + "/" + s.replace(/^\/+/, "");
+  }
+  function silkImg(base, silk) {
+    var src = silkURL(base, silk);
+    if (!src) return "";
+    return '<img class="rc-emb-silk" src="' + esc(src) +
+      '" alt="彩衣" title="彩衣" loading="lazy" decoding="async" onerror="this.remove()">';
   }
   function levelBadge(level) {
     var bg = LEVEL_BG[level];
@@ -502,40 +544,43 @@
    *      （父是常量——宿主就是按 sire 筛的，永不出现。）
    * 列宽按档位给出百分比（每档合计 100%），table-layout:fixed 下不会被撑爆。 */
   var COLS_TIERS = [
-    [ /* tier 0（720–1179）：基础九列 */
-      { k: "time", label: "北京时间", cls: "c v", w: 8.5 },
-      { k: "no",   label: "场次",     cls: "c v", w: 8.5 },
-      { k: "rn",   label: "比赛",     cls: "v",   w: 26.5 },
-      { k: "ds",   label: "赛道",     cls: "c v", w: 7.5 },
-      { k: "wk",   label: "马号",     cls: "c v", w: 7 },
-      { k: "hn",   label: "马名",     cls: "",    w: 19 },
-      { k: "sa",   label: "性龄",     cls: "c",   w: 6.5 },
-      { k: "wt",   label: "负重",     cls: "c",   w: 6.5 },
+    [ /* tier 0（720–1179）：基础十列 */
+      { k: "time", label: "北京时间", cls: "c v", w: 8 },
+      { k: "no",   label: "场次",     cls: "c v", w: 8 },
+      { k: "rn",   label: "比赛",     cls: "v",   w: 26 },
+      { k: "ds",   label: "赛道",     cls: "c v", w: 7 },
+      { k: "wk",   label: "马号",     cls: "c",   w: 4.5 },
+      { k: "sk",   label: "彩衣",     cls: "c v",   w: 5 },
+      { k: "hn",   label: "马名",     cls: "",    w: 19.5 },
+      { k: "sa",   label: "性龄",     cls: "c",   w: 6 },
+      { k: "wt",   label: "负重",     cls: "c",   w: 6 },
       { k: "jk",   label: "骑手",     cls: "",    w: 10 },
     ],
     [ /* tier 1（≥1180）：补「母父」 */
-      { k: "time", label: "北京时间", cls: "c v", w: 8.5 },
-      { k: "no",   label: "场次",     cls: "c v", w: 8.5 },
-      { k: "rn",   label: "比赛",     cls: "v",   w: 20 },
-      { k: "ds",   label: "赛道",     cls: "c v", w: 7 },
-      { k: "wk",   label: "马号",     cls: "c v", w: 6.5 },
-      { k: "hn",   label: "马名",     cls: "",    w: 16 },
-      { k: "sa",   label: "性龄",     cls: "c",   w: 6 },
-      { k: "wt",   label: "负重",     cls: "c",   w: 6 },
-      { k: "jk",   label: "骑手",     cls: "",    w: 8 },
-      { k: "bms",  label: "母父",     cls: "",    w: 13.5 },
-    ],
-    [ /* tier 2（≥1500）：再补「調教師」 */
-      { k: "time", label: "北京时间", cls: "c v", w: 8 },
-      { k: "no",   label: "场次",     cls: "c v", w: 8 },
-      { k: "rn",   label: "比赛",     cls: "v",   w: 16.5 },
+      { k: "time", label: "北京时间", cls: "c v", w: 7.5 },
+      { k: "no",   label: "场次",     cls: "c v", w: 7.5 },
+      { k: "rn",   label: "比赛",     cls: "v",   w: 21 },
       { k: "ds",   label: "赛道",     cls: "c v", w: 6.5 },
-      { k: "wk",   label: "马号",     cls: "c v", w: 6 },
-      { k: "hn",   label: "马名",     cls: "",    w: 14.5 },
+      { k: "wk",   label: "马号",     cls: "c",   w: 4 },
+      { k: "sk",   label: "彩衣",     cls: "c v",   w: 4.5 },
+      { k: "hn",   label: "马名",     cls: "",    w: 17 },
       { k: "sa",   label: "性龄",     cls: "c",   w: 5.5 },
       { k: "wt",   label: "负重",     cls: "c",   w: 5.5 },
+      { k: "jk",   label: "骑手",     cls: "",    w: 8.5 },
+      { k: "bms",  label: "母父",     cls: "",    w: 12.5 },
+    ],
+    [ /* tier 2（≥1500）：再补「調教師」 */
+      { k: "time", label: "北京时间", cls: "c v", w: 7 },
+      { k: "no",   label: "场次",     cls: "c v", w: 7 },
+      { k: "rn",   label: "比赛",     cls: "v",   w: 19 },
+      { k: "ds",   label: "赛道",     cls: "c v", w: 6 },
+      { k: "wk",   label: "马号",     cls: "c",   w: 3.5 },
+      { k: "sk",   label: "彩衣",     cls: "c v",   w: 4 },
+      { k: "hn",   label: "马名",     cls: "",    w: 14.5 },
+      { k: "sa",   label: "性龄",     cls: "c",   w: 5 },
+      { k: "wt",   label: "负重",     cls: "c",   w: 5 },
       { k: "jk",   label: "骑手",     cls: "",    w: 7.5 },
-      { k: "bms",  label: "母父",     cls: "",    w: 11.5 },
+      { k: "bms",  label: "母父",     cls: "",    w: 11 },
       { k: "tr",   label: "练马师",   cls: "",    w: 10.5 },
     ],
   ];
@@ -552,9 +597,13 @@
   }
 
   /* 行集 → 连续 tbody 行（斑马按逐马行全局奇偶；parity 跨日累加，换日处不断色） */
-  function tableBody(rowsId, cols) {
-    var hasBms = false, hasTr = false;
-    cols.forEach(function (c) { if (c.k === "bms") hasBms = true; if (c.k === "tr") hasTr = true; });
+  function tableBody(rowsId, cols, base) {
+    var hasBms = false, hasTr = false, hasSk = false;
+    cols.forEach(function (c) {
+      if (c.k === "bms") hasBms = true;
+      if (c.k === "tr") hasTr = true;
+      if (c.k === "sk") hasSk = true;
+    });
     var html = "", parity = 0;
     groupByDate(rowsId).forEach(function (day) {
       html += '<tr class="rc-emb-dayrow"><th class="rc-emb-daycell" colspan="' + cols.length + '">' +
@@ -588,9 +637,14 @@
           }
           var sex = r.sex || "";
           var bms = String(r.bms || ""), tr = String(r.trainer || "");
+          /* 马号 = 满格色带：底色刷在 td 上（列宽窄、零内距），有枠番才刷；无枠番退普通文本 */
+          var fbg = frameBg(r.frame);
+          var numTxt = r.num == null || r.num === "" ? "–" : esc(r.num);
           /* 斑马只刷逐马列：合并列（rs，纵向跨整场）不参与，否则同一场会被切成两种底色 */
           html +=
-            '<td class="c wk' + z + '">' + wakuChip(r.frame, r.num) + "</td>" +
+            '<td class="c nm' + (fbg ? " bd" : " nb") + z + '"' +
+              (fbg ? ' style="' + fbg + '"' : "") + ">" + numTxt + "</td>" +
+            (hasSk ? '<td class="c sk' + z + '">' + silkImg(base, r.silk) + "</td>" : "") +
             '<td class="' + (z ? "z" : "") + '"><div class="rc-emb-hname" title="' + esc(r.horseName || "") + '">' +
               esc(r.horseName || "") + "</div></td>" +
             '<td class="c' + z + '"><span class="rc-emb-sex" style="color:' + esc(SEX_FG[sex] || "inherit") + '">' +
@@ -610,14 +664,16 @@
     return html;
   }
 
-  function tableHTML(rows, tier) {
-    var cols = COLS_TIERS[tier] || COLS_TIERS[0];
+  function tableHTML(rows, tier, base, withSilk) {
+    var cols = (COLS_TIERS[tier] || COLS_TIERS[0]).filter(function (c) {
+      return withSilk !== false || c.k !== "sk";   /* 整批都没有彩衣 → 不摆空列 */
+    });
     return '<div class="rc-emb-scroll"><table class="rc-emb-tbl">' + tableHead(cols) +
-      "<tbody>" + tableBody(rows, cols) + "</tbody></table></div>";
+      "<tbody>" + tableBody(rows, cols, base) + "</tbody></table></div>";
   }
 
   /* ================= 形态 B：逐场卡片（窄容器） ================= */
-  function cardsHTML(rows) {
+  function cardsHTML(rows, base) {
     var html = '<div class="rc-emb-cards">';
     groupByDate(rows).forEach(function (day) {
       html += '<div class="rc-emb-cday"><span class="d">' + esc(mdJP(day.date)) + "</span>" +
@@ -644,7 +700,7 @@
               var sex = r.sex || "";
               var bms = String(r.bms || "");
               return '<div class="rc-emb-run">' +
-                '<div class="l1">' + wakuChip(r.frame, r.num) +
+                '<div class="l1">' + wakuChip(r.frame, r.num) + silkImg(base, r.silk) +
                   '<span class="hn" title="' + esc(r.horseName || "") + '">' + esc(r.horseName || "") + "</span>" +
                   '<span class="rt">' +
                     '<span class="sa" style="color:' + esc(SEX_FG[sex] || "inherit") + '">' + esc(sex) + "</span>" +
@@ -736,9 +792,11 @@
     var today = todayBJ();
     var futureRows = rowsF.filter(function (r) { return r.date >= today; });
     var pastRows = rowsF.filter(function (r) { return r.date < today; });
+    /* 彩衣：整批一条都没有（纯海外源 / 未覆盖马主）时整列不摆 —— 空列比缺列更费解 */
+    var withSilk = rowsF.some(function (r) { return !!r.silk; });
     var build = M.mode === "cards"
-      ? cardsHTML
-      : function (rs) { return tableHTML(rs, M.tier); };
+      ? function (rs) { return cardsHTML(rs, base); }
+      : function (rs) { return tableHTML(rs, M.tier, base, withSilk); };
 
     if (futureRows.length) h += build(futureRows);
     if (pastRows.length) {
