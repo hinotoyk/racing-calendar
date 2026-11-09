@@ -1,0 +1,2077 @@
+{
+  "schema": "rp.race.result/v1",
+  "date": "2026-11-03",
+  "track": "rp-292",
+  "trackId": "292",
+  "venue": "Wolverhampton",
+  "country": "ENG",
+  "source": "sportinglife",
+  "updatedAt": "2026-11-09T10:40:28.197Z",
+  "races": [
+    {
+      "no": 1,
+      "raceKey": "947375",
+      "status": "result",
+      "heads": 10,
+      "resultHeads": 12,
+      "joined": 10,
+      "linked": 10,
+      "hasOdds": true,
+      "favouriteCloth": 1,
+      "stage": "WEIGHEDIN",
+      "winningTime": "1m 28.87s",
+      "nonRunners": [
+        {
+          "num": 7,
+          "name": "Men Of Honour"
+        },
+        {
+          "num": 2,
+          "name": "Ramon Di Loria"
+        }
+      ],
+      "completeness": {
+        "heads": 10,
+        "rows": 10,
+        "numeric": 10,
+        "abnormal": 0,
+        "maxRank": 10,
+        "missingRanks": [],
+        "popCovered": 10,
+        "popTotal": 10,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "16:30",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/947375/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1159547",
+            "name": "Mini Mac"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "pop": 1,
+          "winOdds": "8/11",
+          "time": "1m 28.87s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Wore hood to post, chased leader, going well 2f out, ridden and led over 1f out, went clear inside final furlong, cosily"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1153438",
+            "name": "Havana Halo"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "pop": 9,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Bumped start, rear of midfield, ridden 2f out, never involved"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1179105",
+            "name": "Luna Beaux"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "pop": 7,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Went right start, rear of midfield, ridden and headway over 1f out, plugged on inside final furlong"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1109723",
+            "name": "King David"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "5/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, ridden and headway 2f out, not clear run over 1f out, kept on inside final furlong, nearest finish"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1183671",
+            "name": "Superstorm"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, ridden over 2f out, always outpaced"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1222541",
+            "name": "Elias Escape"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "pop": 7,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, ridden and outpaced over 2f out, never competitive"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1162122",
+            "name": "Rovinia"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "pop": 3,
+          "winOdds": "7/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Early to post wearing hood and mounted in chute, prominent, pushed along over 2f out, ridden over 1f out, kept on same pace inside final furlong, no chance with winner"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1103709",
+            "name": "Cuban Fiesta"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, pushed along and headway 2f out, ridden over 1f out, kept on inside final furlong, never nearer"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1209632",
+            "name": "Lihou Lady"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "pop": 10,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Awkward start, prominent, ridden and lost position 2f out, weakened over 1f out"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1022557",
+            "name": "Bungle Bay"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "pop": 6,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, ridden when headed over 1f out, soon beaten, no extra inside final furlong"
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "raceKey": "946744",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 12,
+      "joined": 11,
+      "linked": 11,
+      "hasOdds": true,
+      "favouriteCloth": 1,
+      "stage": "WEIGHEDIN",
+      "winningTime": "1m 27.33s",
+      "nonRunners": [
+        {
+          "num": 5,
+          "name": "Sonbelievable"
+        }
+      ],
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 11,
+        "abnormal": 0,
+        "maxRank": 11,
+        "missingRanks": [],
+        "popCovered": 11,
+        "popTotal": 11,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "17:00",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/946744/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1192229",
+            "name": "Oppenheimer"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "pop": 1,
+          "winOdds": "2/5",
+          "time": "1m 27.33s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Wore hood to post, raced freely, chased leader, ridden 2f out, led approaching 1f out, kept on strongly inside final furlong, edged right when pressed over 110yds out, always doing enough"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:946058",
+            "name": "Amaysmont"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "pop": 7,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, ridden over 2f out, no further impression over 1f out"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1148902",
+            "name": "Groundsman"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, ridden over 2f out, no impression over 1f out, weakened inside final furlong"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1191721",
+            "name": "Oh So Perfect"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, ridden 2f out, headed approaching 1f out, soon beaten, no extra inside final furlong"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1185977",
+            "name": "Barry The Worm"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "pop": 3,
+          "winOdds": "7/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent, going well 2f out, ridden when short of room and switched right over 1f out, chased winner inside final furlong, always held near finish"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1057519",
+            "name": "Snooze Lane"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, pushed along and headway 2f out, ridden over 1f out, kept on well inside final furlong, challenged 110yds out, always held"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1063170",
+            "name": "Romanovich"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "pop": 8,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Rear of midfield, ridden over 2f out, switched left over 1f out, kept on same pace inside final furlong, never nearer"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1063936",
+            "name": "Create"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "pop": 6,
+          "winOdds": "22/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, ridden and outpaced over 2f out, no impression until stayed on inside final furlong, never nearer"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1065051",
+            "name": "So Chic"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "pop": 11,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Slowly away, in rear, ridden over 2f out, moderate late headway"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1155673",
+            "name": "Tortola"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "pop": 8,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, ridden over 2f out, never involved"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1192891",
+            "name": "Alice's Influence"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "pop": 10,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, pushed along over 2f out, ridden over 1f out, never pace to challenge"
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "raceKey": "946745",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 12,
+      "joined": 11,
+      "linked": 11,
+      "hasOdds": true,
+      "favouriteCloth": 5,
+      "stage": "WEIGHEDIN",
+      "winningTime": "1m 28.30s",
+      "nonRunners": [
+        {
+          "num": 1,
+          "name": "Crown Of Ivy"
+        }
+      ],
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 10,
+        "abnormal": 1,
+        "maxRank": 10,
+        "missingRanks": [],
+        "popCovered": 10,
+        "popTotal": 10,
+        "popRatio": 1,
+        "finishRatio": 0.909
+      },
+      "startTime": "17:30",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/946745/x",
+      "runners": [
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1241634",
+            "name": "Amandari"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "2/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore hood to post, raced very freely, awkward start, towards rear, ridden over 2f out, ran green and hung left well over 1f out, never pace to challenge"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1244177",
+            "name": "Bibury Star"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "9/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Bumped start, midfield, ridden and headway when switched right 2f out, hung left over 1f out, stayed on inside final furlong, nearest finish"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1244178",
+            "name": "Break Some Rules"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, prominent, ridden and ran green over 2f out, ran on well inside final furlong, short of room last 110yds, battled on but always held"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1216433",
+            "name": "Wabil"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "15/8",
+          "time": "1m 28.30s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Slowly into stride, recovered to chase leader, going well 2f out, pushed along and ran green over 1f out, ridden and led 1f out, kept on well inside final furlong, always doing enough near finish"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1231732",
+            "name": "Yellow Mission"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "8/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Awkward start, midfield, pushed along 2f out, ridden well over 1f out, kept on inside final furlong, never nearer"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1244181",
+            "name": "Prince Billy"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, ridden over 2f out, no impression over 1f out"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243365",
+            "name": "Mr Rocco"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, ridden when pressed 2f out, headed 1f out, kept on same pace inside final furlong, no extra near finish"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1244180",
+            "name": "Graceful Gracie"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "125/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, pushed along 2f out, ridden well over 1f out, moderate late headway"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1241724",
+            "name": "Massa Go Go"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 11,
+          "winOdds": "300/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, ridden and lost position over 2f out, soon beaten, weakened well over 1f out"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1241639",
+            "name": "Mehen"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 8,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore hood to post, towards rear, pulled up after 2f"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243050",
+            "name": "Red Kateryna"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Slowly away and went left, soon detached, in rear, ridden well over 3f out, never involved"
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "raceKey": "946746",
+      "status": "result",
+      "heads": 8,
+      "resultHeads": 9,
+      "joined": 8,
+      "linked": 8,
+      "hasOdds": true,
+      "favouriteCloth": 3,
+      "stage": "WEIGHEDIN",
+      "winningTime": "1m 0.98s",
+      "nonRunners": [
+        {
+          "num": 1,
+          "name": "Banter Inn Court"
+        }
+      ],
+      "completeness": {
+        "heads": 8,
+        "rows": 8,
+        "numeric": 8,
+        "abnormal": 0,
+        "maxRank": 8,
+        "missingRanks": [],
+        "popCovered": 8,
+        "popTotal": 8,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "18:00",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/946746/x",
+      "runners": [
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1244183",
+            "name": "Kodi Morse"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore hood to post, slowly away, midfield, ridden 2f out, short of room and switched right well over 1f out, stayed on inside final furlong, nearest finish"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1231018",
+            "name": "Red Blue Point"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "pop": 1,
+          "winOdds": "4/11",
+          "time": "1m 0.98s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Made all, unchallenged, comfortably"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1230104",
+            "name": "Striding"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore hood to post, towards rear, ridden 2f out, never pace to challenge"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1238269",
+            "name": "Time Teller"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "pop": 5,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent, ridden 2f out, kept on inside final furlong, no chance with winner"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1239706",
+            "name": "Casting Coach"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, chased leader, ridden 2f out, kept on same pace inside final furlong"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1235774",
+            "name": "Glamorous Wild"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "pop": 7,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Reared start, midfield, ridden over 2f out, never involved"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1235253",
+            "name": "Midnight Empress"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "pop": 6,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Went right start, chased leaders, ridden 2f out, switched left over 1f out, no further impression inside final furlong"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1239421",
+            "name": "Price Tag"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "pop": 8,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, ridden well over 3f out, lost touch over 2f out"
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "raceKey": "946747",
+      "status": "result",
+      "heads": 9,
+      "resultHeads": 11,
+      "joined": 9,
+      "linked": 9,
+      "hasOdds": true,
+      "favouriteCloth": 2,
+      "stage": "WEIGHEDIN",
+      "winningTime": "1m 1.83s",
+      "nonRunners": [
+        {
+          "num": 4,
+          "name": "Basholo"
+        },
+        {
+          "num": 10,
+          "name": "Outer Edge"
+        }
+      ],
+      "completeness": {
+        "heads": 9,
+        "rows": 9,
+        "numeric": 9,
+        "abnormal": 0,
+        "maxRank": 9,
+        "missingRanks": [],
+        "popCovered": 9,
+        "popTotal": 9,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "18:30",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/946747/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1193016",
+            "name": "Bessie Wallis"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "pop": 8,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Raced freely, rear of midfield, pushed along 2f out, ridden and hung left over 1f out, keeping on when short of room inside final furlong, switched right over 110yds out, kept on"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1066085",
+            "name": "Sam's Xpress"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "pop": 1,
+          "winOdds": "11/8",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Slowly away, in rear, plenty to do when not clear run 2f out, pushed along and switched left well over 1f out, never nearer"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1055594",
+            "name": "Honour Your Dreams"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "13/2",
+          "time": "1m 1.83s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leader, ridden 2f out, led over 1f out, kept on strongly inside final furlong, always doing enough"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1108104",
+            "name": "Stash The Cash"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "pop": 6,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Raced freely, chased leaders, pushed along 2f out, ridden and switched right over 1f out, kept on inside final furlong, nearest finish"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1143022",
+            "name": "Fancy Dancer"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, prominent, pushed along 2f out, ridden over 1f out, chased winner inside final furlong, always held"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1181759",
+            "name": "Beach Partee"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, ridden when pressed 2f out, headed over 1f out, kept on same pace inside final furlong, no extra near finish"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1182560",
+            "name": "Mister Moet"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "pop": 8,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, ridden over 2f out, never competitive"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1133167",
+            "name": "Kipp Kelly"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "pop": 5,
+          "winOdds": "8/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Raced freely, rear of midfield, not clear run 2f out, ridden over 1f out, kept on inside final furlong, never nearer"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1098326",
+            "name": "Jungle Dance"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "pop": 6,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, ridden over 2f out, no further impression over 1f out"
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "raceKey": "946748",
+      "status": "result",
+      "heads": 6,
+      "resultHeads": 6,
+      "joined": 6,
+      "linked": 6,
+      "hasOdds": true,
+      "favouriteCloth": 2,
+      "stage": "WEIGHEDIN",
+      "winningTime": "1m 49.90s",
+      "nonRunners": [],
+      "completeness": {
+        "heads": 6,
+        "rows": 6,
+        "numeric": 6,
+        "abnormal": 0,
+        "maxRank": 6,
+        "missingRanks": [],
+        "popCovered": 6,
+        "popTotal": 6,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "19:00",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/946748/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1221069",
+            "name": "Bintaziza"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "pop": 3,
+          "winOdds": "9/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, prominent, ridden 2f out, every chance 1f out, no extra inside final furlong"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1188328",
+            "name": "Politely"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "pop": 1,
+          "winOdds": "6/4",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Towards rear, pushed along and headway 2f out, not clear run over 1f out, ridden and switched left inside final furlong, kept on last 110yds, went second final strides"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1197951",
+            "name": "Star Mirage"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "pop": 5,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, ridden when pressed 2f out, bumped over 1f out, headed 1f out, soon beaten, dropped to last inside final furlong"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1225476",
+            "name": "Foxy Night"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "pop": 6,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leader, pushed along 2f out, ridden and bumped leader over 1f out, no further impression inside final furlong"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1131337",
+            "name": "Um Wadi"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "3/1",
+          "time": "1m 49.90s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, pushed along and headway 2f out, ridden and switched right well over 1f out, led 1f out, faced sustained duel inside final furlong, found extra last 110yds, always doing enough"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1195570",
+            "name": "Rogue Citation"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "5/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, headway over 2f out, pushed along 2f out, ridden and challenged over 1f out, forced sustained duel with winner inside final furlong, no extra and lost second final strides"
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "raceKey": "946749",
+      "status": "result",
+      "heads": 12,
+      "resultHeads": 13,
+      "joined": 12,
+      "linked": 12,
+      "hasOdds": true,
+      "favouriteCloth": 3,
+      "stage": "WEIGHEDIN",
+      "winningTime": "1m 12.18s",
+      "nonRunners": [
+        {
+          "num": 1,
+          "name": "Yes I'm Mali"
+        }
+      ],
+      "completeness": {
+        "heads": 12,
+        "rows": 12,
+        "numeric": 12,
+        "abnormal": 0,
+        "maxRank": 12,
+        "missingRanks": [],
+        "popCovered": 12,
+        "popTotal": 12,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "19:30",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/946749/x",
+      "runners": [
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1098123",
+            "name": "Dapper Valley"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "pop": 12,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent, ridden well over 1f out, weakened inside final furlong"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1198415",
+            "name": "Starmade"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "pop": 1,
+          "winOdds": "5/4",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Midfield, headway 2f out, pushed along when not clear run and switched right over 1f out, ridden and ran on inside final furlong, nearest finish"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1180849",
+            "name": "Evening Blues"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "4/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Early to post wearing hood, midfield, pushed along 2f out, ridden over 1f out, moderate late headway"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:950511",
+            "name": "Lipsink"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "pop": 9,
+          "winOdds": "22/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leader, ridden over 2f out, hung right and short of room over 1f out, not recover"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1053430",
+            "name": "Woodstock"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "10/1",
+          "time": "1m 12.18s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, pushed along and headway 2f out, smooth headway to lead 1f out, ridden and ran on strongly inside final furlong, slightly eased towards finish, readily"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1113159",
+            "name": "Brummell"
+          },
+          "finish": 12,
+          "abnormal": null,
+          "pop": 8,
+          "winOdds": "18/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Early to post, prominent, ridden 2f out, soon beaten, dropped to last inside final furlong"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1053226",
+            "name": "The Thames Boatman"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "pop": 10,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, pushed along 2f out, ridden over 1f out, no further impression inside final furlong"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1144447",
+            "name": "Moving Force"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "pop": 6,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, pushed along and headway 2f out, not clear run over 1f out, ridden and switched right inside final furlong, kept on near finish"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1075377",
+            "name": "Twilight Fun"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "pop": 6,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, ridden over 1f out, headed 1f out, soon beaten, no extra last 110yds"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1144245",
+            "name": "Kiniro"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "pop": 3,
+          "winOdds": "5/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Slowly away, in rear, headway 2f out, ridden over 1f out, kept on inside final furlong, never nearer"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1102752",
+            "name": "Tan Rapido"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "pop": 5,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, pushed along and headway 2f out, ridden over 1f out, kept on inside final furlong, always held by winner"
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1080032",
+            "name": "Aces Wild"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "pop": 11,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Slowly into stride, towards rear, ridden over 1f out, never pace to challenge"
+        }
+      ]
+    },
+    {
+      "no": 8,
+      "raceKey": "946750",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 12,
+      "joined": 11,
+      "linked": 11,
+      "hasOdds": true,
+      "favouriteCloth": 7,
+      "stage": "WEIGHEDIN",
+      "winningTime": "2m 39.43s",
+      "nonRunners": [
+        {
+          "num": 4,
+          "name": "Tiger Beetle"
+        }
+      ],
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 11,
+        "abnormal": 0,
+        "maxRank": 11,
+        "missingRanks": [],
+        "popCovered": 11,
+        "popTotal": 11,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "20:00",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/946750/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1122815",
+            "name": "Brodie's Boy"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "pop": 9,
+          "winOdds": "22/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Slowly away, midfield, ridden 2f out, never pace to challenge"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1202645",
+            "name": "Pureis King"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "pop": 5,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Raced freely, prominent on outside, ridden 2f out, soon beaten, dropped to last over 1f out"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1036371",
+            "name": "Tropical Talent"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "pop": 10,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, pushed along 2f out, short of room well over 1f out, no impression 1f out, eased inside final furlong"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1145964",
+            "name": "Arlecchino's Rex"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "pop": 4,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Slowly away, in rear, ridden and outpaced over 2f out, came wide home turn well over 1f out, stayed on inside final furlong, never nearer"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1179898",
+            "name": "Havachoc"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "pop": 3,
+          "winOdds": "9/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, headed after 4f, pushed along and led again 2f out, ridden over 1f out, kept on inside final furlong, headed 110yds out, no extra and lost second final strides"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1197684",
+            "name": "Saxophonic"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "pop": 1,
+          "winOdds": "7/4",
+          "time": "2m 39.43s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Midfield, ridden and headway 2f out, kept on strongly inside final furlong, led 110yds out, cosily"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1181780",
+            "name": "Atalanta Mist"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "pop": 2,
+          "winOdds": "7/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Too keen hold, chased leader, led after 4f, ridden and headed 2f out, soon beaten, weakened over 1f out"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:976904",
+            "name": "Virtual Hug"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "pop": 8,
+          "winOdds": "18/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, ridden 2f out, kept on same pace inside final furlong"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1162751",
+            "name": "Magic Runner"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "pop": 7,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, ridden and headway 2f out, kept on inside final furlong, never nearer"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1040357",
+            "name": "Opticality"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "pop": 11,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Rear of midfield, ridden over 2f out, no further impression over 1f out"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1198416",
+            "name": "Forever Perfect"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "pop": 5,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, ridden and headway 2f out, stayed on inside final furlong, took second near finish, never nearer"
+        }
+      ]
+    },
+    {
+      "no": 9,
+      "raceKey": "946751",
+      "status": "result",
+      "heads": 8,
+      "resultHeads": 11,
+      "joined": 8,
+      "linked": 8,
+      "hasOdds": true,
+      "favouriteCloth": 6,
+      "stage": "WEIGHEDIN",
+      "winningTime": "2m 38.88s",
+      "nonRunners": [
+        {
+          "num": 9,
+          "name": "Astrid"
+        },
+        {
+          "num": 3,
+          "name": "Harlington"
+        },
+        {
+          "num": 1,
+          "name": "Twilight Moon"
+        }
+      ],
+      "completeness": {
+        "heads": 8,
+        "rows": 8,
+        "numeric": 7,
+        "abnormal": 1,
+        "maxRank": 7,
+        "missingRanks": [],
+        "popCovered": 7,
+        "popTotal": 7,
+        "popRatio": 1,
+        "finishRatio": 0.875
+      },
+      "startTime": "20:30",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-03/wolverhampton/946751/x",
+      "runners": [
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1151234",
+            "name": "Romantic Spirit"
+          },
+          "finish": "取",
+          "abnormal": "取",
+          "abnormalReason": "ride_description: Withdrawn",
+          "pop": 3,
+          "winOdds": "5/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Withdrawn"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1073077",
+            "name": "Bint Al Daar"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "11/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Slowly into stride, towards rear, ridden over 2f out, switched right over 1f out, kept on well inside final furlong, never nearer"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1147237",
+            "name": "Jodhpur Blue"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leader, ridden over 2f out, no further impression 1f out"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1174043",
+            "name": "Barachiel"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "5/4",
+          "time": "2m 38.88s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Made all, came wide home turn, ridden and hung right over 1f out, unchallenged, comfortably"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1148912",
+            "name": "Ottoman"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent, ridden over 2f out, no further impression 1f out"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1194707",
+            "name": "Caraway"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "3/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, pushed along 3f out, ridden over 1f out, stayed on well inside final furlong, no chance with easy winner"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1151509",
+            "name": "Man Of Desert"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "22/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, ridden and headway 2f out, outpaced over 1f out, kept on well inside final furlong, never nearer"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1212656",
+            "name": "Glamerous"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "100/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Midfield, ridden and outpaced well over 3f out, eased well over 1f out"
+        }
+      ]
+    }
+  ]
+}
