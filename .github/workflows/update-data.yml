@@ -69,6 +69,18 @@ jobs:
           fi
           exit "$rc"
 
+      # 着顺结果层（docs/RESULTS.md §4）：枚举 race_id → 出馬表关联 → 赛后结果页 → data/results/
+      # CI 出口 IP 可能被 netkeiba 地域限制 → 失败只告警不拦发布；需要代理时配仓库 secret RC_NK_PROXY
+      - name: Collect results (netkeiba)
+        timeout-minutes: 15
+        continue-on-error: true
+        shell: bash
+        env:
+          RC_NK_PROXY: ${{ secrets.RC_NK_PROXY }}
+        run: |
+          mkdir -p test-logs
+          node src/collect-results.js --days 2 2>&1 | tee test-logs/results.log
+
       # 构建：数据归一 + _site 产出（_site 本身不入库）
       - name: Build site
         timeout-minutes: 15
@@ -88,7 +100,7 @@ jobs:
           # data/pedigree/*.json 为血统/马名/彩衣缓存包（单文件存储 → 文件数恒定），入库后下次运行增量复用
           # data/silks/：按马主去重的彩衣图（collect 内下载），必须一起入库——否则本次部署能显示、
           #   下次 checkout 缺图 → 缓存命中不再重下 → 页面永久 404（2026-11-05 修）
-          git add data/races/ data/pedigree/ data/silks/
+          git add data/races/ data/results/ data/pedigree/ data/silks/
           if ! git diff --cached --quiet; then
             git commit -m "data: auto collect $(date -u +%Y-%m-%dT%H:%MZ)"
             # 运行期间 main 可能被推进 → push 前 rebase；冲突则放弃本次（下次调度自动重算）

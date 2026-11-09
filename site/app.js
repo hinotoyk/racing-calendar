@@ -587,7 +587,7 @@ function collectShareRaces() {
         heads: h.heads ?? rows.length, startTime: h.startTime, startTimeTz: h.startTimeTz,
         startTimeInstant: h.startTimeInstant,
         runners: rows.map((r) => ({
-          frame: r.frame, num: r.num, horseName: r.horseName, sex: r.sex, age: r.age,
+          frame: r.frame, num: r.num, finish: r.finish, resultPop: r.resultPop, horseName: r.horseName, sex: r.sex, age: r.age,
           color: r.color, silk: r.silk, jockey: r.jockey, weight: r.weight, trainer: r.trainer, belongs: r.belongs,
           owner: r.owner, breeder: r.breeder, sire: r.sire, sireSire: r.sireSire, dam: r.dam, bms: r.bms,
         })),
@@ -672,6 +672,8 @@ const COLUMNS = [
   { k: "name",     label: "马名", left: 1 },
   { k: "waku",     label: "枠番" },
   { k: "num",      label: "马号" },
+  { k: "finish",   label: "着顺" },   // 赛后结果层（data/results/），赛前无值显示空
+  { k: "resultPop", label: "最终人气" }, // 赛后确定的单胜人气，区别于「前走」的人气
   { k: "sexage",   label: "性龄" },
   { k: "silk",     label: "彩衣" },   // 勝負服小图（默认展示；采集覆盖时才有值，无值则空）
   { k: "weight",   label: "负重" },
@@ -727,6 +729,18 @@ function cellHtml(r, c) {
       return `<img class="silk-img" src="${esc(r.silk)}" alt="彩衣" loading="lazy" decoding="async" onerror="this.remove()">`;
     }
     case "weight": return esc(r.weight ?? "");
+    case "finish": {
+      if (r.finish == null || r.finish === "") return "";
+      const t = String(r.finish);
+      const cls = /^\d+$/.test(t) ? (t === "1" ? "fin fin-1" : "fin") : "fin fin-ab";
+      const tip = [r.resultTime, r.resultMargin ? `着差 ${r.resultMargin}` : "", r.resultOdds ? `単勝 ${r.resultOdds}` : ""].filter(Boolean).join(" · ");
+      return `<span class="${cls}"${tip ? ` title="${esc(tip)}"` : ""}>${esc(t)}</span>`;
+    }
+    case "resultPop": {
+      if (r.resultPop == null || r.resultPop === "") return "";
+      const t = String(r.resultPop);
+      return `<span class="pop${t === "1" ? " pop-1" : ""}">${esc(t)}</span>`;
+    }
     default: return esc(r[c.f ?? c.k] ?? "");   // f = 列键与数据字段名不同时的取值键
   }
 }
@@ -786,6 +800,8 @@ function mbCardHtml(r) {
     show("sexage") ? `<span class="yj-mb-sexage">${esc(sexShort(r.sex) + (r.age ?? ""))}</span>` : "",
   ].join("");
   const linePed = [
+    show("finish") && r.finish != null && r.finish !== "" ? item("着顺", esc(r.finish)) : "",
+    show("resultPop") && r.resultPop != null ? item("最终人气", esc(r.resultPop)) : "",
     show("trainer") ? item("练马师", esc(r.trainer ?? "")) : "",
     show("sire") ? item("父", esc(r.sire ?? "")) : "",
     show("siresire") ? item("祖父", esc(r.sireSire ?? "")) : "",

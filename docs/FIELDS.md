@@ -149,6 +149,19 @@
 | 距离 | `surface` + `distance` | 主站 PC 表一列同时显示芝/ダ与距离，表头沿用「距离」 |
 | 马号 | `frame` + `num` | 分享卡 / 嵌入组件的单色块：色 = 枠番、块内数字 = 马号，列名统一用「马号」 |
 
+## 3.5 结果层字段（赛后从 `data/results/` 合并）
+
+| 显示 | 字段 | 说明 |
+|---|---|---|
+| 着顺 | `finish` | 数字名次；异常态单字 `除 / 中 / 失 / 取 / 止`；赛前无值显示空 |
+| タイム | `resultTime` | 源原样（`1:01.1`），着顺列 tooltip，不数值化 |
+| 着差 | `resultMargin` | 源原样（`アタマ` / `1.1/4`） |
+| 最终人气 | `resultPop` | 赛后确定的单胜人气（整数），主表与 Excel 显示；1 番人气高亮。与「前走」的 `lastPop` 不同 |
+| 単勝 / 後3F / 馬体重 | `resultOdds` / `resultLast3f` / `resultBody` | 结果与出走表字段区分，避免覆盖 `weight` 等既有列 |
+| netkeiba 锚点 | `nkRaceId` / `nkId` | 场次级 / 马匹级关联键，供跨源校验与调试 |
+
+主表只显示 `finish`（1 着强调、异常态灰显）；完整结果另出 `derived/results-{date}.json`。合并键为 `raceKey|num`。
+
 ## 4. 改文案的位置（改完 `npm run build`）
 
 - `site/app.js`：`COLS`（PC 表头）、`mbCardHtml`（手机卡片标签）、`PED_TAG_LABEL`、筛选器 label

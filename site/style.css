@@ -241,6 +241,13 @@ td.race a.rlink:hover { color: var(--primary); text-decoration: underline; text-
 td.ped, td.c-left.ped { color: var(--chip-fg); }
 /* 北京时间列不再强调（与正文同色） */
 td.num { font-variant-numeric: tabular-nums; }
+/* 着顺列：赛后结果层（docs/RESULTS.md §4），1 着强调、除/中/失/取/止 弱化 */
+td.num .fin { display: inline-block; min-width: 1.4em; font-variant-numeric: tabular-nums; }
+td.num .fin-1 { font-weight: 700; color: #a32d2d; }
+td.num .fin-ab { color: var(--muted, #888); font-size: 10.5px; }
+/* 最终人气：1 番人气强调，与前走人气（lastPop）区分 */
+td.num .pop { font-variant-numeric: tabular-nums; }
+td.num .pop-1 { font-weight: 700; color: #185fa5; }
 
 /* ---------- 枠番传统色（JRA 公式 1白2黒3赤4青5黄6緑7橙8桃，与 share.js WAKU 同源） ---------- */
 .waku {

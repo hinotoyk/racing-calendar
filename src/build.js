@@ -17,6 +17,7 @@ const optVal = (k) => {
 const DATA_DIR = path.resolve(optVal("--data-dir") ?? path.join("data", "races"));
 const SITE_DIR = path.resolve("site");
 const OUT_DIR = path.resolve(optVal("--out-dir") ?? "_site");
+const RESULTS_DIR = path.resolve(optVal("--results-dir") ?? path.join("data", "results"));
 const DERIVED = path.join(OUT_DIR, "derived");
 const XL_DIR = path.join(OUT_DIR, "excel");
 
@@ -65,6 +66,39 @@ const docFilesOf = (date) =>
     .filter((f) => f.endsWith(".json") || f.endsWith(".json.gz"))
     .filter((f) => f !== "manifest.json")
     .sort();
+
+// 结果层（docs/RESULTS.md §4.2）：data/results/{date}/{track}.json → 按 raceKey|马番 建索引
+// 主 rows 直接合并着顺等字段（页面/Excel 共用），另导出 results-{date}.json 供外部只读消费。
+function resultsOf(date) {
+  const dir = path.join(RESULTS_DIR, date);
+  if (!fs.existsSync(dir)) return null;
+  const byKey = new Map();
+  const races = [];
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".json")).sort()) {
+    const doc = readJson(path.join(dir, f));
+    if (!doc?.races) continue;
+    for (const race of doc.races) {
+      races.push({
+        raceKey: race.raceKey, nkRaceId: race.nkRaceId, no: race.no,
+        heads: race.resultHeads ?? race.joined ?? 0, runners: race.runners?.length ?? 0,
+      });
+      for (const r of race.runners ?? []) {
+        byKey.set(`${race.raceKey}|${r.num}`, {
+          finish: r.finish ?? null,
+          resultTime: r.time ?? null,
+          resultMargin: r.margin ?? null,
+          resultPop: r.pop ?? null,
+          resultOdds: r.winOdds ?? null,
+          resultLast3f: r.last3f ?? null,
+          resultBody: r.bodyWeight ?? null,
+          nkRaceId: race.nkRaceId ?? null,
+          nkId: r.horse?.nkId ?? null,
+        });
+      }
+    }
+  }
+  return { byKey, races };
+}
 
 // 单条出馬 → 扁平行（页面表格与 Excel 共用）
 // 时区：canonical race.card/v2 带 startTimeTz/startTimeInstant；JBIS 旧卡片无该字段，
@@ -229,6 +263,7 @@ const index = {
   weeks: [],
   venues: [],
   levels: [],
+  resultDates: [],
   tracks: { central: TRACK_CENTRAL, local: TRACK_LOCAL },
 };
 const venueMap = new Map();
@@ -362,6 +397,21 @@ for (const date of listDates()) {
   }
   if (!rows.length) continue;
 
+  const results = resultsOf(date);
+  if (results) {
+    for (const r of rows) {
+      if (!r.raceKey || r.num == null) continue;
+      const hit = results.byKey.get(`${r.raceKey}|${r.num}`);
+      if (hit) Object.assign(r, hit);
+    }
+    fs.writeFileSync(
+      path.join(DERIVED, `results-${date}.json`),
+      JSON.stringify({ schema: "jbis.race.result.bundle/v1", date, total: results.byKey.size, races: results.races })
+    );
+    index.resultDates.push(date);
+    console.log(`[results] ${date} 着顺 ${results.byKey.size} 行 / ${results.races.length} 场 → derived/results-${date}.json`);
+  }
+
   for (const r of rows) klassMap.set(r.level, (klassMap.get(r.level) ?? 0) + 1);
   countPedNames(rows);
 
@@ -409,7 +459,7 @@ console.log(`[alias] ${Object.keys(aliasDict.alias).length} 别名 / ${Object.ke
 // ---------- 每周 Excel ----------
 const COLS = [
   "日期", "曜日", "区分", "竞马场", "R", "当地时间", "比赛", "比赛条件", "分组",
-  "赛道", "距离", "头数", "枠番", "马号", "马名", "性龄", "毛色",
+  "赛道", "距离", "头数", "枠番", "马号", "着顺", "最终人气", "马名", "性龄", "毛色",
   "骑手", "负重", "练马师", "所属", "马主", "生产牧场",
   "父", "祖父", "母", "母父",
   "1前走", "2前走", "3前走",
@@ -417,7 +467,7 @@ const COLS = [
 ];
 const WIDTHS = [
   11, 5, 6, 6, 4, 6, 22, 8, 6,
-  5, 7, 6, 5, 5, 18, 6, 6,
+  5, 7, 6, 5, 5, 6, 8, 18, 6, 6,
   10, 6, 10, 6, 14, 14,
   14, 14, 14, 14,
   46, 46, 46,
@@ -466,7 +516,7 @@ for (const w of [...weekMap.values()].sort((a, b) => a.key.localeCompare(b.key))
   const body = rows.map((r) => [
     r.date, r.weekday, scopeLabel(r.scope), r.venue, r.raceNo, r.startTime,
     r.raceName, r.klass, r.klassGroup, r.surface, r.distance, r.heads, r.frame, r.num,
-    r.horseName, `${r.sex ?? ""}${r.age ?? ""}`, r.color,
+    r.finish ?? "", r.resultPop ?? "", r.horseName, `${r.sex ?? ""}${r.age ?? ""}`, r.color,
     r.jockey, r.weight, r.trainer, r.belongs, r.owner, r.breeder,
     r.sire, r.sireSire, r.dam, r.bms,
     r.recent1, r.recent2, r.recent3,

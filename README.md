@@ -14,7 +14,8 @@ JBIS（jbis.or.jp）**出走表**（出馬表）采集与检索：按 **中央 /
 
 ```bash
 npm start              # 采集 → 构建 → 启动 http://127.0.0.1:9093/ 并打开浏览器
-npm run collect        # 仅采集（今天起 3 天）
+npm run collect        # 仅采集出走表（今天起 3 天）
+npm run collect:results # 仅采集着顺（默认回看 2 天，见下）
 npm run build          # 仅构建（生成 _site/，含每周 Excel）
 npm run serve          # 仅启动本地服务（端口固定 9093；--no-open 不弹浏览器）
 ```
@@ -43,6 +44,38 @@ node src/collect-sources.js --source racingpost --countries all
 > 发走时刻为英国当地时间（源口径），落盘同时标注场地时区（date 标签口径）与绝对时刻。
 
 > 出馬表只在开赛前 1–2 日公开：地方 ≈ 前日，中央 ≈ 开赛前 2 日。窗口外的日期显示 0 头，重跑会补齐。
+
+## 着顺（结果）层
+
+赛后从 netkeiba 补齐着顺与最终人气，落 `data/results/{日期}/{场}.json`（`jbis.race.result/v1`）；构建时按 `raceKey|马号` 合并进 `derived/{日期}.json`，主表新增「着顺」「最终人气」两列（1 着 / 1 番人气高亮）、Excel 同步带列，另导出 `derived/results-{日期}.json` 与 `index.json::resultDates`。设计详见 [docs/DESIGN.md](docs/DESIGN.md) §11，实测过程见 `docs/RESULTS.md`（本地文件，未入库）。
+
+```bash
+npm run collect:results                               # 默认回看 2 天（--days 2）
+node src/collect-results.js --dates 2026-11-08        # 指定日期
+node src/collect-results.js --dates 2026-11-08 --tracks 210 --limit 3 --dry
+node src/collect-results.js --days 2 --no-shutuba     # 跳过出馬表关联，只抓结果页
+```
+
+- **关联两级**：场次级用 `db.netkeiba.com/race/list/{yyyymmdd}/` 枚举口（1 请求/天）按「场码 + R」对齐，地方可 0 请求直接构造 `race_id`；马级用赛前出馬表（NAR `nar.*/shutuba.html`、JRA `race.*/shutuba.html`）按归一马名取 `nkId`，结果页再按「马号 + nkId」写回具体马。
+- **赛前建的 `race_id` 赛后直接复用**：同一 id 贯穿出馬表与结果页，不需重新锚定；不要用单匹马反查场次（当天马页成绩未回填）。
+- **触发不依赖 JBIS `status=result`**（中央源侧滞后约一周），改按 `startTime` 判是否已开赛。空态分四类：`ok / soft（结果未生成）/ noid（无 race_id）/ error`。
+- **中央 JRA 当天也有结果**：`/race/list/{date}/` 当天较晚才列中央 race_id，但 `race.netkeiba.com/race/result.html?race_id=...` 赛后即有全序。为不依赖枚举口时机，采集器从 JBIS 当日页页眉解析「N回 場 M日」直接构造中央 id（`YYYY + 场码 + 回 + 日 + R`，场码 = JBIS 码 − 100，如 11-08 東京 5回2日 → `202605050201`）；结果页优先 `race.*`（`All_Result_Table`），无结果表时回退 `db.*`（25 列 `race_table_01`）。两套模板统一按表头名解析。
+- 部分网络环境需代理：`RC_NK_PROXY=http://127.0.0.1:10809 npm run collect:results`（Node 22 内置环境代理，零依赖）。CI 对应仓库 secret `RC_NK_PROXY`，该 step 失败只告警不拦发布。
+
+### 赛后增量采集与完整性校验
+
+定时调度在 **GitHub Actions**：`.github/workflows/results-intraday.yml`，两条 cron（`*/30 0-11 * * *` + `0 12 * * *`，UTC = **北京时间 08:00–20:00 每 30 分钟**，末班 20:00），另支持 `workflow_dispatch` 手动触发。每轮跑 `node src/collect-results.js --today --settle-min 10 --delay 1200`，只处理 JST 当天、开赛满 10 分钟、且着顺/人气尚未完整入库的场次；已完整入库的幂等跳过。
+> 步骤：采集（含本地完整性校验）→ `node src/verify-results.js` 全库体检 → 有新结果才 build / 提交 `data/results/` / 发布 Pages；共用 `concurrency: group: pages` 与其它档串行。GitHub cron 实际触发可能有排队延迟，脚本按 JST 当天 + 开赛时间判定，迟到或重复触发由幂等兜住。
+
+```bash
+node src/collect-results.js --today --dry --settle-min 10   # 手动试跑，不写盘
+```
+
+- **完整性校验**（`src/lib/result-completeness.js`，纯本地逻辑）：只放出前三名（结果行数远少于出馬表头数）、名次缺号、数字名次行的人气覆盖率低于 80% → 判 `partial`，**不入库**，下一轮自动重抓；已落盘缓存也要通过同一校验才算幂等命中，能自动修复历史上的半截结果。
+- **异常态与同着**：`除 / 中 / 失 / 取 / 止` 是合法着顺，单独计数、不要求人气；并列第 N 着 c 匹时下一着顺应为 N+c（同着跳号合法），校验用「名次游标」判定缺号，避免把同着误报成半截结果。
+- **全库体检**：`node src/verify-results.js`（`--strict` 时退出码 1）扫描 `data/results/` 用同一规则复核，CI 每轮也会跑一次。
+- 每条入库记录带 `completeness`（heads / rows / numeric / abnormal / maxRank / missingRanks / popRatio），便于排查。
+- 定时任务只更新本地 `data/results/` 与本地预览；线上 Pages 由 `update-data.yml` 更新。
 
 ## 页面
 
