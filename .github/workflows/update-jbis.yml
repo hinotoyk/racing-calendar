@@ -1,12 +1,14 @@
 name: update-data · 枠順补采
 
-# 每日一档「枠番/馬番」轻量补采 → 有新枠才构建 → 落库 data/ → 重新部署 Pages：
-#   北京 12:00 = UTC 04:00：当天/次日日本场次枠順確定后的补采窗口。
-#   仅跑 src/backfill-waku.js：只补「已落盘但缺枠番/馬番」的场次，按马 id 回填两个字段，
-#   不抓血统 / 马名 / 彩衣（这些由全量档 update-data.yml 负责）。
-#   请求量 = 缺枠場次数（通常 20–40 次 / 1–2 分钟）；已完整场次 0 请求。
-#   作为对比，旧实现直接跑 collect-races.js 全量重采：1000+ 请求 / 20–45 分钟。
-#   无字段变化时不 build、不提交、不部署（只留运行日志 artifact）。
+# 每日一档「枠番/馬番」轻量补采 → 有新数据才构建 → 落库 data/ → 重新部署 Pages：
+#   北京 12:00 = UTC 04:00：当天/次日日本场次出馬表公開后的补采窗口。
+#   仅跑 src/backfill-waku.js，窗口 = 今天 + 明天，只做两件事：
+#     ① 整表缺失（02:00 全量档跑时出馬表还没公开 → 空壳文档）：1 场 1 请求建整表，
+#        马名/血统/彩衣全部从 data/pedigree 缓存挂（0 额外请求）；
+#     ② 有表缺 枠番/馬番：先吃本地 data/results 的终态号与 馬番→枠番 推导，仍缺才请求。
+#   不跑赛历、不解析当日页、不抓马页/血统/彩衣（全量档职责）。
+#   全部已完整时 0 请求 0 写盘；有变化才 build/提交/部署。
+#   对比旧实现（直接跑 collect-races.js 全量重采）：1000+ 请求 / 20–45 分钟。
 # 全量档见 update-data.yml：北京 02:00 = UTC 18:00，JBIS 3 天全量 + RP --countries all。
 # 两档各自独立调度 / 独立手动触发 / 独立 run 历史；共用 concurrency group `pages` 串行发布。
 # 前置要求：Settings → Pages → Source = GitHub Actions；
@@ -50,9 +52,9 @@ jobs:
           # 否则补采全量失败也会被判成功（changed=0 → 静默跳过发布链）
           set +e
           mkdir -p test-logs
-          node src/backfill-waku.js --days 3 2>&1 | tee test-logs/waku.log
+          node src/backfill-waku.js --days 2 2>&1 | tee test-logs/waku.log
           rc=${PIPESTATUS[0]}
-          # 末行形如：waku -> changed=20 requests=20 horses=217 seats=434 errors=0 40s
+          # 末行形如：waku -> changed=12 requests=12 horses=127 seats=254 errors=0 14s | tables=12 from results=284 derived=139 ...
           n=$(sed -n 's/^waku -> changed=\([0-9][0-9]*\).*/\1/p' test-logs/waku.log | tail -1)
           echo "changed=${n:-0}" >> "$GITHUB_OUTPUT"
           exit "$rc"

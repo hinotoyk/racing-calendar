@@ -32,6 +32,15 @@ export function wfStats() {
   return { horse: horseStore.size(), owner: ownerStore.size() };
 }
 
+// 只读缓存查询（0 请求）：按 马名+生年 取已入库的 winfinal 彩衣。
+// 返回 { owner:{name}, colours, via:"winfinal" } | null；未命中返回 null，不发请求。
+export function wfSilkOf(nameJp, birthYear) {
+  const name = norm(nameJp);
+  if (!name) return null;
+  const rec = horseStore.get(`${name}|${birthYear ?? "?"}`);
+  return rec && !rec.miss && rec.colours ? rec : null;
+}
+
 function stripTags(s) {
   return String(s ?? "")
     .replace(/<br\s*\/?>/gi, " ")

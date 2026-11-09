@@ -133,6 +133,16 @@ async function downloadSilkByOwner(ownerId) {
   return null; // 两扩展名均无 → 无彩衣
 }
 
+// 只读缓存查询（0 请求）：给「补采/重建整表」这类轻量链路挂彩衣用。
+// 返回 { owner:{id,name}, colours } | null；miss 与未命中都返回 null（不触发任何网络）。
+export function cachedOwnerSilk(owner) {
+  const key = nkOwnerKey(owner);
+  if (!key) return null;
+  const rec = nkOwnerStore.get(key);
+  if (!rec || rec.miss || !rec.colours) return null;
+  return rec;
+}
+
 // ---------- 马主级解析（核心路径） ----------
 // 输入：JBIS 马主（runner.owner，名字可能带法人后缀）+ 可选的 netkeiba owner（搜索行/出馬表带出）
 // 输出：{ owner, colours } | { miss: 1 }（终态无彩衣）| undefined（无马主名，不缓存）

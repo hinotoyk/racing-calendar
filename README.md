@@ -142,7 +142,7 @@ node src/collect-results-rp.js --today --no-index   # 更省：跳过日级列�
 
 - **deploy.yml** — push main（人工推代码）→ `node src/build.js` → 发布 `_site/` 到 Pages
 - **update-data.yml（全量档）** — 每天 **UTC 18:00 = 北京 02:00**：JBIS 出馬表（今天起 3 天）+ Racing Post（`--countries all` 全国家，美国等夜间卡唯一窗口）→ 构建 → 有变化则 commit `data/races/` + `data/pedigree/` + `data/silks/` 回 main → **同一 workflow 内重新部署静态页面**
-- **update-jbis.yml（补采档）** — 每天 **UTC 04:00 = 北京 12:00**：只补 **枠番/馬番**（`src/backfill-waku.js`），按马 id 回填两个字段，不抓血统/马名/彩衣、不重写整份文档；已完整场次 **0 请求**，单次通常 20–40 请求 / 1–2 分钟；**无字段变化则不 build、不提交、不部署**（旧实现是全量重采，1000+ 请求 / 20–45 分钟）
+- **update-jbis.yml（补采档）** — 每天 **UTC 04:00 = 北京 12:00**：窗口 **今天 + 明天**，只处理「整表缺失（02:00 时出馬表还没公开）」和「缺 枠番/馬番」两类场次（`src/backfill-waku.js`）。本地能解就不发请求：已完赛场次取 `data/results` 的终态号、有馬番缺枠番按时按头数推导；仍缺才抓出馬表页（**1 场 1 请求**）。整表重建用 `data/pedigree` 缓存挂马名/血统/彩衣，**0 额外请求**。全部完整时 **0 请求 0 写盘**；**无变化不 build、不提交、不部署**（旧实现是全量重采，1000+ 请求 / 20–45 分钟）
 
 两档已**拆成独立 workflow**：各自独立调度、独立 run 历史、各自可手动 `workflow_dispatch` 触发，共用 `concurrency: group: pages` 串行发布。GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故部署不能依赖 `deploy.yml` 被 push 触发，由两条 update workflow 在提交后直接 build + 发布 Pages。`update-full-log-<run_id>` / `update-jbis-log-<run_id>` artifact 保留 **30 天**，内含 `test-logs/*.log`、诊断摘要与逐条 `requests-*.jsonl`
 
