@@ -84,6 +84,18 @@ data/pedigree/horse/{id}.json             # 马 → 全血统（回退用）
 
 礼貌抓取：间隔 `SITE.delayMs`（1.2s），UA 标识用途；单周约 250–400 次请求。
 
+### 4.1 枠番/馬番 轻量补采（`src/backfill-waku.js`，12:00 补采档）
+
+全量档（北京 02:00）跑完时，次日场次的枠番/馬番 往往还没确定；12:00 补采档只做「补字段」：
+
+1. 读 `data/races/{date}/*.json.gz`（窗口 = 今天起 3 天，只处理已存在文档的日期；`scope=overseas` 跳过，海外无「枠」概念）；
+2. 挑 `status=entries` 且任一 runner 缺 `frame`/`num` 的场次 —— **已完整场次 0 请求**；
+3. 只抓这些场的出馬表页 `/race/{ymd}/{CCC}/{RR}/`（失败回退 `/race/result/`），间隔同 1.2s；
+4. 按 **馬 id** 回填 `frame`/`num`：只填空值、绝不覆盖已有值；整表缺失（从未抓到出馬表）时整表写入，不带血统/彩衣（等下次全量档补齐）；
+5. 有变化才写 gz 并更新 `capturedAt` 与 `.workbuddy/imports/.waku-dirty`。
+
+不跑赛历、不解析当日页、不做马名权威化、不抓血统、不下彩衣。请求量 = 缺枠場次数（通常 20–40 次），耗时 1–2 分钟；对比旧实现（直接跑 `collect-races.js` 全量重采）的 1000+ 请求 / 20–45 分钟。CI 里 `changed=0` 时不 build、不提交、不部署。
+
 ## 5. 构建（`src/build.js`）
 
 ```

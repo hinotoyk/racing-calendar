@@ -142,7 +142,7 @@ node src/collect-results-rp.js --today --no-index   # 更省：跳过日级列�
 
 - **deploy.yml** — push main（人工推代码）→ `node src/build.js` → 发布 `_site/` 到 Pages
 - **update-data.yml（全量档）** — 每天 **UTC 18:00 = 北京 02:00**：JBIS 出馬表（今天起 3 天）+ Racing Post（`--countries all` 全国家，美国等夜间卡唯一窗口）→ 构建 → 有变化则 commit `data/races/` + `data/pedigree/` + `data/silks/` 回 main → **同一 workflow 内重新部署静态页面**
-- **update-jbis.yml（补采档）** — 每天 **UTC 04:00 = 北京 12:00**：仅 JBIS 出馬表（当天日本场次枠順/馬番確定后的补采），不跑 RP；其余链路同上
+- **update-jbis.yml（补采档）** — 每天 **UTC 04:00 = 北京 12:00**：只补 **枠番/馬番**（`src/backfill-waku.js`），按马 id 回填两个字段，不抓血统/马名/彩衣、不重写整份文档；已完整场次 **0 请求**，单次通常 20–40 请求 / 1–2 分钟；**无字段变化则不 build、不提交、不部署**（旧实现是全量重采，1000+ 请求 / 20–45 分钟）
 
 两档已**拆成独立 workflow**：各自独立调度、独立 run 历史、各自可手动 `workflow_dispatch` 触发，共用 `concurrency: group: pages` 串行发布。GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故部署不能依赖 `deploy.yml` 被 push 触发，由两条 update workflow 在提交后直接 build + 发布 Pages。`update-full-log-<run_id>` / `update-jbis-log-<run_id>` artifact 保留 **30 天**，内含 `test-logs/*.log`、诊断摘要与逐条 `requests-*.jsonl`
 
@@ -150,7 +150,7 @@ node src/collect-results-rp.js --today --no-index   # 更省：跳过日级列�
 
 1. Settings → Pages → Source 选 **GitHub Actions**
 2. Settings → Actions → General → Workflow permissions 勾选 **Read and write permissions**（update-data 需要写入仓库）
-3. 定时任务说明：cron 按 **UTC** 填写（北京 = UTC+8）；cron 在高峰期可能延迟数分钟到数小时，整点档尤其明显（2026-11 实测曾整体后移 4–8 小时）；定时 workflow 只在默认分支（main）生效；私有仓库连续 60 天无活动会被暂停、且每分钟计费（每日 2 档合计约 40–75 分钟 ≈ 1,200–2,250 分钟/月，免费额度 2,000 分钟；公开仓库不计费）
+3. 定时任务说明：cron 按 **UTC** 填写（北京 = UTC+8）；cron 在高峰期可能延迟数分钟到数小时，整点档尤其明显（2026-11 实测曾整体后移 4–8 小时，甚至整天丢失）；定时 workflow 只在默认分支（main）生效；私有仓库连续 60 天无活动会被暂停、且每分钟计费（补采档轻量化后单次约 1–3 分钟，两档合计约 25–50 分钟/天 ≈ 750–1,500 分钟/月，公开仓库不计费）
 
 数据落库范围：`data/races/`（源文档 `.json.gz`）+ `data/pedigree/`（血统/马名/彩衣缓存**单文件包**，`jbis-sire.json` / `jbis-horse.json` / `rp-horse.json` / `name-lookup.json` / `jbis-name.json` / `nk-*.json` / `wf-*.json` / `sl-silk.json`，文件数恒定、体积线性增长）+ `data/silks/`（按马主去重的彩衣图，必须入库，否则下次 checkout 会因缓存命中而永久缺图）——CI 每次运行增量复用缓存，不为已抓过的马重复请求上游。`.gitattributes` 将 `.gz` / `.gif` / `.png` 声明为二进制，避免行尾转换损坏快照。
 
@@ -205,7 +205,7 @@ node src/backfill-names.js --dates 2026-11-04 --tracks 236 --limit-docs 1   # �
 | artifact `data/logs/requests-*.jsonl` | 每条请求原始记录（含具体 URL 与错误） | 定位到「哪个源、哪一页、什么时候开始 403」 |
 | artifact `test-logs/jbis.log` / `rp.log` / `build.log` | 采集与构建 stdout（`rp.log` 仅全量档有） | 对应脚本报错堆栈 |
 
-本地也能复现同一份摘要：`node src/ci-summary.js [--rp] [--since-minutes 300] [--out-dir test-logs]`（全量档带 `--rp`，补采档不带）。CI 中该步骤带 `if: always()`，采集/构建失败或 step 超时（JBIS 80min / **RP 120min** 仅全量档 / build 15min；job 安全网全量 240min、补采 100min，平台上限 360min）后仍会执行；Gate 放在 artifact 上传之后，日志一定留得下来。
+本地也能复现同一份摘要：`node src/ci-summary.js [--rp] [--since-minutes 300] [--out-dir test-logs]`（全量档带 `--rp`，补采档不带）。CI 中该步骤带 `if: always()`，采集/构建失败或 step 超时（JBIS 80min / **RP 120min** 仅全量档 / build 15min；job 安全网全量 240min、补采 60min，平台上限 360min）后仍会执行；Gate 放在 artifact 上传之后，日志一定留得下来。补采档的 light 采集步（`backfill-waku.js`）超时 30min，且**只在 `changed>0` 时才跑 build/诊断/提交/部署**——0 变化是正常收尾，直接结束（不产生 verdict）。
 
 **分级闸门（仅全量档）**：RP step 用 `shell: bash` + `${PIPESTATUS[0]}` 抓真实退出码（避免 `| tee` 吞掉），并写 `test-logs/rp-verdict.txt`——默认 `FAIL`，只有「退出码 0 + 打印 `manifest ->` 收尾行」才覆盖为 `OK`；step 被超时 kill 时文件仍是 `FAIL`。`ci-summary.js --rp` 另把「Sporting Life 0 请求 / 0 成功」判 FATAL，成功率低于一半只判 WARN。末尾 **Gate on diagnostics** 同时读 `verdict.txt` 与 `rp-verdict.txt`，任一 `FAIL` 才 `exit 1`。因为 `Deploy to Pages` 排在 Gate 之前，**标红只报警、不拦发布**，也不会像去掉 `continue-on-error` 那样把当天 JBIS 数据一起丢掉。
 

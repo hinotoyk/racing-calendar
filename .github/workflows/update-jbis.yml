@@ -1,17 +1,19 @@
 name: update-data · 枠順补采
 
-# 每日一档 JBIS 补采 → 构建 → 落库 data/ → 重新部署静态页面（Pages）：
-#   北京 12:00 = UTC 04:00：仅 JBIS 出馬表——当天日本场次枠順/馬番確定后的补采窗口
-#   不跑 Racing Post（欧美卡片只在全量档的夜间窗口可抓，见 update-data.yml）
-# 全量档见 update-data.yml：北京 02:00 = UTC 18:00，JBIS + RP --countries all。
+# 每日一档「枠番/馬番」轻量补采 → 有新枠才构建 → 落库 data/ → 重新部署 Pages：
+#   北京 12:00 = UTC 04:00：当天/次日日本场次枠順確定后的补采窗口。
+#   仅跑 src/backfill-waku.js：只补「已落盘但缺枠番/馬番」的场次，按马 id 回填两个字段，
+#   不抓血统 / 马名 / 彩衣（这些由全量档 update-data.yml 负责）。
+#   请求量 = 缺枠場次数（通常 20–40 次 / 1–2 分钟）；已完整场次 0 请求。
+#   作为对比，旧实现直接跑 collect-races.js 全量重采：1000+ 请求 / 20–45 分钟。
+#   无字段变化时不 build、不提交、不部署（只留运行日志 artifact）。
+# 全量档见 update-data.yml：北京 02:00 = UTC 18:00，JBIS 3 天全量 + RP --countries all。
 # 两档各自独立调度 / 独立手动触发 / 独立 run 历史；共用 concurrency group `pages` 串行发布。
-# 结构对齐 update-data.yml（采集→构建→提交数据→运行日志 artifact），差异仅在于少了 RP 步骤、
-#   诊断不带 --rp、job 超时更短、artifact 名独立；其余步骤保持一致。
 # 前置要求：Settings → Pages → Source = GitHub Actions；
 #           Settings → Actions → General → Workflow permissions = Read and write permissions
 on:
   schedule:
-    - cron: '0 4 * * *'    # UTC 04:00 = 北京 12:00 · 仅 JBIS（枠順/馬番补采）
+    - cron: '0 4 * * *'    # UTC 04:00 = 北京 12:00 · 枠順/馬番 补采
   workflow_dispatch:
 
 permissions:
@@ -26,45 +28,58 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 100  # 无 RP 步骤：JBIS 80min + build 15min + 余量
+    timeout-minutes: 60   # 轻量档：补采 ≤ 2min（异常时最多 30min） + build 15min + 部署
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
+      # 项目零依赖（package.json 无 dependencies），setup-node 只为锁定 Node 22：
+      # 采集脚本用原生 fetch / node:zlib，且 collect-results.js 的 NODE_USE_ENV_PROXY 需要 ≥22。
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Collect JBIS racecards
-        timeout-minutes: 80
+      - name: Backfill 枠番/馬番 (JBIS, lightweight)
+        id: waku
+        timeout-minutes: 30
+        shell: bash
         run: |
+          # set +e + PIPESTATUS：`node ... | tee` 会吞掉真实退出码，必须显式取回，
+          # 否则补采全量失败也会被判成功（changed=0 → 静默跳过发布链）
+          set +e
           mkdir -p test-logs
-          node src/collect-races.js 2>&1 | tee test-logs/jbis.log
+          node src/backfill-waku.js --days 3 2>&1 | tee test-logs/waku.log
+          rc=${PIPESTATUS[0]}
+          # 末行形如：waku -> changed=20 requests=20 horses=217 seats=434 errors=0 40s
+          n=$(sed -n 's/^waku -> changed=\([0-9][0-9]*\).*/\1/p' test-logs/waku.log | tail -1)
+          echo "changed=${n:-0}" >> "$GITHUB_OUTPUT"
+          exit "$rc"
 
-      # 构建：数据归一 + _site 产出（_site 本身不入库）
+      # 构建：数据归一 + _site 产出（_site 本身不入库）。无字段变化则跳过整条发布链。
       - name: Build site
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
         timeout-minutes: 15
         run: node src/build.js 2>&1 | tee test-logs/build.log
 
       # 逐条请求 JSONL（data/logs/，gitignore 不入库）聚合成可读摘要：
-      # 直接打印在 Actions step 日志里，无需下载 artifact 就能判断请求量/403/彩衣覆盖/归一结果。
-      # if: always() —— 采集或 build 失败/超时也要产出诊断。补采档不带 --rp（不检查欧美请求量）。
+      # 直接打印在 Actions step 日志里，无需下载 artifact 就能判断请求量/403/归一结果。
       - name: Diagnostics from JSONL request log
-        if: always()
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
         run: node src/ci-summary.js
 
       - name: Commit data changes
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # data/pedigree/*.json 为血统/马名/彩衣缓存包（单文件存储 → 文件数恒定），入库后下次运行增量复用
-          # data/silks/：按马主去重的彩衣图（collect 内下载），必须一起入库——否则本次部署能显示、
+          # data/pedigree/*.json 为血统/马名/彩衣缓存包（单文件存储 → 文件数恒定）；
+          # data/silks/：按马主去重的彩衣图，必须一起入库——否则本次部署能显示、
           #   下次 checkout 缺图 → 缓存命中不再重下 → 页面永久 404（2026-11-05 修）
           git add data/races/ data/pedigree/ data/silks/
           if ! git diff --cached --quiet; then
-            git commit -m "data: auto collect $(date -u +%Y-%m-%dT%H:%MZ)"
+            git commit -m "data: backfill 枠番/馬番 $(date -u +%Y-%m-%dT%H:%MZ)"
             # 运行期间 main 可能被推进 → push 前 rebase；冲突则放弃本次（下次调度自动重算）
             git pull --rebase origin main || { git rebase --abort; echo "::error::远端冲突，本次数据提交放弃"; exit 1; }
             git push origin "HEAD:$GITHUB_REF_NAME"
@@ -75,20 +90,22 @@ jobs:
 
       # 更新完必须重新部署静态页面：由本 workflow 直接发布（不依赖 push 触发 deploy.yml）
       - name: Configure Pages
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
       - name: Deploy to Pages
         id: deployment
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
         uses: actions/deploy-pages@v4
 
-      # 运行日志（对齐 yunji-web：always 上传，便于排查采集失败/为空）
-      # data/logs/requests-*.jsonl = 逐条出站请求（src/url/status/ok/ms/bytes/err），
-      # 本地 gitignore 不入库，只在 CI 作为 artifact 留存；配合 summary.log 定位到具体 URL。
+      # 运行日志（always 上传，便于排查「为什么今天是 0 请求」）
+      # data/logs/requests-*.jsonl = 逐条出站请求（src/url/status/ok/ms/bytes/err）
       - name: Upload run logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -101,9 +118,9 @@ jobs:
           retention-days: 30
 
       # 摘要判 FAIL 时让 job 显式失败（放最后，保证上面的 artifact 已经上传）
-      # 补采档不跑 RP，故只读 verdict.txt；rp-verdict.txt 是全量档独有的第二个信号
+      # 只在真正走了采集+构建链时判定；0 变化是正常收尾，不看 verdict
       - name: Gate on diagnostics
-        if: always()
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
         run: |
           v="$(cat test-logs/verdict.txt 2>/dev/null || echo FAIL)"
           echo "verdict=$v"

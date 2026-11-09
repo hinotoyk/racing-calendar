@@ -6,6 +6,7 @@
   "description": "JBIS 出走表（中央/地方 × 场 × 父 / 父父 / 母父 / 比赛格）采集、筛选与每周 Excel",
   "scripts": {
     "collect": "node src/collect-races.js",
+    "collect:waku": "node src/backfill-waku.js",
     "collect:rp": "node src/collect-sources.js --source racingpost",
     "collect:pop": "node src/collect-recent-pop.js",
     "collect:results": "node src/collect-results.js",
