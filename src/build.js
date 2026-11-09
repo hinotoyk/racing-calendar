@@ -7,6 +7,7 @@ import { buildXlsx } from "./lib/xlsx.js";
 import { readGz } from "./lib/bundle.js";
 import { assertRoundTrip, packRows, unpackRows } from "./lib/rows-codec.mjs";
 import { normalizeHorseName } from "./lib/horse-name.mjs";
+import { abnormalMeta, ABNORMAL_FINISH_RE } from "./lib/abnormal-finish.js";
 import { countryGroupOf, LEVELS, TRACK_CENTRAL, TRACK_LOCAL, klassToLevel, scopeOfVenue } from "./race-config.js";
 
 // CLI 覆盖（fixture/测试用）：node src/build.js --data-dir <dir> --out-dir <dir>
@@ -83,8 +84,14 @@ function resultsOf(date) {
         heads: race.resultHeads ?? race.joined ?? 0, runners: race.runners?.length ?? 0,
       });
       for (const r of race.runners ?? []) {
+        const ab = abnormalMeta(r.finish);
         byKey.set(`${race.raceKey}|${r.num}`, {
           finish: r.finish ?? null,
+          // 异常态中文全称 / 说明 / 样式 / 判定依据 → 主表徽标与 hover 提示
+          resultLabel: ab?.label ?? null,
+          resultDesc: ab?.desc ?? null,
+          resultAbClass: ab?.cls ?? null,
+          resultReason: r.abnormalReason ?? (ab ? "源站着顺栏原值" : null),
           resultTime: r.time ?? null,
           resultMargin: r.margin ?? null,
           resultPop: r.pop ?? null,
@@ -194,7 +201,7 @@ function normLastRank(v) {
   const m = t.match(/^(\d+)\s*着$/);
   if (m) return m[1];
   if (/^\d+$/.test(t)) return t;
-  if (/^[除中失取止]$/.test(t)) return t;
+  if (ABNORMAL_FINISH_RE.test(t)) return t;
   return null;
 }
 
@@ -467,7 +474,7 @@ const COLS = [
 ];
 const WIDTHS = [
   11, 5, 6, 6, 4, 6, 22, 8, 6,
-  5, 7, 6, 5, 5, 6, 8, 18, 6, 6,
+  5, 7, 6, 5, 5, 10, 8, 18, 6, 6,
   10, 6, 10, 6, 14, 14,
   14, 14, 14, 14,
   46, 46, 46,
@@ -516,7 +523,7 @@ for (const w of [...weekMap.values()].sort((a, b) => a.key.localeCompare(b.key))
   const body = rows.map((r) => [
     r.date, r.weekday, scopeLabel(r.scope), r.venue, r.raceNo, r.startTime,
     r.raceName, r.klass, r.klassGroup, r.surface, r.distance, r.heads, r.frame, r.num,
-    r.finish ?? "", r.resultPop ?? "", r.horseName, `${r.sex ?? ""}${r.age ?? ""}`, r.color,
+    r.resultLabel ?? r.finish ?? "", r.resultPop ?? "", r.horseName, `${r.sex ?? ""}${r.age ?? ""}`, r.color,
     r.jockey, r.weight, r.trainer, r.belongs, r.owner, r.breeder,
     r.sire, r.sireSire, r.dam, r.bms,
     r.recent1, r.recent2, r.recent3,

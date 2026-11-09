@@ -9,6 +9,7 @@
     "collect:rp": "node src/collect-sources.js --source racingpost",
     "collect:pop": "node src/collect-recent-pop.js",
     "collect:results": "node src/collect-results.js",
+    "collect:results:rp": "node src/collect-results-rp.js",
     "build": "node src/build.js",
     "serve": "node src/server.js",
     "start": "node src/collect-races.js && node src/build.js && node src/server.js"

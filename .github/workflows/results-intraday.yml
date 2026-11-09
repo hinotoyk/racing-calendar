@@ -1,15 +1,15 @@
-name: results-intraday · 当天赛果增量采集
+name: results-intraday · 日本源赛果增量采集
 
-# 北京时间 08:00–20:00 每 30 分钟 = UTC 00:00–12:00（GitHub cron 用 UTC）
-#   '*/30 0-11 * * *' → UTC 0:00…11:30 = 北京 08:00…19:30
-#   '0 12 * * *'      → UTC 12:00 = 北京 20:00（末班，不跑到 20:30）
-# GitHub 排队可能让实际触发后移；脚本只处理「JST 当天 + 开赛满 10 分钟」的场次，
+# 北京时间 08:00–20:00 每 1 小时 = UTC 00:00–12:00（GitHub cron 用 UTC）
+#   '0 0-12 * * *' → UTC 0:00…12:00 = 北京 08:00…20:00，整点各一轮
+# 抓取范围：今天 + 昨天（JST）还没有完整着顺结果的场次；
+# GitHub 排队可能让实际触发后移；脚本只处理「开赛满 10 分钟」的场次，
 # 且已完整入库的场次幂等跳过，迟到 / 重复触发不会造成重复抓取。
 # 完整性校验在本地脚本完成：只放前三名 / 名次缺号 / 人气未齐 → partial 不入库，下轮重抓。
+# 欧美源已拆到 results-intraday-rp.yml（每 6 小时一轮）。
 on:
   schedule:
-    - cron: '*/30 0-11 * * *'
-    - cron: '0 12 * * *'
+    - cron: '0 0-12 * * *'
   workflow_dispatch:
 
 permissions:
@@ -35,15 +35,15 @@ jobs:
         with:
           node-version: 22
 
-      # 只跑当天已结束、且着顺/人气尚未完整入库的场次；netkeiba 地域限制时该步失败只告警
-      - name: Collect today results
+      # 只跑今天+昨天已结束、且着顺/人气尚未完整入库的场次；netkeiba 地域限制时该步失败只告警
+      - name: Collect results (netkeiba, today + yesterday)
         continue-on-error: true
         env:
           RC_NK_PROXY: ${{ secrets.RC_NK_PROXY }}
         run: |
           set -o pipefail
           mkdir -p test-logs
-          node src/collect-results.js --today --settle-min 10 --delay 1200 2>&1 | tee test-logs/results.log
+          node src/collect-results.js --days 1 --settle-min 10 --delay 1200 2>&1 | tee test-logs/results.log
 
       - name: Verify stored results
         if: always()

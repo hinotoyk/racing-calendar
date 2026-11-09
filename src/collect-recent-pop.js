@@ -21,6 +21,7 @@ import path from "node:path";
 import { readGz } from "./lib/bundle.js";
 import { fetchHtml } from "./lib/fetch.js";
 import { SITE } from "./config.js";
+import { ABNORMAL_FINISH_RE } from "./lib/abnormal-finish.js";
 
 const argVal = (k) => process.argv.reduce((acc, a, i) => (a === k ? [...acc, process.argv[i + 1]] : acc), []);
 const has = (k) => process.argv.includes(k);
@@ -72,7 +73,7 @@ function normRank(v) {
   const t = String(v ?? "").trim();
   if (!t) return null;
   if (/^\d+$/.test(t)) return t;                 // 「10」= 10 着
-  if (/^[除中失取止]$/.test(t)) return t;         // 除外/中止/失格/取消/競走中止
+  if (ABNORMAL_FINISH_RE.test(t)) return t;       // 中止/失格/落马/除外/取消/拒跳/未完赛
   return null;                                    // 「**」等占位标记：当无成绩处理
 }
 

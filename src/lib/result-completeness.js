@@ -1,11 +1,12 @@
 // 赛果完整性校验（着顺 + 最终人气）
 // 背景：部分比赛会先放出前三名着顺 / 人气尚未回填；这类「半截结果」绝不能入库，
-//       否则会被幂等当成已完成、之后再也不补。异常态（除/中/失/取/止）是合法结果，
-//       但不能拿它们凑数，也不对它们要求人气。
-export const ABNORMAL_FINISH = new Set(["除", "中", "失", "取", "止"]);
+//       否则会被幂等当成已完成、之后再也不补。异常态（中/失/落/除/取/止/未）是合法结果，
+//       但不能拿它们凑数，也不对它们要求人气。口径见 lib/abnormal-finish.js。
+import { ABNORMAL_CODES } from "./abnormal-finish.js";
 
+const ABNORMAL_SET = new Set(ABNORMAL_CODES);
 export function isAbnormalFinish(f) {
-  return typeof f === "string" && ABNORMAL_FINISH.has(f);
+  return typeof f === "string" && ABNORMAL_SET.has(f);
 }
 
 /**
@@ -14,7 +15,12 @@ export function isAbnormalFinish(f) {
  * @param {object} opt    minPopRatio 数字名次行的人气覆盖率下限；headTolerance 允许的头数误差
  * @returns {{ok: boolean, reason: string|null, stats: object}}
  */
-export function checkCompleteness(runners, heads, { minPopRatio = 0.8, headTolerance = 2 } = {}) {
+export function checkCompleteness(runners, heads, {
+  minPopRatio = 0.8,
+  headTolerance = 2,
+  requirePop = true,       // 无赔率的场次（如中国香港沙田）允许只校验着顺
+  minFinishRatio = null,   // 可选：完赛马占比下限（两个源均不启用，SL 的 0 是终态异常态）
+} = {}) {
   const list = Array.isArray(runners) ? runners : [];
   const H = Number(heads) > 0 ? Number(heads) : list.length;
   const numeric = list.filter((r) => typeof r.finish === "number");
@@ -45,6 +51,7 @@ export function checkCompleteness(runners, heads, { minPopRatio = 0.8, headToler
     popCovered,
     popTotal: numeric.length,
     popRatio: Number(popRatio.toFixed(3)),
+    finishRatio: Number((list.length ? numeric.length / list.length : 0).toFixed(3)),
   };
 
   let reason = null;
@@ -55,7 +62,9 @@ export function checkCompleteness(runners, heads, { minPopRatio = 0.8, headToler
   else if (list.length < H - headTolerance) reason = `仅 ${list.length}/${H} 頭（疑似只放出前三名）`;
   else if (maxRank < H - abnormal.length - headTolerance)
     reason = `最大着顺 ${maxRank} < 应有约 ${H - abnormal.length}（名次不全）`;
-  else if (popRatio < minPopRatio) reason = `人气仅 ${popCovered}/${numeric.length}（未回填齐）`;
+  else if (minFinishRatio != null && stats.finishRatio < minFinishRatio)
+    reason = `仅 ${numeric.length}/${H} 匹完赛（疑似只放出前几名）`;
+  else if (requirePop && popRatio < minPopRatio) reason = `人气仅 ${popCovered}/${numeric.length}（未回填齐）`;
 
   return { ok: reason === null, reason, stats };
 }

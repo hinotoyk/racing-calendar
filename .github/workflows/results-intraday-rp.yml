@@ -1,0 +1,116 @@
+name: results-intraday-rp · 欧美源赛果增量采集
+
+# 复制自 results-intraday.yml（日本源），两处调整：
+#   1. 每 1 小时一轮 → 每 6 小时一轮（北京时间 08:00 / 14:00 / 20:00 = UTC 0/6/12 点）
+#   2. 抓取今天 + 昨天（JST）还没有完整着顺结果的场次
+# 欧美源链路：日级枚举(1/日) → 单场全序(1/场) → 分数赔率换算人气 → 落 rp-*.json；
+# 比日本源少一个出馬表请求/场，结果页自带 cloth_number，无需马级关联。
+# 已完整入库的场次幂等跳过；漏抓的场次下一轮（含昨天的滚动窗口）自动补上。
+# 完整性校验在本地脚本完成：只放前三名 / 名次缺号 / 人气未齐 → partial 不入库，下轮重抓。
+on:
+  schedule:
+    - cron: '0 0,6,12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages      # 与 update-data.yml / update-jbis.yml / deploy.yml / results-intraday.yml 共用，串行发布
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 只跑今天+昨天已结束、且着顺/人气尚未完整入库的欧美场次
+      - name: Collect overseas results (Sporting Life, today + yesterday)
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p test-logs
+          node src/collect-results-rp.js --days 1 --settle-min 10 --delay 1200 2>&1 | tee test-logs/results-rp.log
+
+      - name: Verify stored results
+        if: always()
+        run: node src/verify-results.js 2>&1 | tee test-logs/results-verify.log
+
+      # 采集端有新入库才写该标记（.workbuddy/ 已 gitignore，不会进仓库）
+      - name: Detect new results
+        id: dirty
+        if: always()
+        run: |
+          if [ -f .workbuddy/imports/.results-dirty ]; then
+            echo "yes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "yes=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::无新结果，跳过构建 / 提交 / 部署"
+          fi
+
+      - name: Build site
+        if: steps.dirty.outputs.yes == 'true'
+        run: node src/build.js 2>&1 | tee test-logs/build.log
+
+      - name: Commit data/results
+        if: steps.dirty.outputs.yes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/results/
+          if ! git diff --cached --quiet; then
+            git commit -m "data: intraday results (rp) $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase origin main || { git rebase --abort; echo "::error::远端冲突，本次数据提交放弃"; exit 1; }
+            git push origin "HEAD:$GITHUB_REF_NAME"
+            echo "::notice::data/results 已更新并推送"
+          else
+            echo "::notice::无数据变化，跳过提交"
+          fi
+
+      # GITHUB_TOKEN 的 push 不会触发 deploy.yml → 本 workflow 必须自己发布 Pages
+      - name: Configure Pages
+        if: steps.dirty.outputs.yes == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        if: steps.dirty.outputs.yes == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to Pages
+        if: steps.dirty.outputs.yes == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Upload run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-intraday-rp-log-${{ github.run_id }}
+          path: |
+            test-logs/
+            data/logs/requests-*.jsonl
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Gate on completeness
+        if: always()
+        run: |
+          if grep -q 'INCOMPLETE' test-logs/results-verify.log 2>/dev/null; then
+            echo "::warning::仍有不完整结果（partial 未入库），下一轮自动重抓"
+          fi
+          if grep -qE '\[error\]|error=[1-9]' test-logs/results-rp.log 2>/dev/null; then
+            echo "::warning::本轮采集出现请求错误，见 test-logs/results-rp.log"
+          fi

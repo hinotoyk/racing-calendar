@@ -4,7 +4,7 @@
 // 用法：node src/collect-results.js --dates 2026-11-08 --tracks 210 --limit 3 --dry
 //      node src/collect-results.js --days 2            # CI / 日常滚动回看
 //      node src/collect-results.js --until 2026-11-08  # 回填该日（含）以前的全部 JRA/NAR
-//      node src/collect-results.js --today --settle-min 10  # 定时任务：当天已结束且未完整入库的场次
+//      node src/collect-results.js --days 1 --settle-min 10  # 定时任务：今天+昨天已结束且未完整入库的场次
 // 完整性：只放前三名 / 名次缺号 / 人气未齐 → 判 partial，不入库，下轮自动重试
 // 可选代理：RC_NK_PROXY=http://127.0.0.1:10809（Node 22 内置 EnvHttpProxyAgent，零依赖）
 if (process.env.RC_NK_PROXY) {

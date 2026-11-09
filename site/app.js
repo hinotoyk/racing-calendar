@@ -587,7 +587,7 @@ function collectShareRaces() {
         heads: h.heads ?? rows.length, startTime: h.startTime, startTimeTz: h.startTimeTz,
         startTimeInstant: h.startTimeInstant,
         runners: rows.map((r) => ({
-          frame: r.frame, num: r.num, finish: r.finish, resultPop: r.resultPop, horseName: r.horseName, sex: r.sex, age: r.age,
+          frame: r.frame, num: r.num, finish: r.finish, resultLabel: r.resultLabel, resultPop: r.resultPop, horseName: r.horseName, sex: r.sex, age: r.age,
           color: r.color, silk: r.silk, jockey: r.jockey, weight: r.weight, trainer: r.trainer, belongs: r.belongs,
           owner: r.owner, breeder: r.breeder, sire: r.sire, sireSire: r.sireSire, dam: r.dam, bms: r.bms,
         })),
@@ -701,6 +701,9 @@ function loadHiddenCols() {
 const saveHiddenCols = () => { try { localStorage.setItem(COLS_KEY, JSON.stringify([...hiddenCols])); } catch {} };
 const visCols = () => COLUMNS.filter((c) => !hiddenCols.has(c.k));
 
+// 异常着顺的中文全称 / 说明 / 判定依据由 src/lib/abnormal-finish.js 在 build 阶段写入
+// 扁平行（resultLabel / resultDesc / resultAbClass / resultReason），此处不另立口径。
+
 // 单元格渲染（每列一个分支；esc 统一在 case 内做）
 function cellHtml(r, c) {
   switch (c.k) {
@@ -732,9 +735,17 @@ function cellHtml(r, c) {
     case "finish": {
       if (r.finish == null || r.finish === "") return "";
       const t = String(r.finish);
-      const cls = /^\d+$/.test(t) ? (t === "1" ? "fin fin-1" : "fin") : "fin fin-ab";
-      const tip = [r.resultTime, r.resultMargin ? `着差 ${r.resultMargin}` : "", r.resultOdds ? `単勝 ${r.resultOdds}` : ""].filter(Boolean).join(" · ");
-      return `<span class="${cls}"${tip ? ` title="${esc(tip)}"` : ""}>${esc(t)}</span>`;
+      const abnormal = !/^\d+$/.test(t);
+      const cls = abnormal
+        ? `fin fin-ab ${esc(r.resultAbClass ?? "ab-unknown")}`
+        : (t === "1" ? "fin fin-1" : "fin");
+      const tip = [
+        abnormal ? (r.resultDesc ?? "异常着顺") : "",
+        abnormal && r.resultReason ? `依据：${r.resultReason}` : "",
+        r.resultTime, r.resultMargin ? `着差 ${r.resultMargin}` : "", r.resultOdds ? `単勝 ${r.resultOdds}` : "",
+      ].filter(Boolean).join(" · ");
+      const text = abnormal ? (r.resultLabel ?? t) : t;
+      return `<span class="${cls}"${tip ? ` title="${esc(tip)}"` : ""}>${esc(text)}</span>`;
     }
     case "resultPop": {
       if (r.resultPop == null || r.resultPop === "") return "";
@@ -800,7 +811,7 @@ function mbCardHtml(r) {
     show("sexage") ? `<span class="yj-mb-sexage">${esc(sexShort(r.sex) + (r.age ?? ""))}</span>` : "",
   ].join("");
   const linePed = [
-    show("finish") && r.finish != null && r.finish !== "" ? item("着顺", esc(r.finish)) : "",
+    show("finish") && r.finish != null && r.finish !== "" ? item("着顺", esc(r.resultLabel ?? r.finish)) : "",
     show("resultPop") && r.resultPop != null ? item("最终人气", esc(r.resultPop)) : "",
     show("trainer") ? item("练马师", esc(r.trainer ?? "")) : "",
     show("sire") ? item("父", esc(r.sire ?? "")) : "",

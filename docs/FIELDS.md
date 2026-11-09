@@ -153,14 +153,19 @@
 
 | 显示 | 字段 | 说明 |
 |---|---|---|
-| 着顺 | `finish` | 数字名次；异常态单字 `除 / 中 / 失 / 取 / 止`；赛前无值显示空 |
+| 着顺 | `finish` | 数字名次；异常态单字 `中 / 失 / 落 / 除 / 取 / 止 / 未`（口径见 `src/lib/abnormal-finish.js`）；赛前无值显示空 |
+| 异常态说明 | `resultLabel` / `resultDesc` / `resultAbClass` / `resultReason` | 中文全称 / 含义 / 徽标配色 / 判定依据，由 build 按单字生成；主表直接显示全称，hover 显示含义与依据 |
 | タイム | `resultTime` | 源原样（`1:01.1`），着顺列 tooltip，不数值化 |
 | 着差 | `resultMargin` | 源原样（`アタマ` / `1.1/4`） |
 | 最终人气 | `resultPop` | 赛后确定的单胜人气（整数），主表与 Excel 显示；1 番人气高亮。与「前走」的 `lastPop` 不同 |
 | 単勝 / 後3F / 馬体重 | `resultOdds` / `resultLast3f` / `resultBody` | 结果与出走表字段区分，避免覆盖 `weight` 等既有列 |
 | netkeiba 锚点 | `nkRaceId` / `nkId` | 场次级 / 马匹级关联键，供跨源校验与调试 |
 
-主表只显示 `finish`（1 着强调、异常态灰显）；完整结果另出 `derived/results-{date}.json`。合并键为 `raceKey|num`。
+主表显示 `finish`（1 着加红加粗）；异常态显示**中文全称徽标**（中止 / 失格 / 落马 / 除外 / 取消 / 拒跳 / 未完赛），按类别配色，hover 给出含义与判定依据，Excel 也写全称。完整结果另出 `derived/results-{date}.json`。合并键为 `raceKey|num`。
+
+**异常态口径（单一出处 `src/lib/abnormal-finish.js`）**：这些是合法着顺，不是缺数据。日本源取 netkeiba 着顺栏原值；欧美源由 Sporting Life 严格分层判定 —— ① `ride_status=NONRUNNER`→`除`；② `casualty.reason`（`PulledUp→中`、`Disqualified→失`、`Fell/UnseatedRider/BroughtDown/SlippedUp→落`、`Refused/RanOut→止`）；③ 无 reason 时用 `ride_description` 关键词（`Withdrawn→取`、`pulled up→中`、`fell/unseated→落`、`refused→止`、`disqualified→失`）；④ 两者都无 → `未`（未完赛、源站未公布原因），**不臆断为中止或失格**。法国快步赛大量 `finish_position=0 + casualty={}` 属于第 ④ 类（实务上多为失格，但 SL 不给依据）。每条结果存 `abnormalReason`，tooltip 可看到具体来源（`casualty.reason=PulledUp` / `ride_description: ...` / `Sporting Life 未公布原因`）。
+
+这类马**仍可能有最终人气**：人气来自赛前 SP 赔率排序，与是否完赛无关。校验（`checkCompleteness`）把它们单独计数，不算名次缺号、也不要求人气；`WEIGHEDIN` 终态下即使完赛马占比不足 80% 也不判半截结果。
 
 ## 4. 改文案的位置（改完 `npm run build`）
 

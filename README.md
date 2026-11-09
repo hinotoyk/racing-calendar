@@ -64,18 +64,33 @@ node src/collect-results.js --days 2 --no-shutuba     # 跳过出馬表关联，
 
 ### 赛后增量采集与完整性校验
 
-定时调度在 **GitHub Actions**：`.github/workflows/results-intraday.yml`，两条 cron（`*/30 0-11 * * *` + `0 12 * * *`，UTC = **北京时间 08:00–20:00 每 30 分钟**，末班 20:00），另支持 `workflow_dispatch` 手动触发。每轮跑 `node src/collect-results.js --today --settle-min 10 --delay 1200`，只处理 JST 当天、开赛满 10 分钟、且着顺/人气尚未完整入库的场次；已完整入库的幂等跳过。
-> 步骤：采集（含本地完整性校验）→ `node src/verify-results.js` 全库体检 → 有新结果才 build / 提交 `data/results/` / 发布 Pages；共用 `concurrency: group: pages` 与其它档串行。GitHub cron 实际触发可能有排队延迟，脚本按 JST 当天 + 开赛时间判定，迟到或重复触发由幂等兜住。
+定时调度在 **GitHub Actions**：`.github/workflows/results-intraday.yml`，cron `0 0-12 * * *`（UTC = **北京时间 08:00–20:00 每 1 小时整点**），另支持 `workflow_dispatch` 手动触发。每轮跑 `node src/collect-results.js --days 1 --settle-min 10 --delay 1200`，处理 **JST 今天 + 昨天**、开赛满 10 分钟、且着顺/人气尚未完整入库的场次；已完整入库的幂等跳过。
+> 步骤：采集（含本地完整性校验）→ `node src/verify-results.js` 全库体检 → 有新结果才 build / 提交 `data/results/` / 发布 Pages；共用 `concurrency: group: pages` 与其它档串行。GitHub cron 实际触发可能有排队延迟，脚本按开赛时间判定，迟到或重复触发由幂等兜住。
 
 ```bash
 node src/collect-results.js --today --dry --settle-min 10   # 手动试跑，不写盘
 ```
 
 - **完整性校验**（`src/lib/result-completeness.js`，纯本地逻辑）：只放出前三名（结果行数远少于出馬表头数）、名次缺号、数字名次行的人气覆盖率低于 80% → 判 `partial`，**不入库**，下一轮自动重抓；已落盘缓存也要通过同一校验才算幂等命中，能自动修复历史上的半截结果。
-- **异常态与同着**：`除 / 中 / 失 / 取 / 止` 是合法着顺，单独计数、不要求人气；并列第 N 着 c 匹时下一着顺应为 N+c（同着跳号合法），校验用「名次游标」判定缺号，避免把同着误报成半截结果。
+- **异常态与同着**：`中 / 失 / 落 / 除 / 取 / 止 / 未` 是合法着顺（主表显示中文全称 + hover 说明与判定依据，见 `docs/FIELDS.md §3.5`），单独计数、不要求人气；并列第 N 着 c 匹时下一着顺应为 N+c（同着跳号合法），校验用「名次游标」判定缺号，避免把同着误报成半截结果。
 - **全库体检**：`node src/verify-results.js`（`--strict` 时退出码 1）扫描 `data/results/` 用同一规则复核，CI 每轮也会跑一次。
 - 每条入库记录带 `completeness`（heads / rows / numeric / abnormal / maxRank / missingRanks / popRatio），便于排查。
 - 定时任务只更新本地 `data/results/` 与本地预览；线上 Pages 由 `update-data.yml` 更新。
+
+### 欧美源结果（Sporting Life）
+
+`npm run collect:results:rp`（`src/collect-results-rp.js`）：**日级枚举 → 单场全序 → 人气换算 → 落 `data/results/{date}/rp-{trackId}.json` → 前端「着顺 / 最终人气」两列自动显示**。`build.js` 按 `raceKey|num` 合并，RP 的 raceKey 就是 SL race id，无需改动。
+
+```bash
+node src/collect-results-rp.js --dates 2026-11-08 --tracks 176 --limit 3 --dry
+node src/collect-results-rp.js --today --no-index   # 更省：跳过日级列表，纯本地卡片驱动
+```
+
+- **链路比日本源短**：结果页 `rides[]` 自带 `cloth_number + finish_position + betting.current_odds` —— ① 不需要额外抓出馬表做马级关联（**每场 1 请求**，日本源 2 请求）；② 无需构造 race_id / 解析「回·日」/ 双模板 / EUC-JP / 代理；③ `__NEXT_DATA__` 直接 JSON 解析。日级列表 1 请求/天给出全部已完赛场次与 course slug。
+- **人气换算**：英式分数赔率（`10/3`）转小数排序得 `1..N` 人气，同赔率并列并跳号（与日本源同着游标一致）；`favourite` 标记作交叉校验。中国香港沙田等 `No Forecast Available.` 场次无赔率 → 人气留空，但着顺照常入库。
+- **异常态精确分类**：`NONRUNNER→除外`；`casualty.reason` → `PulledUp 中止 / Disqualified 失格 / Fell·UnseatedRider 落马 / Refused 拒跳`；无 reason 时用 `ride_description` 关键词（`Withdrawn 取消`、`pulled up 中止`、`fell 落马` 等）；两者都无 → **未完赛（源站未公布原因）**，不臆断中止/失格。每条结果存 `abnormalReason`，主表徽标直接显示中文全称、hover 显示含义与依据。口径见 `src/lib/abnormal-finish.js`。`--recheck-abnormal` 可只重抓历史含异常态的场次做分类升级。SL 只有整场 `winning_time`（仅 1 着），无逐匹完走时间。
+- **完整性校验**：SL 的 `WEIGHEDIN` 是终态（`finish_position=0` 是合法异常态，法国快步赛大量失格也记 0），不像 netkeiba 会先放前三名，因此**不按完赛比例**判半截结果，改用「结果表行数 vs 卡片马数」防御；复用 `checkCompleteness` 校验名次连续 / 同着跳号 / 人气覆盖，无赔率场次用 `requirePop=false` 只校验着顺。`verify-results.js` 按 `rp.race.result/v1` 自动切换口径。
+- 欧美源有独立的定时档 `.github/workflows/results-intraday-rp.yml`：cron `0 0,6,12 * * *`（UTC = **北京时间 08:00 / 14:00 / 20:00 每 6 小时**），每轮跑 `node src/collect-results-rp.js --days 1 --settle-min 10 --delay 1200`，同样抓 **JST 今天 + 昨天** 未完整入库的场次；已完整的幂等跳过，错过窗口的由滚动窗口下一轮补上。
 
 ## 页面
 

@@ -27,13 +27,21 @@ for (const date of dates) {
       issues.push(`${date}/${f}: JSON 解析失败 ${e.message}`);
       continue;
     }
+    const isRp = doc.schema === "rp.race.result/v1";
     for (const r of doc.races ?? []) {
       races++;
       const list = r.runners ?? [];
       runners += list.length;
       abnormal += list.filter((x) => isAbnormalFinish(x.finish)).length;
-      popMissing += list.filter((x) => typeof x.finish === "number" && x.pop == null).length;
-      const chk = checkCompleteness(list, r.heads ?? list.length);
+      // 无赔率场次（中国香港沙田等）本来就允许人气为空，不计入「缺人气」
+      const noPopExpected = isRp && r.hasOdds === false;
+      if (!noPopExpected) {
+        popMissing += list.filter((x) => typeof x.finish === "number" && x.pop == null).length;
+      }
+      // 欧美源：无赔率场次只校验着顺；WEIGHEDIN 是终态，finish_position=0 是合法异常态
+      const chk = checkCompleteness(list, r.heads ?? list.length, {
+        requirePop: !isRp || r.hasOdds !== false,
+      });
       if (!chk.ok) issues.push(`${date}/${f} ${r.raceKey ?? ""} ${r.no}R: ${chk.reason}`);
     }
   }

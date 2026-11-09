@@ -241,10 +241,37 @@ td.race a.rlink:hover { color: var(--primary); text-decoration: underline; text-
 td.ped, td.c-left.ped { color: var(--chip-fg); }
 /* 北京时间列不再强调（与正文同色） */
 td.num { font-variant-numeric: tabular-nums; }
-/* 着顺列：赛后结果层（docs/RESULTS.md §4），1 着强调、除/中/失/取/止 弱化 */
+/* 着顺列：赛后结果层（docs/RESULTS.md §4），1 着强调、除/中/失/取/止 用可读徽标
+   注意 --muted 是「底色」token（亮色 #f5f5f5 / 暗色 #1e252c），不能当文字色用，
+   否则异常态在白底上近乎不可见，看起来像着顺为空。 */
 td.num .fin { display: inline-block; min-width: 1.4em; font-variant-numeric: tabular-nums; }
 td.num .fin-1 { font-weight: 700; color: #a32d2d; }
-td.num .fin-ab { color: var(--muted, #888); font-size: 10.5px; }
+td.num .fin-ab {
+  display: inline-block;
+  min-width: 3.2em;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 17px;
+  text-align: center;
+  white-space: nowrap;
+  cursor: help;                 /* hover 有中文说明 */
+}
+/* 按异常类别区分颜色：失格 / 中止·拒跳 / 落马 / 除外·取消 / 原因未公布 */
+td.num .fin-ab.ab-dq      { color: #a32d2d; border-color: #e3b8b5; background: #fdf3f2; }
+td.num .fin-ab.ab-stop    { color: #8a5a00; border-color: #e2cda3; background: #fdf8ee; }
+td.num .fin-ab.ab-fall    { color: #6b46a8; border-color: #d6c3ec; background: #f8f4fd; }
+td.num .fin-ab.ab-out     { color: var(--muted-foreground); }
+td.num .fin-ab.ab-unknown { border-style: dashed; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-embed]) td.num .fin-ab.ab-dq   { color: #ff9f96; border-color: #6b3733; background: #2a1c1b; }
+  :root:not([data-embed]) td.num .fin-ab.ab-stop { color: #f0c069; border-color: #6a542c; background: #2a2318; }
+  :root:not([data-embed]) td.num .fin-ab.ab-fall { color: #c9a9f5; border-color: #4b3a68; background: #241c30; }
+}
 /* 最终人气：1 番人气强调，与前走人气（lastPop）区分 */
 td.num .pop { font-variant-numeric: tabular-nums; }
 td.num .pop-1 { font-weight: 700; color: #185fa5; }
