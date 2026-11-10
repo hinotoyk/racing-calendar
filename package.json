@@ -12,6 +12,7 @@
     "collect:results": "node src/collect-results.js",
     "collect:results:rp": "node src/collect-results-rp.js",
     "build": "node src/build.js",
+    "test": "node test/guard.test.mjs",
     "serve": "node src/server.js",
     "start": "node src/collect-races.js && node src/build.js && node src/server.js"
   }

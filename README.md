@@ -18,6 +18,7 @@ npm run collect        # 仅采集出走表（今天起 3 天）
 npm run collect:results # 仅采集着顺（默认回看 2 天，见下）
 npm run build          # 仅构建（生成 _site/，含每周 Excel）
 npm run serve          # 仅启动本地服务（端口固定 9093；--no-open 不弹浏览器）
+npm test               # 采集覆盖保护 / manifest schema 回归测试（零依赖、纯逻辑、不联网）
 ```
 
 > 端口 / 服务根 / 绑址单源 = 项目根 **`serve.config.json`**（本站 9093）。四兄弟站约定
