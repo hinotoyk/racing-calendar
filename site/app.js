@@ -659,47 +659,78 @@ async function gridSelfTest(full) {
 }
 
 // ---------- 渲染 ----------
-// ---------- 列定义与显隐（localStorage rc.cols.v4） ----------
-// 默认展示：競馬場 R 比赛名 距离 北京时间 馬名 枠番 馬番 性齢 斤量 騎手 父 母父；
-// 発走 / 調教師 / 父父 / 母 默认隐藏（発走在比赛分隔行里，其余经「自定义显示列」开回）。
+// ---------- 列定义 / 顺序 / 显隐（localStorage rc.cols.v6） ----------
+// 数组顺序 = 出厂列顺序（可在「自定义显示列」里勾选，顺序由持久化的 order 决定）。
+// 出厂组合：马维度为主 —— 馬名 性齢 枠番 馬番 騎手 負重 彩衣 最終人気 着順 練馬師 父 母父。
+// 比赛级列（竞马场 / R / 比赛 / 距离 / 当地时间 / 北京时间）+ 祖父 出厂隐藏：
+// 每场首行前的分隔行已完整承载「場R · 比赛名 · 级别 · 北京时间 · 距离 · 当地 · 头数」，
+// 逐行重复只会把马信息挤窄；需要时经「自定义显示列」随时开回（菜单底部有「恢复默认」）。
 const COLUMNS = [
-  { k: "venue",    label: "竞马场", left: 1 },
-  { k: "raceno",   label: "R" },
-  { k: "race",     label: "比赛", left: 1 },
-  { k: "dist",     label: "距离" },
+  { k: "venue",    label: "竞马场", left: 1, defHide: 1 },
+  { k: "raceno",   label: "R", defHide: 1 },
+  { k: "race",     label: "比赛", left: 1, defHide: 1 },
+  { k: "dist",     label: "距离", defHide: 1 },
   { k: "start",    label: "当地时间", defHide: 1 },
-  { k: "bj",       label: "北京时间" },
+  { k: "bj",       label: "北京时间", defHide: 1 },
   { k: "name",     label: "马名", left: 1 },
+  { k: "sexage",   label: "性龄" },
   { k: "waku",     label: "枠番" },
   { k: "num",      label: "马号" },
-  { k: "finish",   label: "着顺" },   // 赛后结果层（data/results/），赛前无值显示空
-  { k: "resultPop", label: "最终人气" }, // 赛后确定的单胜人气，区别于「前走」的人气
-  { k: "sexage",   label: "性龄" },
-  { k: "silk",     label: "彩衣" },   // 勝負服小图（默认展示；采集覆盖时才有值，无值则空）
-  { k: "weight",   label: "负重" },
   { k: "jockey",   label: "骑手", left: 1 },
-  { k: "trainer",  label: "练马师", left: 1, defHide: 1 },
+  { k: "weight",   label: "负重" },
+  { k: "silk",     label: "彩衣" },   // 勝負服小图（采集覆盖时才有值，无值则空）
+  { k: "resultPop", label: "人气" },   // 赛后确定的单胜人气（表头收成「人气」，与「前走」里的人气同义）
+  { k: "finish",   label: "着顺" },   // 赛后结果层（data/results/），赛前无值显示空
+  { k: "trainer",  label: "练马师", left: 1 },
   { k: "sire",     label: "父", left: 1 },
   { k: "siresire", label: "祖父", left: 1, f: "sireSire", defHide: 1 },   // 数据字段为驼峰 sireSire，f 指明取值键
-  { k: "dam",      label: "母", left: 1, defHide: 1 },
+  { k: "dam",      label: "母", left: 1 },
   { k: "bms",      label: "母父", left: 1 },
 ];
+const COL_KEYS = COLUMNS.map((c) => c.k);
+const colByKey = new Map(COLUMNS.map((c) => [c.k, c]));
 // 骟马 JBIS 原文为「セン」，展示统一收成单字「セ」：性齢列不再超宽截断
 const sexShort = (s) => (s === "セン" ? "セ" : (s ?? ""));
-const COLS_KEY = "rc.cols.v4";
-const COLS_DEFAULT_HIDE = ["start", "trainer", "siresire", "dam"];
-let hiddenCols = loadHiddenCols();
-function loadHiddenCols() {
+// v6：列顺序 + 显隐合并成一个配置持久化（v5 只存隐藏列表、顺序写死，无法满足自定义排序）
+// 存 { order: [key...], hidden: [key...] }；老值（纯数组）按「只有 hidden、顺序取出厂」兼容读取。
+const COLS_KEY = "rc.cols.v6";
+const COLS_DEFAULT_HIDE = COLUMNS.filter((c) => c.defHide).map((c) => c.k);
+let colOrder = [...COL_KEYS];
+let hiddenCols = new Set(COLS_DEFAULT_HIDE);
+function normOrder(a) {
+  // 只认已知列；缺失的列按出厂顺序补到末尾，重复项丢弃 —— 保证任何脏数据都不会丢列
+  const seen = new Set();
+  const out = [];
+  for (const k of Array.isArray(a) ? a : []) {
+    if (colByKey.has(k) && !seen.has(k)) { seen.add(k); out.push(k); }
+  }
+  for (const k of COL_KEYS) if (!seen.has(k)) out.push(k);
+  return out;
+}
+function loadCols() {
   try {
-    const a = JSON.parse(localStorage.getItem(COLS_KEY));
-    if (Array.isArray(a)) {
-      return new Set(a.filter((k) => COLUMNS.some((c) => c.k === k)));
+    const raw = JSON.parse(localStorage.getItem(COLS_KEY));
+    if (Array.isArray(raw)) {                                   // v5 形态：只有 hidden
+      return { order: [...COL_KEYS], hidden: raw.filter((k) => colByKey.has(k)) };
+    }
+    if (raw && typeof raw === "object") {
+      return {
+        order: normOrder(raw.order),
+        hidden: Array.isArray(raw.hidden) ? raw.hidden.filter((k) => colByKey.has(k)) : [...COLS_DEFAULT_HIDE],
+      };
     }
   } catch {}
-  return new Set(COLS_DEFAULT_HIDE);   // 未保存过 = 新默认：比赛级信息由分隔行承载，彩衣默认展示
+  return { order: [...COL_KEYS], hidden: [...COLS_DEFAULT_HIDE] };   // 未保存过 = 出厂配置
 }
-const saveHiddenCols = () => { try { localStorage.setItem(COLS_KEY, JSON.stringify([...hiddenCols])); } catch {} };
-const visCols = () => COLUMNS.filter((c) => !hiddenCols.has(c.k));
+const colsInit = loadCols();
+colOrder = colsInit.order;
+hiddenCols = new Set(colsInit.hidden);
+const saveCols = () => {
+  try { localStorage.setItem(COLS_KEY, JSON.stringify({ order: colOrder, hidden: [...hiddenCols] })); } catch {}
+};
+// 顺序解析：按 order 排出 COLUMNS；缺失键（脏数据）补在末尾
+const orderedCols = () => normOrder(colOrder).map((k) => colByKey.get(k));
+const visCols = () => orderedCols().filter((c) => !hiddenCols.has(c.k));
 
 // 异常着顺的中文全称 / 说明 / 判定依据由 src/lib/abnormal-finish.js 在 build 阶段写入
 // 扁平行（resultLabel / resultDesc / resultAbClass / resultReason），此处不另立口径。
@@ -768,31 +799,37 @@ function rowHtml(r) {
   return `<tr data-pk="${k}" title="${esc(r.startTimeInstant ?? "")}">${tds}</tr>`;
 }
 
-// 比赛分隔行（PC：同场比赛的首行前插入 场R · 比赛名 · 级别 · 北京时间 · 距离 · 当地发走 · 头数）
+// 比赛分隔行（PC：同场比赛的首行前插入两行块头 —— 比赛级列默认隐藏后，这里是这些信息的唯一来源）
+//   行1：場R（主色，放大）· 比赛名 · 级别徽章 ······ 北京时间（右对齐）
+//   行2：距离 · 当地发走 · 头数（次要信息，浅色小字）
 function raceSepHtml(r, heads) {
   const nm = r.raceUrl
     ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
     : esc(r.raceName ?? "");
-  const bj = bjTime(r.startTimeInstant);
-  const meta = [distText(r), r.startTime ? `当地时间 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
+  const bj = bjTime(r.startTimeInstant);   // MM-dd HH:mm，前面挂「北京时间」标签
+  const meta = [esc(distText(r)), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
     .filter(Boolean).join(" · ");
-  return `<tr class="sep"><td colspan="${visCols().length}"><b>${esc(r.venue)}${r.raceNo}R</b>${nm}${levelBadge(r.level)}` +
-    `${bj ? `<span class="sep-bj">${esc(bj)} 北京</span>` : ""}` +
-    `${meta ? `<span class="sep-meta">${meta}</span>` : ""}</td></tr>`;
+  return `<tr class="sep"><td colspan="${visCols().length}"><div class="sep-hd">` +
+    `<b class="sep-no">${esc(r.venue)}${esc(r.raceNo)}R</b>` +
+    `<span class="sep-name">${nm}</span>${levelBadge(r.level)}` +
+    `${bj ? `<span class="sep-bj"><span class="sep-bj-k">北京时间</span>${esc(bj)}</span>` : ""}</div>` +
+    `${meta ? `<div class="sep-sub">${meta}</div>` : ""}</td></tr>`;
 }
 
 // ---------- 移动端（≤767px）卡片渲染（yunji race-rows mbCard 同方案：JS 独立路径，同一份列定义） ----------
-// 组头：比赛级信息一行带过（場R · 比赛名 · 级别 · 北京 · 距离 · 当地 · 头数）
+// 组头：比赛级信息一行带过（場R · 比赛名 · 级别 · 北京 · 距离 · 当地 · 头数），与 PC 分隔行同构
 function mbSepHtml(r, heads) {
   const nm = r.raceUrl
     ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
     : esc(r.raceName ?? "");
-  const bj = bjTime(r.startTimeInstant);
-  const meta = [distText(r), r.startTime ? `当地时间 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
+  const bj = bjTime(r.startTimeInstant);   // MM-dd HH:mm，前面挂「北京时间」标签
+  const meta = [esc(distText(r)), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
     .filter(Boolean).join(" · ");
-  return `<div class="yj-mb-sep"><b>${esc(r.venue)}${r.raceNo}R</b>${nm}${levelBadge(r.level)}` +
-    `${bj ? `<span class="sep-bj">${esc(bj)} 北京</span>` : ""}` +
-    `${meta ? `<span class="sep-meta">${meta}</span>` : ""}</div>`;
+  return `<div class="yj-mb-sep"><div class="sep-hd">` +
+    `<b class="sep-no">${esc(r.venue)}${esc(r.raceNo)}R</b>` +
+    `<span class="sep-name">${nm}</span>${levelBadge(r.level)}` +
+    `${bj ? `<span class="sep-bj"><span class="sep-bj-k">北京时间</span>${esc(bj)}</span>` : ""}</div>` +
+    `${meta ? `<div class="sep-sub">${meta}</div>` : ""}</div>`;
 }
 
 // 马卡片：top 行（馬番 · 枠色片 · 馬名 · 性齢）+ 分组行（label：value 项，空值/隐藏列不出现）
@@ -812,7 +849,7 @@ function mbCardHtml(r) {
   ].join("");
   const linePed = [
     show("finish") && r.finish != null && r.finish !== "" ? item("着顺", esc(r.resultLabel ?? r.finish)) : "",
-    show("resultPop") && r.resultPop != null ? item("最终人气", esc(r.resultPop)) : "",
+    show("resultPop") && r.resultPop != null ? item("人气", esc(r.resultPop)) : "",
     show("trainer") ? item("练马师", esc(r.trainer ?? "")) : "",
     show("sire") ? item("父", esc(r.sire ?? "")) : "",
     show("siresire") ? item("祖父", esc(r.sireSire ?? "")) : "",
@@ -1267,30 +1304,97 @@ async function main() {
     }
   });
 
-  // ---------- 列显隐（summary「列」菜单；localStorage 记忆；loc/馬名 固定显示） ----------
+  // ---------- 列顺序 / 显隐（summary「列」菜单；localStorage rc.cols.v6 记忆 order + hidden） ----------
+  // 菜单项按当前 colOrder 排列（含隐藏列），每项带 ↑↓ 微调位置 + 勾选框控显隐。
+  function colItemsHtml() {
+    const ord = normOrder(colOrder);
+    return ord.map((k, i) => {
+      const c = colByKey.get(k);
+      return `<div class="col-item" data-k="${k}">` +
+        `<label class="col-ck"><input type="checkbox" data-ck="${k}"${hiddenCols.has(k) ? "" : " checked"}>${esc(c.label)}</label>` +
+        `<button type="button" class="col-mv" data-mv="up" data-k="${k}"${i === 0 ? " disabled" : ""} title="上移" aria-label="上移 ${esc(c.label)}">↑</button>` +
+        `<button type="button" class="col-mv" data-mv="dn" data-k="${k}"${i === ord.length - 1 ? " disabled" : ""} title="下移" aria-label="下移 ${esc(c.label)}">↓</button>` +
+        `</div>`;
+    }).join("");
+  }
+  const redrawColItems = () => { const box = $("#col-items"); if (box) box.innerHTML = colItemsHtml(); };
+
   function renderColMenu() {
     $("#col-mount").innerHTML =
       `<span class="col-wrap"><button id="col-btn" class="sel-page" type="button">自定义显示列 ▾</button>` +
       `<div id="col-menu" class="col-menu" hidden>` +
-      COLUMNS.map((c) =>
-        `<label class="col-item"><input type="checkbox" data-ck="${c.k}"${hiddenCols.has(c.k) ? "" : " checked"}>${esc(c.label)}</label>`
-      ).join("") +
+      `<div id="col-items">${colItemsHtml()}</div>` +
+      `<div class="col-foot">` +
+      `<button id="col-copy" class="col-act" type="button">复制配置</button>` +
+      `<button id="col-reset" class="col-act" type="button">恢复默认</button>` +
+      `</div>` +
       `</div></span>`;
     const wrap = $("#col-mount .col-wrap");
     selRegistry.push({ wrap, close: () => $("#col-menu").hidden = true });
   }
   renderColMenu();
+
+  // 「复制配置」：把当前 {order, hidden} 拷到剪贴板，便于换个设备/交给 agent 复现同一套列
+  function copyColsConfig() {
+    const txt = JSON.stringify({ order: normOrder(colOrder), hidden: [...hiddenCols] });
+    const flash = () => {
+      const b = $("#col-copy");
+      if (!b) return;
+      const old = b.textContent;
+      b.textContent = "已复制";
+      setTimeout(() => { b.textContent = old; }, 1400);
+    };
+    const legacyCopy = () => {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = txt; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        document.execCommand("copy");
+        ta.remove(); flash();
+      } catch {}
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(flash, legacyCopy);
+    else legacyCopy();
+  }
+
   $("#col-mount").addEventListener("click", (e) => {
     if (e.target.closest("#col-btn")) {
       const m = $("#col-menu");
       m.hidden = !m.hidden;
       return;
     }
+    // ↑↓ 调序：在全量 order（含隐藏列）里换位，表格与菜单同步重排
+    const mv = e.target.closest("button[data-mv]");
+    if (mv) {
+      e.preventDefault();
+      if (mv.disabled) return;
+      const ord = normOrder(colOrder);
+      const i = ord.indexOf(mv.dataset.k);
+      const j = mv.dataset.mv === "up" ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= ord.length) return;
+      [ord[i], ord[j]] = [ord[j], ord[i]];
+      colOrder = ord;
+      saveCols();
+      redrawColItems();
+      renderThead();
+      render();
+      return;
+    }
+    if (e.target.closest("#col-copy")) { copyColsConfig(); return; }
+    if (e.target.closest("#col-reset")) {
+      colOrder = [...COL_KEYS];
+      hiddenCols = new Set(COLS_DEFAULT_HIDE);
+      saveCols();
+      redrawColItems();
+      renderThead();
+      render();
+      return;
+    }
     const ck = e.target.closest("input[data-ck]");
     if (!ck) return;
     if (!ck.checked && hiddenCols.size >= COLUMNS.length - 1) { ck.checked = true; return; }   // 至少保留一列
     ck.checked ? hiddenCols.delete(ck.dataset.ck) : hiddenCols.add(ck.dataset.ck);
-    saveHiddenCols();
+    saveCols();
     renderThead();
     render();
   });

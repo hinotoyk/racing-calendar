@@ -200,18 +200,38 @@ select:focus, input:focus { outline: none; border-color: var(--primary); box-sha
 .summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 14px 2px 10px; font-size: 13px; color: var(--secondary-foreground); }
 .summary .count b { font-size: 16px; color: var(--primary); }
 
-/* ---------- 列显隐菜单（summary「列」下拉；localStorage rc.cols.v1） ---------- */
+/* ---------- 列顺序 / 显隐菜单（summary「列」下拉；localStorage rc.cols.v6 存 order + hidden） ---------- */
 .col-wrap { position: relative; display: inline-flex; }
 .col-menu {
-  position: absolute; left: 0; top: calc(100% + 6px); z-index: 60; width: 150px; max-height: 320px; overflow-y: auto;
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 60; width: 178px; max-height: 340px; overflow-y: auto;
   border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 6px;
   box-shadow: 0 16px 40px rgba(var(--shadow-color), .14), 0 4px 12px rgba(var(--shadow-color), .06);
 }
 .col-menu[hidden] { display: none; }
-.col-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.col-item { display: flex; align-items: center; gap: 2px; padding: 3px 4px 3px 8px; border-radius: 6px; font-size: 12px; }
 .col-item:hover { background: var(--muted); }
-.col-item input { width: 13px; height: 13px; accent-color: var(--primary); }
+.col-ck { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 2px 0; cursor: pointer; }
+.col-ck input { width: 13px; height: 13px; accent-color: var(--primary); }
+/* 单列上移/下移：低调的方形小按钮，hover 才提亮，避免和勾选框抢视觉 */
+.col-mv {
+  width: 18px; height: 18px; padding: 0; flex: none;
+  border: 1px solid transparent; border-radius: 4px; background: none;
+  color: var(--muted-foreground); font-size: 11px; line-height: 1; cursor: pointer;
+}
+.col-mv:hover:not(:disabled) { border-color: var(--border); background: var(--surface); color: var(--primary); }
+.col-mv:disabled { opacity: .28; cursor: default; }
 .col-item.lock { opacity: .45; cursor: default; }
+/* 菜单底部按钮条（复制配置 / 恢复默认）：sticky 常驻 —— 20 个列项会超出 max-height，不能被滚出可视区 */
+.col-foot {
+  position: sticky; bottom: -6px; display: flex; gap: 4px;
+  margin: 4px -6px -6px; padding: 5px 6px; background: var(--surface);
+  border-top: 1px solid var(--border-faint); border-radius: 0 0 10px 10px;
+}
+.col-act {
+  flex: 1; padding: 6px 4px; border: none; border-radius: 6px; background: none;
+  color: var(--primary); font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.col-act:hover { background: var(--hover-row); }
 
 /* ---------- 表格（dense，同 yunji race-rows lib 视图：居中窄列 + 10px 表头） ---------- */
 .table-wrap { overflow-x: auto; }
@@ -245,7 +265,7 @@ td.num { font-variant-numeric: tabular-nums; }
    注意 --muted 是「底色」token（亮色 #f5f5f5 / 暗色 #1e252c），不能当文字色用，
    否则异常态在白底上近乎不可见，看起来像着顺为空。 */
 td.num .fin { display: inline-block; min-width: 1.4em; font-variant-numeric: tabular-nums; }
-td.num .fin-1 { font-weight: 700; color: #a32d2d; }
+td.num .fin-1 { font-weight: 700; }   /* 1 着只提字重，不染色（用户定稿：数字不加任何颜色） */
 td.num .fin-ab {
   display: inline-block;
   min-width: 3.2em;
@@ -272,9 +292,9 @@ td.num .fin-ab.ab-unknown { border-style: dashed; }
   :root:not([data-embed]) td.num .fin-ab.ab-stop { color: #f0c069; border-color: #6a542c; background: #2a2318; }
   :root:not([data-embed]) td.num .fin-ab.ab-fall { color: #c9a9f5; border-color: #4b3a68; background: #241c30; }
 }
-/* 最终人气：1 番人气强调，与前走人气（lastPop）区分 */
+/* 人气（原「最终人气」）：数字不加任何颜色，仅保留等宽数字对齐 */
 td.num .pop { font-variant-numeric: tabular-nums; }
-td.num .pop-1 { font-weight: 700; color: #185fa5; }
+td.num .pop-1 { font-weight: 700; }
 
 /* ---------- 枠番传统色（JRA 公式 1白2黒3赤4青5黄6緑7橙8桃，与 share.js WAKU 同源） ---------- */
 .waku {
@@ -297,17 +317,29 @@ td.num .pop-1 { font-weight: 700; color: #185fa5; }
 .surf-障 { background: #8464c8; }
 .surf-AW { background: #8b949c; }
 
-/* ---------- 比赛分隔行（同场比赛首行前：场R · 比赛名 · 级别 · 北京时间 · 距离 · 发走 · 头数） ---------- */
+/* ---------- 比赛分隔行（两行块头）----------
+ * 比赛级列（竞马场 / R / 比赛 / 距离 / 北京时间）默认隐藏后，本行是这些信息的唯一来源，
+ * 因此视觉比例比明细行高一档：場R 主色 15px/800 · 比赛名 14px/700 · 北京时间右对齐 13px/700，
+ * 距离/当地/头数收到第二行浅色小字；左侧 3px 主色竖条 + 顶部细分隔线锚定场次边界。 */
 table.yj-lib tbody tr.sep td {
-  background: linear-gradient(90deg, var(--race-tint), transparent 55%);
-  color: var(--foreground); text-align: left; padding: 6px 10px;
-  font-size: 12px; border-bottom: 1px solid var(--border-faint);
+  background: linear-gradient(90deg, var(--race-tint), transparent 62%);
+  color: var(--foreground); text-align: left; padding: 9px 12px 10px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-faint);
+  border-left: 3px solid var(--primary);
 }
-tr.sep td b { color: var(--foreground); margin-right: 8px; font-size: 12.5px; }
-tr.sep td a.rlink { color: inherit; }
-tr.sep td a.rlink:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
-tr.sep .sep-bj { margin-left: 10px; font-variant-numeric: tabular-nums; }
-tr.sep .sep-meta { margin-left: 10px; color: var(--muted-foreground); font-weight: 400; font-size: 11.5px; }
+.sep-hd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 8px; }
+.sep-no { font-size: 15px; font-weight: 800; letter-spacing: .2px; color: var(--primary); white-space: nowrap; }
+.sep-name { font-size: 14px; font-weight: 700; color: var(--foreground); }
+.sep-name a.rlink { color: inherit; }
+.sep-name a.rlink:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+/* 北京时间紧跟比赛名（不右对齐独立成块），整串与比赛名同字号：「北京时间 10:35」 */
+.sep-bj {
+  white-space: nowrap;
+  font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--foreground);
+}
+.sep-bj-k { margin-right: 4px; font-weight: 600; color: var(--secondary-foreground); }
+.sep-sub { margin-top: 2px; font-size: 12px; color: var(--muted-foreground); }
 tr.sep .yj-grade { vertical-align: 0; }
 
 /* ---------- 分组行（父 / 父父 / 母父 组头，同 yunji tbody tr.sub） ---------- */
@@ -658,12 +690,15 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
  * 比赛级信息由 .yj-mb-sep 组头承载，马卡片只留 馬番/枠/馬名/性齢 + label：value 行。
  * ============================================================ */
 #mb-list[hidden] { display: none; }
+/* 组头与 PC 分隔行同构（两行块头，左侧主色竖条），窄屏字号降一档 */
 .yj-mb-sep {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px;
-  padding: 9px 12px 5px; background: var(--surface); border-bottom: 1px solid var(--border-soft);
+  padding: 9px 12px 8px; background: var(--surface); border-bottom: 1px solid var(--border-soft);
+  border-left: 3px solid var(--primary);
   font-size: 12px; color: var(--secondary-foreground);
 }
-.yj-mb-sep b { font-size: 12.5px; color: var(--foreground); }
+.yj-mb-sep .sep-no { font-size: 14px; }
+.yj-mb-sep .sep-name { font-size: 13.5px; }
+.yj-mb-sep .sep-bj { font-size: 13.5px; }
 .yj-mb-sub { padding: 8px 12px 4px; background: var(--surface); border-bottom: 1px solid var(--border-soft); font-size: 12px; color: var(--muted-foreground); }
 .yj-mb-sub b { color: var(--foreground); font-size: 12.5px; margin-right: 6px; }
 .yj-mb { position: relative; padding: 9px 12px 9px 36px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .12s; }
