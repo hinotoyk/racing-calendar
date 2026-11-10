@@ -407,7 +407,7 @@ table.yj-lib tbody tr.sub td b { color: var(--accent-foreground); margin-right: 
 
 /* ---------- 日期窗口导航（‹ › 本周末 今天） ---------- */
 .d-nav {
-  height: 26px; padding: 0 10px; border: 1px solid var(--chip-border); border-radius: 7px;
+  height: 26px; min-width: 26px; padding: 0 8px; border: 1px solid var(--chip-border); border-radius: 7px;
   background: var(--surface); color: var(--muted-foreground); font-size: 13px; line-height: 1;
   cursor: pointer; transition: border-color .15s, color .15s, background .15s;
 }
@@ -701,32 +701,49 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
 .yj-mb-sep .sep-bj { font-size: 13.5px; }
 .yj-mb-sub { padding: 8px 12px 4px; background: var(--surface); border-bottom: 1px solid var(--border-soft); font-size: 12px; color: var(--muted-foreground); }
 .yj-mb-sub b { color: var(--foreground); font-size: 12.5px; margin-right: 6px; }
-.yj-mb { position: relative; padding: 9px 12px 9px 36px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .12s; }
+.yj-mb { position: relative; padding: 8px 12px 9px 34px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .12s; }
 .yj-mb:last-child { border-bottom: none; }
 .yj-mb:active, .yj-mb.picked { background: var(--race-tint); }
-.yj-mb .pick-box { left: 13px; top: 19px; transform: none; }   /* 对齐首行（馬名行）垂直中点，不随卡片高度居中 */
-.yj-mb-top { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
-.yj-mb-no { flex: none; min-width: 16px; font-weight: 700; font-size: 12.5px; color: var(--secondary-foreground); text-align: right; }   /* 右对齐：1~18 位对齐，重心统一 */
-.yj-mb-horse { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
-.yj-mb-sexage { flex: none; font-size: 11.5px; font-weight: 600; color: var(--muted-foreground); white-space: nowrap; }
-.yj-mb-jk { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--secondary-foreground); }
-.yj-mb-w { flex: none; font-size: 11px; color: var(--muted-foreground); }
-.yj-mb-line { padding-top: 2px; font-size: 12px; color: var(--secondary-foreground); line-height: 1.7; }
-.yj-mb-item { white-space: nowrap; margin-right: 16px; }
-.yj-mb-item:last-child { margin-right: 0; }
-.yj-mb-item i { font-style: normal; font-size: 10.5px; color: var(--muted-foreground); }
-.yj-mb-item b { font-weight: 600; }
+.yj-mb .pick-box { left: 11px; top: 14px; transform: none; }   /* 对齐首行（馬名行）垂直中点，不随卡片高度居中 */
+/* 行1：枠色 · 馬番 · 馬名（主体）· 着順/人気（右对齐成列） */
+.yj-mb-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.yj-mb-no { flex: none; min-width: 15px; font-weight: 700; font-size: 13px; color: var(--foreground); text-align: right; }   /* 右对齐：1~18 位对齐，重心统一 */
+.yj-mb-horse { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; font-weight: 600; }
+/* 两个数字格定宽 + 右对齐：跨卡片竖向成列（netkeiba 的 オッズ/人気 列语言） */
+.yj-mb-nums { flex: none; display: flex; align-items: baseline; gap: 9px; margin-left: 4px; }
+.yj-mb-c { min-width: 31px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 12.5px; color: var(--foreground); }
+.yj-mb-c i { font-style: normal; margin-left: 1px; font-size: 9.5px; font-weight: 600; color: var(--muted-foreground); }
+/* 行2 性齢·斤量·騎手（单行，超长才省略）/ 行3 血统（项内不断，项间换行） */
+.yj-mb-meta, .yj-mb-ped { margin-top: 1px; font-size: 11.5px; line-height: 1.55; }
+.yj-mb-meta { color: var(--secondary-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.yj-mb-ped { color: var(--muted-foreground); white-space: normal; }
+/* 项内不可拆（名字不被折断），项间用间距而非「·」分隔 —— 换行时不会留一个孤零零的点在行尾 */
+.yj-mb-ped .ped-i { display: inline-block; white-space: nowrap; margin-right: 12px; }
+.yj-mb-ped em { font-style: normal; margin-right: 3px; font-size: 10.5px; opacity: .72; }
+.sepdot { font-style: normal; margin: 0 4px; opacity: .45; }
 
 /* mb：筛选卡高级行折叠（竞马场/级别/血统/快捷 收进「更多筛选」，yunji §162 同款；PC 恒展开不显示按钮） */
 .f-adv-btn { display: none; }
-/* 日期行（PC+mb 同一套单行流）：不换行、装不下横滑（滚动条隐藏）；
- * .f-strip（‹+chips+›）/ .f-quick（本周末+今天）在 PC 用 display:contents 并入外层 chips 流 */
+/* 日期行：‹ [ chip chip chip … ] › + 右端「本周末/今天」。
+ * 全部日期 chip 一次铺进 .f-view，靠横向滑动查看（触摸直接滑 / 触控板横扫 / ‹ › 整屏翻页），
+ * 不再按设备截 5 天或 2 天——那样窄屏只露两个 chip，等于看不到单独日期。 */
 .filter-row.f-scroll { align-items: center; }
-.filter-row.f-scroll > .filter-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-.filter-row.f-scroll > .filter-chips::-webkit-scrollbar { display: none; }
-.f-strip, .f-quick { display: contents; }
-.filter-row.f-scroll .filter-chip, .filter-row.f-scroll .d-nav { flex: none; }
-#date-tabs { display: contents; }
+.filter-row.f-scroll > .filter-chips { flex-wrap: wrap; min-width: 0; }
+.f-strip { display: flex; align-items: center; gap: 6px; flex: 1 1 0; min-width: 0; }
+.f-view {
+  flex: 1 1 0; min-width: 0; overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+  padding: 2px 0; margin: -2px 0;   /* 给 chip 的 hover 边框留余量，不被滚动容器裁掉 */
+  /* 两端淡出 10px：被切一半的 chip 看起来是「还有更多」而不是排版出错 */
+  mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+}
+.f-view::-webkit-scrollbar { display: none; }
+.d-tabs { display: flex; gap: 7.2px; width: max-content; }
+.d-tabs .filter-chip { flex: none; cursor: pointer; }
+.filter-row.f-scroll .d-nav { flex: none; }
+.f-quick { display: flex; flex: none; align-items: center; gap: 6px; }
+/* 今天：底部一道主色细线（选中态由 .on 的底纹表达，两者互斥不打架） */
+.d-chip.today:not(.on) { box-shadow: inset 0 -2px 0 var(--primary); }
 @media (max-width: 767px) {
   .filter-card .f-adv { display: none; }
   .filter-card.adv-open .f-adv { display: flex; }
@@ -737,10 +754,13 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
   .vg-k { width: auto; min-width: 22px; }
   /* chips 行拉满整行（搜索下拉/血统 chips 等 mb 惯例，同 yunji .f-csel） */
   .filter-chips { flex-grow: 1; }
-  /* 日期行 mb：.f-strip（‹+chips+›）单行横滑占满首行，.f-quick（本周末/今天）换到第二行 */
-  .f-strip { display: flex; align-items: center; gap: 6px; flex: 1 1 100%; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
-  .f-strip::-webkit-scrollbar { display: none; }
-  .f-quick { display: flex; flex: 0 0 100%; align-items: center; gap: 6px; }
+  /* 日期行 mb：「本周末/今天」换到第二行，第一行整行留给可滑动的日期条 */
+  .f-quick { flex: 0 0 100%; }
+  /* 窄屏日期 chip 收紧：只留「MM-dd + 星期」，头数在 PC 显示——否则一个 chip 108px，
+   * 230px 的可视区只放得下 2 个，"看到日期"这件事又白做了。0 头日靠 .off 淡出区分。 */
+  .d-chip { padding: 0 9px; }
+  .d-chip small { display: none; }
+  .f-strip .d-nav { padding: 0 8px; }
   /* 已选浮动条：窄屏防压缩换行（清空按钮文字曾折成两行） */
   #pick-bar { max-width: calc(100vw - 20px); }
   #pick-bar .pb-count, #pick-bar .pb-go, #pick-bar .pb-clear { flex: none; white-space: nowrap; }
@@ -751,3 +771,12 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
 td .silk-img { height: 15px; width: auto; vertical-align: -3px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
 /* mb 卡片 top 行：与馬番/枠徽同排 */
 .yj-mb .silk-img { flex: none; height: 16px; width: auto; align-self: center; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+/* 无彩衣占位：做成「空的缩略图位」——浅灰圆角底 + 白色赛马服剪影 + 极淡描边，
+   与真实彩衣（白底 + 彩色 + 浅描边）同一套视觉语言，一眼看出「这里该有一张彩衣，但没采集到」。
+   尺寸与真实彩衣图一致（73×55 → 20×15），列宽不因有无图跳动。 */
+.silk-ph {
+  display: inline-block; width: 20px; height: 15px; vertical-align: -3px;
+  color: var(--muted-foreground);
+}
+.silk-ph svg { display: block; width: 100%; height: 100%; }
+.yj-mb .silk-ph { flex: none; width: 21px; height: 16px; align-self: center; vertical-align: baseline; }

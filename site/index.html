@@ -28,9 +28,10 @@
       <span class="filter-label">日期</span>
       <div class="filter-chips">
         <span class="f-strip">
-          <button id="d-prev" class="d-nav" type="button" title="更早 5 天">‹</button>
-          <span class="filter-chips" id="date-tabs"></span>
-          <button id="d-next" class="d-nav" type="button" title="更晚 5 天">›</button>
+          <button id="d-prev" class="d-nav" type="button" title="更早日期" aria-label="更早日期">‹</button>
+          <!-- 日期条：全部日期 chip 一次铺开，横向滑动查看（‹ › 翻页，触摸/触控板直接滑） -->
+          <span class="f-view" id="d-view"><span class="d-tabs" id="date-tabs"></span></span>
+          <button id="d-next" class="d-nav" type="button" title="更晚日期" aria-label="更晚日期">›</button>
         </span>
         <span class="f-quick">
           <button id="d-weekend" class="d-nav" type="button" title="一次选中本周六日">本周末</button>
@@ -50,7 +51,7 @@
       <span class="filter-label">级别</span>
       <div class="filter-chips" id="klass-chips"></div>
     </div>
-    <div class="filter-row">
+    <div class="filter-row f-adv">
       <span class="filter-label">血统</span>
       <div class="filter-chips selects">
         <span class="sel-mount" id="m-sire"></span>
@@ -60,7 +61,7 @@
         <span class="sel-mount" id="m-group"></span>
       </div>
     </div>
-    <div class="filter-row">
+    <div class="filter-row f-adv">
       <span class="filter-label">快捷</span>
       <div class="filter-chips ped-tags" id="ped-tags"></div>
     </div>

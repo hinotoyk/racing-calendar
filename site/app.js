@@ -61,8 +61,8 @@ function isMb() {
 const PG = { page: 1, size: 0 };
 const pgSizeDef = () => (isMb() ? 20 : 100);
 
-// mb 日期轮播：5 天窗口内 mb 只显示 2 个 chip，winOff = 窗内偏移（0..3）；‹ › 步进、到边缘翻窗
-let winOff = 0;
+// 日期条滚动节流用的 rAF 句柄（见 #d-view 的 scroll 监听）
+let dateScrollRaf = 0;
 
 // 比赛唯一键（raceKey 缺失时兜底）
 const rkOf = (r) => r.raceKey ?? `${r.date}|${r.track}|${r.raceNo}`;
@@ -117,6 +117,37 @@ const levelBadge = (level) => {
 
 // 枠番传统色（JRA 公式 1白2黒3赤4青5黄6緑7橙8桃，与 share.js WAKU 同源）
 const frameBadge = (f) => (f == null || f === "" ? "" : `<span class="waku w${f}">${esc(f)}</span>`);
+
+// 彩衣（勝負服）：有图出图，无图出「空彩衣」占位。
+// 采集未覆盖 / 马主未登记时原本整格留白，看起来像渲染坏了或漏了一列。
+// 占位做成「空的缩略图位」而不是线条图标：浅灰圆角底 + 白色赛马服剪影 + 极淡描边，
+// 与真实彩衣（白底 + 彩色 + 浅描边）同一种视觉语言，放一起像「这张图还没填」。
+// 尺寸对齐真实彩衣（73×55 → PC 20×15 / mb 21×16），列宽不因有无图而跳动。
+const SILK_PH_SVG =
+  `<svg viewBox="0 0 20 16" aria-hidden="true" focusable="false">` +
+  // 外框 = 白底 + 2px 圆角 + 虚线（虚线传达「待补」，颜色与真实彩衣的淡描边同族）
+  `<rect x=".4" y=".4" width="19.2" height="15.2" rx="2"` +
+  ` style="fill:var(--surface)" stroke="currentColor" stroke-opacity=".28" stroke-width=".8"` +
+  ` stroke-dasharray="1.9 1.5"/>` +
+  // 内容退成灰：同一件赛马服（窄肩 + 下垂短袖 + 直筒身），只是「还没上色」
+  `<path d="M8.1 3.1 5.4 4C4.6 4.6 4.3 5.4 4.3 6.2l.2 1.9 1.5-.1v5.3h8V8l1.5.1.2-1.9c0-.8-.3-1.6-1.1-2.2L11.9 3.1"` +
+  `c-.3 1.2-1 1.8-1.9 1.8S8.4 4.3 8.1 3.1Z"` +
+  ` fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-opacity=".36" stroke-width=".8" stroke-linejoin="round"/>` +
+  `</svg>`;
+const silkPhHtml = (tip) => `<span class="silk-ph" role="img" aria-label="无彩衣图" title="${esc(tip)}">${SILK_PH_SVG}</span>`;
+// 图片加载失败（采集到坏链）时同样换成占位，避免留白
+window.__silkFallback = (img) => {
+  const ph = document.createElement("span");
+  ph.className = "silk-ph";
+  ph.setAttribute("role", "img");
+  ph.setAttribute("aria-label", "无彩衣图");
+  ph.title = "无彩衣图（图片加载失败）";
+  ph.innerHTML = SILK_PH_SVG;
+  img.replaceWith(ph);
+};
+const silkImgHtml = (src) =>
+  `<img class="silk-img" src="${esc(src)}" alt="彩衣" loading="lazy" decoding="async"` +
+  ` onerror="window.__silkFallback&&window.__silkFallback(this)">`;
 // 芝/ダ/障 色点（扫读用）
 const surfDot = (s) => (s && SURF_SHORT[s] ? `<i class="surf-dot surf-${esc(s)}"></i>` : "");
 const distText = (r) => (r.distance ? `${SURF_SHORT[r.surface] ?? r.surface ?? ""}${r.distance}` : "");
@@ -156,36 +187,87 @@ function chip(label, value, on, key, count, tag) {
   return `<button data-k="${key}" data-v="${esc(value)}" class="filter-chip${on ? " on" : ""}${off}">${esc(label)}${sub}${badge}</button>`;
 }
 
-// 日期窗口：winStart 起 5 天；无数据日也展示并可点击（选中后表格为空态）
-// mb：窗口内一次只显示 2 个 chip（winOff 偏移 0..3），‹ › 逐日步进、到边缘自动翻窗（PC 恒显 5 个）；
-// 「本周末/今天」在独立容器 .f-quick，mb 换到第二行。
-// align=false 时跳过「选中日保持可见」纠偏（‹ › 手动步进用——否则纠偏会把视口拉回选中日，步进卡死）
+// 日期条：从「最早采集日」一路排到「今天 +7」，全部 chip 一次铺开，靠横向滑动查看（触摸滑 / 触控板横扫 / ‹ › 翻页）。
+// 无数据日也展示并可点击（选中后表格为空态）；今天单独加 .today 标记。
+// 不再按设备截取 5 天 / 2 天窗口：窄屏只露 3~4 个 chip，能滑才是重点（用户 2026-11-10 反馈看不到单独日期、也滑不动）。
+function dateRangeSpan() {
+  const { first, last } = dataRange();
+  const today = todayBJ();
+  const start = first ?? addDays(today, -7);
+  const end = [last ?? today, addDays(today, 7)].sort().at(-1);
+  return { start, end };
+}
+
 function renderDateTabs(align = true) {
   const byDate = new Map(state.index.dates.map((d) => [d.date, d]));
-  const mb = isMb(), vis = mb ? 2 : 5, maxOff = 5 - vis;
-  // 选中日（在窗内时）保持可见：偏移跟随
-  const sel = [...state.dates].sort().find((d) => d >= state.winStart && d <= addDays(state.winStart, 4));
-  if (mb && align && sel) {
-    const idx = Math.round((Date.parse(sel) - Date.parse(state.winStart)) / 864e5);
-    if (idx < winOff) winOff = Math.max(0, idx);
-    else if (idx > winOff + vis - 1) winOff = Math.min(maxOff, idx - vis + 1);
-  }
-  winOff = Math.min(Math.max(winOff, 0), maxOff);
+  const { start, end } = dateRangeSpan();
+  state.winStart = start;   // URL 的 w 参数沿用窗口起点（老链接仍可还原，语义从「5 天窗口起点」变为「日期条起点」）
+  const today = todayBJ();
   const chips = [];
-  for (let i = winOff; i < winOff + vis; i++) {
-    const date = addDays(state.winStart, i);
+  for (let date = start; date <= end; date = addDays(date, 1)) {
     const info = byDate.get(date);
+    const runners = info?.runners ?? 0;
+    const on = state.dates.has(date);
     chips.push(
-      `<button data-d="${date}" class="filter-chip${state.dates.has(date) ? " on" : ""}">` +
-      `${esc(dateLabelOf(date))}<i class="wd">${weekdayOf(date)}</i><small>${info?.runners ?? 0}頭</small></button>`,
+      `<button data-d="${date}" class="filter-chip d-chip${on ? " on" : ""}` +
+      `${date === today ? " today" : ""}${runners || on ? "" : " off"}">` +
+      `${esc(dateLabelOf(date))}<i class="wd">${weekdayOf(date)}</i><small>${runners}頭</small></button>`,
     );
   }
+  // 重画前记住滚动位置：切换筛选不该把日期条弹回开头
+  const view = $("#d-view");
+  const keep = view ? view.scrollLeft : 0;
   $("#date-tabs").innerHTML = chips.join("");
-  // ‹ 在数据起点处禁用（更早日期从未采集）；mb 还需窗口已贴边且偏移归零
-  const { first } = dataRange();
-  $("#d-prev").disabled = !!first && state.winStart <= first && (!mb || winOff <= 0);
-  $("#d-prev").title = $("#d-prev").disabled ? "已是最早数据日" : "更早日期";
+  if (view) view.scrollLeft = keep;
+  if (align) scrollDateIntoView();
+  else updateDateEdges();
   syncUrl();
+}
+
+// 「更多筛选」按钮：收起时提示里面还有几个条件在生效（竞马场 / 血统三选 / 关键字 / 分组），
+// 否则血统收进折叠区后，选中了却看不出筛选被改过。
+function syncAdvBtn() {
+  const btn = $("#f-adv");
+  if (!btn) return;
+  const open = !!$(".filter-card")?.classList.contains("adv-open");
+  const n = [state.sire, state.sireSire, state.bms, state.group, state.q.trim(), state.venues.size ? "v" : ""]
+    .filter(Boolean).length;
+  btn.textContent = open ? "收起筛选 ▴" : n ? `更多筛选 · ${n} 项 ▾` : "更多筛选 ▾";
+}
+
+// 把选中日滚进可视区（首次渲染 / 换日期 / 「今天」「本周末」后都走这里）。
+// 选中日在视野外时，让它成为窗口左端——往右看接下来的日期，左边缘正好落在一个 chip 起点，
+// 不会在 ‹ 旁边留下一条 3~4px 的残条；已经在视野内则不动，避免点选时来回跳。
+function scrollDateIntoView(smooth = false) {
+  const view = $("#d-view");
+  if (!view) return;
+  const on = view.querySelector(".d-chip.on") || view.querySelector(".d-chip.today");
+  if (!on) return updateDateEdges();
+  const pad = 10;
+  const vr = view.getBoundingClientRect();
+  const cr = on.getBoundingClientRect();
+  const outside = cr.left < vr.left + pad || cr.right > vr.right - pad;
+  if (outside) {
+    // 以选中日的「前一天」为窗口左端：一屏里能看到昨天 / 今天 / 明天，方向感比单看今天强
+    const anchor = (on.previousElementSibling || on).getBoundingClientRect();
+    const max = Math.max(0, view.scrollWidth - view.clientWidth);
+    const next = Math.min(max, Math.max(0, view.scrollLeft + (anchor.left - vr.left) - pad));
+    if (Math.abs(next - view.scrollLeft) > 1) view.scrollTo({ left: next, behavior: smooth ? "smooth" : "auto" });
+  }
+  updateDateEdges();
+}
+
+// ‹ › 到边禁用（贴左 = 已是最早数据日；贴右 = 已是最晚可看日）
+function updateDateEdges() {
+  const view = $("#d-view");
+  if (!view) return;
+  const max = Math.max(0, view.scrollWidth - view.clientWidth);
+  const atStart = view.scrollLeft <= 2;
+  const atEnd = view.scrollLeft >= max - 2;
+  $("#d-prev").disabled = atStart;
+  $("#d-next").disabled = atEnd;
+  $("#d-prev").title = atStart ? "已是最早数据日" : "更早日期";
+  $("#d-next").title = atEnd ? "已是最晚日期" : "更晚日期";
 }
 
 // ---------- 筛选状态 ↔ URL（刷新不丢、可分享链接；replaceState 不污染历史） ----------
@@ -538,6 +620,7 @@ function apply() {
     })
     .sort(cmpBjTime);   // 全局按北京时间从小到大（跨日期交叉排）
   render();
+  syncAdvBtn();   // 折叠区（血统/竞马场/关键字/分组）里有没有生效条件，收起时也要看得出
   syncUrl();
 }
 
@@ -758,9 +841,8 @@ function cellHtml(r, c) {
     case "name": return horseLink(r.horseId, r.horseName);
     case "sexage": return esc(sexShort(r.sex) + (r.age ?? ""));
     case "silk": {
-      // 勝負服 73x55 小图（马主登记图，采集落盘）；懒加载，加载失败整图移除
-      if (!r.silk) return "";
-      return `<img class="silk-img" src="${esc(r.silk)}" alt="彩衣" loading="lazy" decoding="async" onerror="this.remove()">`;
+      // 勝負服 73x55 小图（马主登记图，采集落盘）；懒加载，失败/缺图都落到占位轮廓
+      return r.silk ? silkImgHtml(r.silk) : silkPhHtml("暂无彩衣图（未采集或马主未登记）");
     }
     case "weight": return esc(r.weight ?? "");
     case "finish": {
@@ -832,34 +914,49 @@ function mbSepHtml(r, heads) {
     `${meta ? `<div class="sep-sub">${meta}</div>` : ""}</div>`;
 }
 
-// 马卡片：top 行（馬番 · 枠色片 · 馬名 · 性齢）+ 分组行（label：value 项，空值/隐藏列不出现）
+// 马卡片（参考 netkeiba sp 出馬表的信息层级，2026-11-10 重排）：
+//   行1  枠色 · 馬番 · 馬名（主体）······ 着順 / 人気（右对齐，像 netkeiba 的 オッズ/人気 列）
+//   行2  性齢 · 斤量 · 騎手（浅色一行，netkeiba 把这几项压在马名下方）
+//   行3  父 · 母父（浅色一行，超长才省略 —— 整行宽度，不并排截断）
+// 练马师 / 母 在窄屏一律不画（MB_DROP），PC 表格仍按列显隐正常展示。
+const MB_DROP = new Set(["trainer", "dam"]);
 function mbCardHtml(r) {
   const rk = esc(rowKeyOf(r));
   const checked = state.selected.has(rowKeyOf(r));
-  const show = (k) => visCols().some((c) => c.k === k);   // 跟随列显隐（PC hide 的列 mb 卡不出现）
-  const item = (lb, v) => (v == null || v === "" ? "" : `<span class="yj-mb-item"><i>${esc(lb)}：</i><b>${v}</b></span>`);
+  // 跟随列显隐（PC hide 的列 mb 卡不出现）+ 窄屏额外剔除 MB_DROP
+  const show = (k) => !MB_DROP.has(k) && visCols().some((c) => c.k === k);
+  const finRaw = show("finish") && r.finish != null && r.finish !== "" ? String(r.finish) : "";
+  const fin = finRaw ? (r.resultLabel ?? finRaw) : "";
+  const finUnit = /^\d+$/.test(finRaw) ? "着" : "";   // 异常着顺（除/中止）不接「着」
+  const pop = show("resultPop") && r.resultPop != null ? String(r.resultPop) : "";
+  // 两个数字格固定宽度：跨卡片竖向对齐，扫读时 着/人気 成列
+  const stat = (v, u) => `<span class="yj-mb-c"><b>${esc(v)}</b>${u ? `<i>${u}</i>` : ""}</span>`;
   const top = [
-    show("silk") && r.silk ? `<img class="silk-img" src="${esc(r.silk)}" alt="彩衣" loading="lazy" decoding="async" onerror="this.remove()">` : "",
-    show("num") && r.num != null ? `<span class="yj-mb-no">${esc(r.num)}</span>` : "",   // 未確定（num 空）不画占位符
+    show("silk") ? (r.silk ? silkImgHtml(r.silk) : silkPhHtml("暂无彩衣图（未采集或马主未登记）")) : "",
     show("waku") ? frameBadge(r.frame) : "",
+    show("num") && r.num != null ? `<span class="yj-mb-no">${esc(r.num)}</span>` : "",   // 未確定（num 空）不画占位符
     `<span class="yj-mb-horse">${horseLink(r.horseId, r.horseName)}</span>`,
-    show("jockey") && r.jockey ? `<span class="yj-mb-jk">${esc(r.jockey)}</span>` : "",   // 騎手/斤量与馬名同排（用户定稿）
-    show("weight") && r.weight != null ? `<span class="yj-mb-w">${esc(r.weight)}</span>` : "",
-    show("sexage") ? `<span class="yj-mb-sexage">${esc(sexShort(r.sex) + (r.age ?? ""))}</span>` : "",
+    `<span class="yj-mb-nums">${stat(fin, finUnit)}${stat(pop, pop ? "人気" : "")}</span>`,
   ].join("");
-  const linePed = [
-    show("finish") && r.finish != null && r.finish !== "" ? item("着顺", esc(r.resultLabel ?? r.finish)) : "",
-    show("resultPop") && r.resultPop != null ? item("人气", esc(r.resultPop)) : "",
-    show("trainer") ? item("练马师", esc(r.trainer ?? "")) : "",
-    show("sire") ? item("父", esc(r.sire ?? "")) : "",
-    show("siresire") ? item("祖父", esc(r.sireSire ?? "")) : "",
-    show("dam") ? item("母", esc(r.dam ?? "")) : "",
-    show("bms") ? item("母父", esc(r.bms ?? "")) : "",
-  ].join("");
+  // 行2：性齢 · 斤量 · 騎手（空值自动跳过，不画多余分隔点）
+  const meta = [
+    show("sexage") ? esc(sexShort(r.sex) + (r.age ?? "")) : "",
+    show("weight") && r.weight != null ? `${esc(r.weight)}kg` : "",
+    show("jockey") && r.jockey ? esc(r.jockey) : "",
+  ].filter(Boolean);
+  // 行3：血统一行；整项（如「父 アメリカン…」）作为不可拆单元，放不下时**在项之间换行**，
+  // 而不是把名字截断/从中间折断 —— 既保住信息，也不会出现半截马名（用户 2026-11-10 的痛点）。
+  const ped = [
+    show("sire") && r.sire ? `<span class="ped-i"><em>父</em>${esc(r.sire)}</span>` : "",
+    show("siresire") && r.sireSire ? `<span class="ped-i"><em>祖父</em>${esc(r.sireSire)}</span>` : "",
+    show("bms") && r.bms ? `<span class="ped-i"><em>母父</em>${esc(r.bms)}</span>` : "",
+  ].filter(Boolean);
+  const pedText = [r.sire, r.sireSire, r.bms].filter(Boolean).join(" · ");
   return `<div class="yj-mb${checked ? " picked" : ""}" data-pk="${rk}">` +
     `<input type="checkbox" class="pick-box" data-k="${rk}"${checked ? " checked" : ""} aria-label="勾选 ${esc(r.horseName ?? "")}">` +
     `<div class="yj-mb-top">${top}</div>` +
-    (linePed ? `<div class="yj-mb-line">${linePed}</div>` : "") +
+    (meta.length ? `<div class="yj-mb-meta">${meta.join(`<i class="sepdot">·</i>`)}</div>` : "") +
+    (ped.length ? `<div class="yj-mb-ped" title="${esc(pedText)}">${ped.join("")}</div>` : "") +
     `</div>`;
 }
 
@@ -1071,7 +1168,7 @@ async function refresh() {
   renderVenues();
   renderLevels();
   renderDateTabs();
-  apply();
+  apply();   // 内含 syncAdvBtn()：折叠区里有没有生效条件一眼可见
 }
 
 function resetFilters() {
@@ -1183,28 +1280,19 @@ async function main() {
 
   // 事件
   $("#reset").onclick = resetFilters;
-  // 日期 ‹ ›：PC 平移 5 天窗口；mb 在窗口内逐日步进（winOff），到边缘自动翻窗——连续按的体感是逐日移动
+  // 日期 ‹ ›：日期条整屏横向翻动（chip 全部在 DOM 里，靠滑动查看，不再分 PC/mb 两套窗口）
   const dateStep = (dir) => {
-    const mb = isMb(), vis = mb ? 2 : 5, maxOff = 5 - vis;
-    if (mb) {
-      const off = winOff + dir;
-      if (off >= 0 && off <= maxOff) { winOff = off; }
-      else {
-        const { first } = dataRange();
-        let next = addDays(state.winStart, dir * 5);
-        if (first && next < first) next = first;
-        state.winStart = next;
-        winOff = dir < 0 ? maxOff : 0;
-      }
-    } else {
-      const { first } = dataRange();
-      const next = addDays(state.winStart, dir * 5);
-      state.winStart = first && next < first ? first : next;
-    }
-    renderDateTabs(false);   // 手动步进：不拉回选中日
+    const view = $("#d-view");
+    if (!view) return;
+    view.scrollBy({ left: dir * Math.max(140, Math.round(view.clientWidth * 0.86)), behavior: "smooth" });
   };
   $("#d-prev").onclick = () => dateStep(-1);
   $("#d-next").onclick = () => dateStep(1);
+  // 滑动时实时更新 ‹ › 可用状态（rAF 节流，滚动中不抖动）
+  $("#d-view").addEventListener("scroll", () => {
+    if (dateScrollRaf) return;
+    dateScrollRaf = requestAnimationFrame(() => { dateScrollRaf = 0; updateDateEdges(); });
+  }, { passive: true });
   $("#d-today").onclick = () => {
     // 回到今天：窗口与选中日一并重置（此前只平移窗口不动选中日，点了今天数据还停在原日期）
     defaultDates();
@@ -1416,7 +1504,7 @@ async function main() {
   const onBreakpoint = () => {
     if (!state.index) return;   // 首次 render() 惰性初始化，加载完成前不响应
     PG.size = pgSizeDef();
-    renderDateTabs();   // mb/PC 的日期 chip 数不同（3/5），断点切换重画
+    renderDateTabs();   // 断点切换后重算日期条可视区（选中日重新滚进视野）
     render();
   };
   if (MB_MQL) {
@@ -1450,8 +1538,8 @@ async function main() {
   });
   // mb：高级行折叠（竞马场/级别/血统/快捷；PC 按钮不显示，行恒展开）
   $("#f-adv").onclick = () => {
-    const open = $(".filter-card").classList.toggle("adv-open");
-    $("#f-adv").textContent = open ? "收起筛选 ▴" : "更多筛选 ▾";
+    $(".filter-card").classList.toggle("adv-open");
+    syncAdvBtn();
   };
   $("#pick-clear").onclick = () => { state.selected.clear(); apply(); updatePickBar(); };
   $("#pick-go").onclick = goShare;
