@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { readGz, writeGz } from "./lib/bundle.js";
+import { guardOverwrite } from "./lib/guard.js";
 import { getSource } from "./sources/registry.js";
 
 const argv = process.argv.slice(2);
@@ -72,17 +73,23 @@ for (const { date, file, doc } of units) {
   const base = path.join(DATA_DIR, date, file);          // .../rp-{trackId}.json
   const file2 = `${base}.gz`;                            // 压缩落盘
   const existing = readDoc(base);
-  // 防截断：--limit/--tracks 部分采集时，已存文档更完整（头数更多）则不覆盖
-  const runnersOf = (d) => (d?.races ?? []).reduce((n, r) => n + (r.runners?.length ?? 0), 0);
-  const partial = LIMIT > 0 || !!TRACKS;
-  const keepExisting = partial && existing && runnersOf(existing) > runnersOf(doc);
-  const same = !FORCE && existing && (fingerprint(existing) === fingerprint(doc) || keepExisting);
+  // 采集失败会产出空壳/腰斩文档，不允许覆盖已完整的旧文档（见 lib/guard.js）
+  const guard = guardOverwrite(existing, doc, { partial: LIMIT > 0 || !!TRACKS, force: FORCE });
+  const keepExisting = guard.keep;
+  const identical = !FORCE && existing && fingerprint(existing) === fingerprint(doc);
+  const same = identical || keepExisting;
 
   const key = doc.sourceKey;
   manifest.dates[date] = manifest.dates[date] || {};
   if (same) {
     skipped++;
-    console.log(`[same] ${date} ${file} ${doc.venue}: ${summarize(doc).runners} 頭`);
+    if (keepExisting) {
+      console.log(
+        `[keep] ${date} ${file} ${doc.venue}: 本次 ${guard.fresh} 頭 < 已存 ${guard.existed} 頭（${guard.reason}），保留已存文档`
+      );
+    } else {
+      console.log(`[same] ${date} ${file} ${doc.venue}: ${summarize(doc).runners} 頭`);
+    }
   } else {
     fs.mkdirSync(path.dirname(file2), { recursive: true });
     writeGz(base, JSON.stringify(doc));
@@ -91,6 +98,8 @@ for (const { date, file, doc } of units) {
     const s = summarize(doc);
     console.log(`[ok]   ${date} ${file} ${doc.venue}(${doc.country}): ${s.races} R / ${s.decoded} R 出表 / ${s.runners} 頭`);
   }
+  // manifest 记录必须反映「实际落盘的内容」：保留旧文档时按 existing 写，否则会记成空壳
+  const saved = same ? existing ?? doc : doc;
   manifest.dates[date][key] = {
     source: doc.source,
     venue: doc.venue,
@@ -98,9 +107,9 @@ for (const { date, file, doc } of units) {
     scope: doc.scope,
     timeZone: doc.timeZone,
     localTimeZone: doc.localTimeZone,
-    ...summarize(doc),
-    status: doc.races.some((r) => (r.runners?.length ?? 0) > 0) ? "ok" : "pending",
-    capturedAt: new Date().toISOString(),
+    ...summarize(saved),
+    status: saved.races.some((r) => (r.runners?.length ?? 0) > 0) ? "ok" : "pending",
+    capturedAt: keepExisting ? existing.capturedAt ?? new Date().toISOString() : new Date().toISOString(),
   };
 }
 

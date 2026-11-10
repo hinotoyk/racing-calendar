@@ -5,6 +5,7 @@ import path from "node:path";
 import { SITE } from "./config.js";
 import { fetchHtml, fetchHtmlSoft } from "./lib/fetch.js";
 import { readGz, writeGz } from "./lib/bundle.js";
+import { guardOverwrite, manifestEntry } from "./lib/guard.js";
 import { pedCache } from "./lib/ped-cache.js";
 import { parseCalendar, parseDayPage, parseEntryPage, parsePedigree } from "./lib/parse-race.js";
 import { enrichSilks, saveSilkCaches, silkStats } from "./lib/silks.js";
@@ -281,13 +282,18 @@ for (const date of DATES) {
           ])
         );
       const same = !FORCE && existing && fp(existing) === fp(doc);
-      // 防截断：--limit/--tracks 部分采集时，若已存文档更完整（头数更多）则不覆盖
-      const partial = LIMIT > 0 || !!TRACK_ARG;
-      const runnersOf = (d) => (d?.races ?? []).reduce((n, r) => n + (r.runners?.length ?? 0), 0);
-      const keepExisting = partial && existing && runnersOf(existing) > runnersOf(doc);
+      // 采集失败会产出空壳/腰斩文档，不允许覆盖已完整的旧文档（见 lib/guard.js）
+      const guard = guardOverwrite(existing, doc, { partial: LIMIT > 0 || !!TRACK_ARG, force: FORCE });
+      const keepExisting = guard.keep;
 
       if (same || keepExisting) {
-        console.log(`[same] ${date} ${e.track} ${doc.venue}: ${summarize(doc).runners} 頭`);
+        if (keepExisting) {
+          console.log(
+            `[keep] ${date} ${e.track} ${existing.venue ?? doc.venue}: 本次 ${guard.fresh} 頭 < 已存 ${guard.existed} 頭（${guard.reason}），保留已存文档`
+          );
+        } else {
+          console.log(`[same] ${date} ${e.track} ${doc.venue}: ${summarize(doc).runners} 頭`);
+        }
       } else {
         ensureDir(path.dirname(file));
         writeGz(file, JSON.stringify(doc));
@@ -296,18 +302,31 @@ for (const date of DATES) {
         console.log(`[ok]   ${date} ${e.track} ${doc.venue}: ${s.races} R / ${s.decoded} R 已出表 / ${s.runners} 頭`);
       }
 
+      // manifest 记录必须反映「实际落盘的内容」：保留旧文档时按 existing 写，否则会记成空壳
+      const saved = same || keepExisting ? existing ?? doc : doc;
       manifest.dates[date] = manifest.dates[date] || {};
-      manifest.dates[date][e.track] = {
+      manifest.dates[date][e.track] = manifestEntry({
         venue: venueName(e.track),
         scope: scopeOf(e.track),
-        ...summarize(doc),
-        status: doc.races.some((r) => r.runners.length) ? "ok" : "pending",
-        capturedAt: at(jstToday()),
-      };
+        stats: summarize(saved),
+        capturedAt: keepExisting ? existing.capturedAt ?? at(jstToday()) : at(jstToday()),
+      });
     } catch (err) {
       console.log(`[err]  ${date} ${e.track}: ${err.message}`);
+      // schema 必须完整：沿用上一次已知的统计（优先读已存文档，其次沿用 manifest 旧记录），
+      // status 反映「文档实际状态」（有 runners 即 ok），本次失败单独记在 lastError。
+      const prev = manifest.dates[date]?.[e.track];
+      const known = existing
+        ? summarize(existing)
+        : { races: prev?.races ?? 0, decoded: prev?.decoded ?? 0, runners: prev?.runners ?? 0 };
       manifest.dates[date] = manifest.dates[date] || {};
-      manifest.dates[date][e.track] = { venue: venueName(e.track), status: "error" };
+      manifest.dates[date][e.track] = manifestEntry({
+        venue: venueName(e.track),
+        scope: scopeOf(e.track),
+        stats: known,
+        capturedAt: prev?.capturedAt ?? existing?.capturedAt ?? at(jstToday()),
+        error: `${at(jstToday())} ${String(err.message).slice(0, 160)}`,
+      });
     }
   }
 }
