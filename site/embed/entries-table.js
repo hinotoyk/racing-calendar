@@ -12,7 +12,9 @@
  *     只统计未来（含今天）的出走——出走表是前瞻视图，最近一周折叠区只是兜底，
  *     不该把头部数字撑大；chips 过滤同时作用于主视图与折叠区。
  *   · 卡片态（2026-11-11）：条头时间补「北京时间」小标（裸 13:55 会被读成当地时间）；
- *     比赛名行的赛道距离不再 margin-left:auto 推到最右（短名时中间一大段空白）。
+ *     比赛名行的赛道距离不再 margin-left:auto 推到最右（短名时中间一大段空白）；
+ *     斤量从第一行性齢后挪到第二行騎手后（孤零零一个数字读不出含义）；
+ *     性齢的 セ/セン 显示为汉字「骟」（骟3），卡片与宽表同口径。
  *   宽容器再按宽度分三档（27 寸屏「太空洞」的反馈）：
  *   · 头部带「全部 / JRA·中央 / NAR·地方 / 海外」分类 chips（2026-11-07）：纯前端过滤，
  *     计数实时显示，**四个恒定展示**（0 条的也留着，点进去给空态）；状态存在挂载点上
@@ -40,7 +42,7 @@
  *   · 色带只在**确有枠番**时着色：无枠番（海外/未確定）退化为普通居中的馬番文本（不刷灰底，
  *     灰底会让整列像一堆坏掉的占位块——v2.4.0 的实测问题）；連馬番都没有时显示极淡的「–」。
  *   · 窄容器（<720px，MB）= 逐场卡片：一场一块（场次/北京时刻做条头，比赛名+赛道
- *     一行，产驹两行：马号 + 彩衣 + 馬名 + 性齢 + 斤量 / 騎手 + 母父），单列竖排。
+ *     一行，产驹两行：马号 + 彩衣 + 馬名 + 性齢 / 騎手 + 斤量 + 母父），单列竖排。
  *   ★ 为什么不用「收列」而用「换形态」：十列压进 390px 只能靠横滑或砍列，两者都难读；
  *     卡片把「哪场 + 谁跑」摊成竖排，拇指滚动即可。
  *   ★ 断点看**组件自身宽度**（ResizeObserver），不看视口——宿主有侧栏/90% 宽/卡片内距，
@@ -84,7 +86,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "2.7.1";
+  var VERSION = "2.8.0";
   var WIDE_MIN = 720;   /* 容器宽 ≥ 此值走十列密表，否则走逐场卡片 */
 
   /* ---------- 工具 ---------- */
@@ -272,7 +274,10 @@
   /* 芝ダ列：芝=青绿墨、ダ=褐、障=绿（与 share.js::SURF_C 同色） */
   var SURF_FG = { 芝: "#0b6b64", ダ: "#9a5b1f", 障: "#1e7d46", AW: "#0b6b64" };
   /* 性別配色（与 share.js::SEX_C 同色） */
-  var SEX_FG = { 牡: "#2b62b0", 牝: "#c2318e", セ: "#0aa7a0" };
+  var SEX_FG = { 牡: "#2b62b0", 牝: "#c2318e", 骟: "#0aa7a0" };
+  /* 性齢显示归一（2026-11-11）：数据源是 JBIS 原文「セ / セン」，中文宿主直接摆出来
+     是半个生字——统一换成汉字「骟」（骟3），牡/牝不动 */
+  function sexCN(s) { s = String(s || ""); return s === "セ" || s === "セン" ? "骟" : s; }
 
   /* ---------- 样式（一次性注入；颜色走宿主 CSS 变量，缺省回退同站 token） ----------
    * 冷灰网格 token 与 share.js::drawDense 的 C_LINE/C_VLINE/C_ZEBRA/C_HEAD_LINE/C_RACE_LINE/
@@ -472,7 +477,8 @@
       /* 赛道紧跟比赛名（2026-11-11：去掉 margin-left:auto——短比赛名「C2一」时
          auto 会把它推到最右，中间一大段空白；名字长了 rn 自己省略，dist 恒可见） */
       ".rc-emb-rcname .ds{flex:none;font-size:11px;font-weight:600;white-space:nowrap}",
-      /* 产驹行：第一行 马号 + 彩衣 + 馬名 + 性齢 + 斤量；第二行 騎手 + 母父 */
+      /* 产驹行：第一行 马号 + 彩衣 + 馬名 + 性齢；第二行 騎手 + 斤量 + 母父
+         （斤量 2026-11-11 挪到騎手后：原来缀在性齢后孤零零一个数，读不出是啥） */
       ".rc-emb-runs{padding:0 10px 7px}",
       ".rc-emb-run{padding:5px 0;border-top:1px solid var(--re-line)}",
       ".rc-emb-runs .rc-emb-run:first-child{border-top:0}",
@@ -486,11 +492,11 @@
       ".rc-emb-run .l1 .rt{display:flex;align-items:baseline;gap:4px;flex:none}",
       ".rc-emb-run .l1 .sa{font-size:11.5px;font-weight:600}",
       ".rc-emb-run .l1 .ag{font-size:11.5px;color:var(--re-muted)}",
-      ".rc-emb-run .l1 .wt{flex:none;font-size:11.5px;color:var(--re-body)}",
       ".rc-emb-run .l2{display:flex;align-items:baseline;gap:8px;margin-top:1px;padding-left:61px;",
       "font-size:11px;color:var(--re-muted);min-width:0}",
-      ".rc-emb-run .l2 .jk{flex:1 1 auto;min-width:0;color:var(--re-body);overflow:hidden;",
+      ".rc-emb-run .l2 .jk{flex:0 1 auto;min-width:0;color:var(--re-body);overflow:hidden;",
       "text-overflow:ellipsis;white-space:nowrap}",
+      ".rc-emb-run .l2 .wt{flex:none;font-size:11px;font-weight:600;color:var(--re-muted);margin-left:-3px}",
       ".rc-emb-run .l2 .bms{margin-left:auto;flex:0 1 auto;min-width:0;max-width:50%;overflow:hidden;",
       "text-overflow:ellipsis;white-space:nowrap}",
       /* 折叠（最近一周） */
@@ -749,7 +755,7 @@
               '<td class="c rs"' + span + '><span class="rc-emb-dist" style="color:' +
                 esc(SURF_FG[surf] || "inherit") + '">' + esc(dist || "–") + "</span></td>";
           }
-          var sex = r.sex || "";
+          var sex = sexCN(r.sex);
           var bms = String(r.bms || ""), tr = String(r.trainer || "");
           /* 马号 = 满格色带：底色刷在 td 上（列宽窄、零内距），有枠番才刷；无枠番退普通文本 */
           var fbg = frameBg(r.frame);
@@ -814,18 +820,18 @@
           "</div>" +
           '<div class="rc-emb-runs">' +
             race.rows.map(function (r) {
-              var sex = r.sex || "";
-              var bms = String(r.bms || "");
+          var sex = sexCN(r.sex);
+          var bms = String(r.bms || "");
               return '<div class="rc-emb-run">' +
                 '<div class="l1">' + wakuChip(r.frame, r.num) + silkImg(base, r.silk) +
                   horseNameHTML(r, { nameCls: "hn", linkCls: "rc-emb-hjcard" }) +
                   '<span class="rt">' +
                     '<span class="sa" style="color:' + esc(SEX_FG[sex] || "inherit") + '">' + esc(sex) + "</span>" +
                     '<span class="ag">' + esc(r.age != null ? r.age : "") + "</span>" +
-                    '<span class="wt">' + (r.weight != null ? esc(r.weight) : "–") + "</span>" +
                   "</span>" +
                 "</div>" +
                 '<div class="l2"><span class="jk">' + esc(r.jockey || "") + "</span>" +
+                  '<span class="wt">' + (r.weight != null ? esc(r.weight) : "–") + "</span>" +
                   (bms ? '<span class="bms" title="母父 ' + esc(bms) + '">母父 ' + esc(bms) + "</span>" : "") +
                 "</div>" +
               "</div>";
