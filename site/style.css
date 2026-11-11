@@ -528,6 +528,9 @@ body.share-open #pick-bar { display: none; }
 
 /* 分享视图：隐藏主列表，展示卡画布 + 编辑器 */
 body.share-open .filter-card, body.share-open .summary, body.share-open .table-wrap, body.share-open #pager-mount, body.share-open footer, body.share-open .powered { display: none; }
+/* 分享视图下站群导航换位：页面级挂载点隐藏，#share-view 底部的收尾挂载点顶上
+   （index.html 两处 data-friend-links 共存，friend-links.js 逐个渲染） */
+body.share-open #page > [data-friend-links] { display: none; }
 #share-view { margin-top: 4px; }
 .share-bar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;

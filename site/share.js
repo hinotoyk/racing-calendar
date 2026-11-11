@@ -201,13 +201,14 @@ function drawQR(x, y, size) {
   } catch { /* QR 失败不阻断出图 */ }
 }
 
-function draw(scale, races, extras) {
-  if (layout === 'dense') drawDense(scale, races, extras);
-  else drawCards(scale, races, extras);
+function draw(scale, races) {
+  const cc = colCfg[layout];   // 当前版式的列序 + 显隐（紧凑一览 / 逐场分卡各自独立）
+  if (layout === 'dense') drawDense(scale, races, cc);
+  else drawCards(scale, races, cc);
 }
 
 /* ================= 版式 A · 分卡（每场一块；块头 2026-11-07 改单行头） ================= */
-function drawCards(scale, races, extras) {
+function drawCards(scale, races, cc) {
   const MAST_H = CUR.MAST_H;
   /* 块头高度：两行左对齐块（行1 名字 / 行2 meta），仍比原两行头（74）省 16px/场 */
   const HEAD_H = 58;
@@ -235,27 +236,38 @@ function drawCards(scale, races, extras) {
   };
   const layoutCols = (race) => {
     const hasWaku = race.runners.some((h) => Number(h.frame) >= 1 && Number(h.frame) <= 8);
-    const cols = [];
-    if (hasWaku) {
-      // 枠番合一（2026-11-07 与紧凑一览统一）：单色块，色 = 枠番、字 = 馬番，一块只留一个数字。
-      // 原来是「24px 枠色方块（块内写枠番）+ 右侧馬番」两个数并排，一块里两组数字、两种读法。
-      cols.push({ k:'wknum', label:'马号', w:46, align:'c' });
-    } else {
-      cols.push({ k:'num', label:'马号', w:46, align:'c' });
-    }
     // 彩衣列：该场有已加载的彩衣图才出现（73x55 源图缩至 21x16 居中）
-    if (race.runners.some((h) => h.silk && silkImgs.get(h.silk))) {
-      cols.push({ k:'silk', label:'彩衣', w:32, align:'c' });
-    }
-    cols.push(
-      { k:'horse',  label:'马名', demand:demandW(race, 'horseName', 600, fs.horse, 120, 340), min:120, align:'l' },
-      { k:'sexage', label:'性龄', w:58, align:'c', size:fs.body, c:TT.sub },
-      { k:'jockey', label:'骑手', demand:demandW(race, 'jockey', 400, fs.body, 72, 180), min:72, align:'l', size:fs.body, c:TT.sub },
-    );
-    for (const k of extras) {
-      const e = EXTRA_COLS.find((c) => c.k === k);
-      cols.push({ k, label:e.label, w: k === 'weight' ? 50 : demandW(race, k, 400, fs.extra, 60, 158), min:60,
-                  align: k === 'weight' ? 'c' : 'l', size:fs.extra, c:TT.mut2 });
+    const hasSilk = race.runners.some((h) => h.silk && silkImgs.get(h.silk));
+    const cols = [];
+    // 按 col-config 定稿顺序逐列构建（马号/彩衣为条件列：枠番合一 / 该场有图才上卡）
+    for (const key of cc.order) {
+      if (cc.hidden.includes(key)) continue;
+      if (key === 'num' || key === 'wknum') {
+        // 枠番合一（2026-11-07 与紧凑一览统一）：有枠番 → 单色块（色=枠番、字=馬番）；
+        // 无枠番（海外等）→ 素数字。两种 key 视为同一「马号」列，按场内数据自动二选一。
+        if (cols.some((c) => c.k === 'wknum' || c.k === 'num')) continue;
+        cols.push(hasWaku ? { k:'wknum', label:'马号', w:46, align:'c' } : { k:'num', label:'马号', w:46, align:'c' });
+        continue;
+      }
+      if (key === 'silk') {
+        if (hasSilk) cols.push({ k:'silk', label:'彩衣', w:32, align:'c' });
+        continue;
+      }
+      if (key === 'horse') {
+        cols.push({ k:'horse', label:'马名', demand:demandW(race, 'horseName', 600, fs.horse, 120, 340), min:120, align:'l' });
+        continue;
+      }
+      if (key === 'sexage') {
+        cols.push({ k:'sexage', label:'性龄', w:58, align:'c', size:fs.body, c:TT.sub });
+        continue;
+      }
+      if (key === 'jockey') {
+        cols.push({ k:'jockey', label:'骑手', demand:demandW(race, 'jockey', 400, fs.body, 72, 180), min:72, align:'l', size:fs.body, c:TT.sub });
+        continue;
+      }
+      const e = EXTRA_COLS.find((c) => c.k === key);
+      if (e) cols.push({ k:key, label:e.label, w: key === 'weight' ? 50 : demandW(race, key, 400, fs.extra, 60, 158), min:60,
+                        align: key === 'weight' ? 'c' : 'l', size:fs.extra, c:TT.mut2 });
     }
     for (const c of cols) c.w = c.demand ?? c.w;
     const content = W - PAD * 2;
@@ -461,7 +473,7 @@ function bjTime(race) {
   return d ? `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}` : '–';
 }
 
-function drawDense(scale, races, extras) {
+function drawDense(scale, races, cc) {
   const fsD = { head: 10.5, body: 11.5, horse: 12.5, num: 12 };
   const fsR = { time: 12.5, no: 12.5, rname: 13, dist: 12.5 };   // 比赛级合并列放大后的字号
   const ROW_H = 24, COLH = 24, MAST_H = CUR.MAST_H;
@@ -478,7 +490,7 @@ function drawDense(scale, races, extras) {
   const heads = races.reduce((n, r) => n + r.runners.length, 0);
   const H = M + MAST_H + 8 + COLH + rows * ROW_H + FOOT_H + M + 8;
 
-  // ---- 列布局：北京时间（带日期）+ 场次/比赛名/赛道 合并列 + 逐马列
+  // ---- 列布局：比赛级合并列（时间/场次/比赛名/赛道）+ 逐马列，按 col-config 定稿顺序混排
   //      （2026-11-01 反馈：时间/场次/赛道按内容实测定宽，关键列不再被压缩成「京都1…」；
   //       收缩按优先级分档：追加列 → 騎手 → 比赛名 → 馬名/关键合并列）----
   const timeCol = clockOpt.bj ? 'bj' : 'local';
@@ -490,30 +502,10 @@ function drawDense(scale, races, extras) {
     ctx.font = font(400, 10);
     for (const r of races) timeNeed = Math.max(timeNeed, r.startTime ? tw(`当地时间 ${r.startTime}`) : 0);
   }
-  const cols = [{ k: timeCol, label: clockOpt.bj ? '北京时间' : '当地时间', w: Math.max(78, timeNeed + 16), align: 'c', merge: 'race', prio: 3 }];
   // 场次列：按最长「競馬場+R」实测（此前固定 48 会把「京都11R」截成「京都1…」）
   ctx.font = font(600, fsR.no);
   let noNeed = 0;
   for (const r of races) noNeed = Math.max(noNeed, tw(`${r.venue ?? ''}${r.raceNo ? r.raceNo + 'R' : ''}` || '–'));
-  cols.push({ k:'no', label:'场次', w: Math.min(120, Math.max(48, noNeed + 14)), align:'c', merge:'race', prio: 3 });
-  cols.push(
-    { k:'rname', label:'比赛', min:96, align:'l', merge:'race', prio: 2 },
-    { k:'dist', label:'赛道', w:54, align:'c', merge:'race', prio: 2 },
-    { k:'wknum', label:'马号', w:46, align:'c' },
-  );
-  // 彩衣列：与分卡版式同规则——该场有已加载的图才出现（24px 行高内缩至 18×14）
-  const hasSilkD = races.some((r) => (r.runners ?? []).some((h) => h.silk && silkImgs.get(h.silk)));
-  if (hasSilkD) cols.push({ k:'silk', label:'彩衣', w:26, align:'c', prio: 3 });
-  cols.push(
-    { k:'horse', label:'马名', min:108, align:'l', prio: 3 },
-    { k:'sexage', label:'性龄', w:42, align:'c' },
-    { k:'jockey', label:'骑手', min:64, align:'l', prio: 1 },
-  );
-  for (const k of extras) {
-    const e = EXTRA_COLS.find((c) => c.k === k);
-    cols.push({ k, label:e.label, w: k === 'weight' ? 46 : 78, min: k === 'weight' ? 46 : 72,
-                align: k === 'weight' ? 'c' : 'l', c:TT.mut2, prio: 0 });   // 追加列最先收缩
-  }
   // 赛道列：按最长「芝/ダ+距离」实测定宽（三列关键合并列 min = w：收缩时保住需求宽）
   ctx.font = font(600, fsR.dist);
   let distNeed = 0;
@@ -521,12 +513,35 @@ function drawDense(scale, races, extras) {
     const t = r.distance ? `${r.surface ?? ''}${r.distance}` : (r.surface || '');
     distNeed = Math.max(distNeed, tw(t));
   }
+  // 彩衣列：与分卡版式同规则——该场有已加载的图才出现（24px 行高内缩至 18×14）
+  const hasSilkD = races.some((r) => (r.runners ?? []).some((h) => h.silk && silkImgs.get(h.silk)));
+
+  // 按 col-config 定稿顺序逐列构建（比赛级列 merge:'race' 整场合并；隐藏列不上卡）
+  const cols = [];
+  for (const key of cc.order) {
+    if (cc.hidden.includes(key)) continue;
+    if (key === 'time') {
+      cols.push({ k: timeCol, label: clockOpt.bj ? '北京时间' : '当地时间', w: Math.max(78, timeNeed + 16), align: 'c', merge: 'race', prio: 3 });
+      continue;
+    }
+    if (key === 'no')   { cols.push({ k:'no', label:'场次', w: Math.min(120, Math.max(48, noNeed + 14)), align:'c', merge:'race', prio: 3 }); continue; }
+    if (key === 'rname'){ cols.push({ k:'rname', label:'比赛', min:96, align:'l', merge:'race', prio: 2 }); continue; }
+    if (key === 'dist') { cols.push({ k:'dist', label:'赛道', w:54, align:'c', merge:'race', prio: 2 }); continue; }
+    if (key === 'wknum'){ cols.push({ k:'wknum', label:'马号', w:46, align:'c' }); continue; }
+    if (key === 'silk') { if (hasSilkD) cols.push({ k:'silk', label:'彩衣', w:26, align:'c', prio: 3 }); continue; }
+    if (key === 'horse'){ cols.push({ k:'horse', label:'马名', min:108, align:'l', prio: 3 }); continue; }
+    if (key === 'sexage'){ cols.push({ k:'sexage', label:'性龄', w:42, align:'c' }); continue; }
+    if (key === 'jockey'){ cols.push({ k:'jockey', label:'骑手', min:64, align:'l', prio: 1 }); continue; }
+    const e = EXTRA_COLS.find((c) => c.k === key);
+    if (e) cols.push({ k:key, label:e.label, w: key === 'weight' ? 46 : 78, min: key === 'weight' ? 46 : 72,
+                       align: key === 'weight' ? 'c' : 'l', c:TT.mut2, prio: 0 });   // 追加列最先收缩
+  }
   {
     const dist = cols.find((c) => c.k === 'dist');
-    dist.w = Math.max(54, distNeed + 14);
-    dist.min = dist.w;
+    if (dist) { dist.w = Math.max(54, distNeed + 14); dist.min = dist.w; }
     for (const c of cols) if (c.k === 'no' || c.k === timeCol) c.min = c.w;
   }
+  const exVis = cc.order.filter((k) => EXTRA_COLS.some((e) => e.k === k) && !cc.hidden.includes(k));
   for (const c of cols) {
     if (c.k === 'rname') {   // 比赛名需求宽含级别徽章位（字号与绘制一致）
       ctx.font = font(600, fsR.rname);
@@ -536,7 +551,7 @@ function drawDense(scale, races, extras) {
       c.demand = Math.max(c.min, w + 20);   // 不设上限：海外长比赛名完整显示，画布随之动态开幅
       continue;
     }
-    if (!['horse', 'jockey'].includes(c.k) && !(extras.includes(c.k) && c.k !== 'weight')) continue;
+    if (!['horse', 'jockey'].includes(c.k) && !(exVis.includes(c.k) && c.k !== 'weight')) continue;
     ctx.font = font(c.k === 'horse' ? 600 : 400, c.k === 'horse' ? fsD.horse : fsD.body);
     let w = 0;
     for (const s of spans) for (const h of s.race.runners)
@@ -757,7 +772,7 @@ function drawDense(scale, races, extras) {
 }
 
 /* ================= 分享视图状态 ================= */
-const LS_COLS = 'rc.share.cols.v3', LS_SCALE = 'rc.share.scale';
+const LS_SCALE = 'rc.share.scale';
 const LS_LAYOUT = 'rc.share.layout.v1';
 const LAYOUT_CHIPS = [
   { k: 'dense', label: '紧凑一览' },
@@ -767,8 +782,38 @@ const ls = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); retu
 let layout = ls(LS_LAYOUT, 'dense');   // 默认紧凑表（信息密度优先；参考平面出賽表排版）
 
 let races = [];
-const norm = (ks) => EXTRA_COLS.filter((c) => ks.includes(c.k)).map((c) => c.k);
-let extras = norm(ls(LS_COLS, ['weight', 'sire', 'bms']));
+/* ---- 列顺序 + 默认显隐（两个版式独立；默认值 = design/col-config.html 定稿 JSON 2026-11-11 v2） ----
+ * dense：time/no/rname/dist = 比赛级合并列，可与逐马列任意穿插；wknum/silk/horse… 为逐马列。
+ * cards：num = 马号（有枠番时自动按枠番合一色块 wknum 渲染）。
+ * 芯片开关（追加列）只改 hidden（当前版式），顺序保持定稿不变。
+ * 存储键带版本号：调定稿顺序时换版本，避免旧持久化值盖住新默认。 */
+const LS_COLCFG = 'rc.share.cardcols.v2';
+const DEF_COLCFG = {
+  dense: {
+    order: ['time', 'no', 'rname', 'dist', 'wknum', 'silk', 'horse', 'sexage', 'weight', 'jockey',
+            'trainer', 'sire', 'dam', 'sireSire', 'bms', 'owner', 'breeder'],
+    hidden: ['sireSire', 'dam', 'owner', 'breeder', 'trainer'],
+  },
+  cards: {
+    order: ['num', 'silk', 'horse', 'sexage', 'weight', 'jockey',
+            'trainer', 'sire', 'dam', 'sireSire', 'bms', 'owner', 'breeder'],
+    hidden: ['sireSire', 'dam', 'breeder', 'owner'],
+  },
+};
+// 合法化：order 去重 + 只认合法 key + 缺失列补回默认位置（防旧版本/手改残留脏数据）
+const validCfg = (v) => {
+  const out = {};
+  for (const lay of ['dense', 'cards']) {
+    const all = DEF_COLCFG[lay].order;
+    const got = [...new Set((v?.[lay]?.order ?? []).filter((k) => all.includes(k)))];
+    out[lay] = {
+      order: got.concat(all.filter((k) => !got.includes(k))),
+      hidden: (v?.[lay]?.hidden ?? []).filter((k) => all.includes(k)),
+    };
+  }
+  return out;
+};
+let colCfg = validCfg(ls(LS_COLCFG, DEF_COLCFG));
 const LS_CLOCK = 'rc.share.clock.v1';
 let clockOpt = ls(LS_CLOCK, { bj: true, local: false });   // 块头时间：默认北京时间，可选加当地时间
 if (!clockOpt.bj && !clockOpt.local) clockOpt = { bj: true, local: false };
@@ -801,7 +846,7 @@ function renderClockChips() {
 function drawCanvas() {
   CUR = THEMES.classic;
   TT = CUR.T;
-  draw(+($s('#share-scale').value || 2), races, extras);
+  draw(+($s('#share-scale').value || 2), races);
 }
 
 /* ---- 彩衣图预加载（canvas drawImage 需先有 Image；同 src 缓存，失败记 null 不重试） ---- */
@@ -825,10 +870,14 @@ async function renderAll() {
   $s('#share-count').textContent = `${races.length} 场 · ${heads}頭`;
 }
 
+/* 追加列芯片：按当前版式的列序排布芯片，开关 = 改当前版式的 hidden（每版式独立） */
 function renderColChips() {
-  $s('#share-cols').innerHTML = EXTRA_COLS.map((c) =>
-    `<button type="button" class="filter-chip${extras.includes(c.k) ? ' on' : ''}" data-k="${c.k}">${c.label}</button>`
-  ).join('');
+  const cc = colCfg[layout];
+  const extrasInOrder = cc.order.filter((k) => EXTRA_COLS.some((e) => e.k === k));
+  $s('#share-cols').innerHTML = extrasInOrder.map((k) => {
+    const e = EXTRA_COLS.find((c) => c.k === k);
+    return `<button type="button" class="filter-chip${cc.hidden.includes(k) ? '' : ' on'}" data-k="${k}">${e.label}</button>`;
+  }).join('');
 }
 
 async function blob() { return new Promise((res) => canvas.toBlob(res, 'image/png')); }
@@ -849,7 +898,7 @@ function wire() {
     const b = e.target.closest('button[data-layout]'); if (!b || b.dataset.layout === layout) return;
     layout = b.dataset.layout;
     try { localStorage.setItem(LS_LAYOUT, JSON.stringify(layout)); } catch {}
-    renderLayoutChips(); renderAll();
+    renderLayoutChips(); renderColChips(); renderAll();
   });
   $s('#share-clock').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-clock]'); if (!b) return;
@@ -861,10 +910,11 @@ function wire() {
   });
   $s('#share-cols').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
-    const set = new Set(extras);
+    const cc = colCfg[layout];   // 开关只作用于当前版式（两版式显隐互不影响）
+    const set = new Set(cc.hidden);
     set.has(b.dataset.k) ? set.delete(b.dataset.k) : set.add(b.dataset.k);
-    extras = norm([...set]);
-    try { localStorage.setItem(LS_COLS, JSON.stringify(extras)); } catch {}
+    cc.hidden = [...set];
+    try { localStorage.setItem(LS_COLCFG, JSON.stringify(colCfg)); } catch {}
     renderColChips(); renderAll();
   });
   const scaleSel = $s('#share-scale');

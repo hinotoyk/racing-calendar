@@ -212,6 +212,11 @@
         </div>
       </form>
     </div>
+
+    <!-- 「站群导航」分享视图收尾挂载点：出馬表分享卡视图打开时（body.share-open），
+         页面原挂载点被 CSS 隐藏，导航改到此处 = 批量编辑表格下方收尾；
+         friend-links.js 扫描全部 [data-friend-links] 挂载点逐个渲染，两处共存无冲突。 -->
+    <div data-friend-links data-site="rc" data-skin="jbis"></div>
   </section>
 </div>
 <script src="vendor/qrcode.js"></script>

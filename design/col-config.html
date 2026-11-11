@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>出馬表分享卡 · 列顺序与显隐配置</title>
+<style>
+  /* 自包含设计工具页：不依赖站点样式 / 字体 / 构建管线，双击（file://）即可打开。
+     两个版式各自独立配置：紧凑一览（17 列，含 4 个比赛级合并列）/ 逐场分卡（13 列）。
+     产出 JSON（每版式 order + hidden）交给开发落地到 site/share.js 的渲染顺序与默认显隐。 */
+  :root {
+    --teal: #0aa7a0; --teal-ink: #0b6b64; --teal-soft: #e6f6f5;
+    --ink: #131418; --sub: #40424a; --mut2: #787b84; --mut: #a1a1aa;
+    --bd: #e4e4e7; --bd-soft: #edeff2; --paper: #fff; --backdrop: #eef0f2;
+    --g1: #d5302a; --nar: #c2318e;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--backdrop); color: var(--ink);
+    font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+
+  .bar {
+    position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+    padding: 12px 20px; background: var(--paper); border-bottom: 1px solid var(--bd);
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 13.5px; }
+  .brand .tick { width: 4px; height: 16px; border-radius: 2px; background: var(--teal); }
+  .brand small { font-weight: 400; color: var(--mut2); font-size: 12px; }
+  .tools { margin-left: auto; display: flex; gap: 8px; }
+  .btn {
+    height: 30px; padding: 0 14px; border: 1px solid var(--teal); border-radius: 7px; background: var(--teal); color: #fff;
+    font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer;
+  }
+  .btn:hover { background: #09928c; }
+  .btn.ghost { background: #fff; color: var(--teal-ink); }
+  .btn.ghost:hover { background: #f2fbfa; }
+  .btn:focus-visible { outline: 2px solid rgba(10,167,160,.55); outline-offset: 1px; }
+
+  .wrap { display: flex; align-items: flex-start; gap: 18px; max-width: 1400px; margin: 0 auto; padding: 20px 20px 80px; }
+  @media (max-width: 980px) { .wrap { flex-direction: column; } }
+
+  /* ---------- 左：列配置面板 ---------- */
+  .panel {
+    flex: none; width: 420px; background: var(--paper); border: 1px solid var(--bd); border-radius: 12px;
+    padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  @media (max-width: 980px) { .panel { width: 100%; } }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; height: 32px; border: 1px solid var(--bd); border-radius: 8px; background: #fafbfc;
+    font-size: 13px; font-weight: 600; font-family: inherit; color: var(--sub); cursor: pointer;
+  }
+  .tab:hover { border-color: rgba(10,167,160,.55); color: var(--teal-ink); }
+  .tab.on { border-color: var(--teal); background: var(--teal-soft); color: var(--teal-ink); box-shadow: inset 0 0 0 1px var(--teal); }
+  .panel h2 { margin: 0 0 4px; font-size: 14px; }
+  .panel .hint { margin: 0 0 12px; font-size: 12px; color: var(--mut2); }
+  .col-list { display: flex; flex-direction: column; gap: 6px; }
+  .col-item {
+    display: flex; align-items: center; gap: 8px; padding: 7px 9px;
+    border: 1px solid var(--bd-soft); border-radius: 8px; background: #fafbfc;
+    cursor: grab; user-select: none; transition: border-color .12s, background .12s, opacity .12s;
+  }
+  .col-item.dragging { opacity: .45; cursor: grabbing; }
+  .col-item.drag-over { border-color: var(--teal); background: var(--teal-soft); }
+  .col-item.off { opacity: .55; background: #f4f4f5; }
+  .grip { flex: none; color: #c4c8cd; font-size: 13px; letter-spacing: 1px; }
+  .idx {
+    flex: none; width: 20px; height: 20px; border-radius: 6px; background: var(--teal-soft); color: var(--teal-ink);
+    font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .col-item.race-level .idx { background: #eef1fd; color: #3b5bd0; }
+  .col-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
+  .col-name .k { margin-left: 6px; font-weight: 400; font-size: 11px; color: var(--mut); font-family: Consolas, monospace; }
+  .tag {
+    flex: none; font-size: 10.5px; padding: 1px 6px; border-radius: 5px;
+    background: #fff7ed; color: #9a5b1f; border: 1px solid #fde4c8;
+  }
+  .tag.race { background: #eef1fd; color: #3b5bd0; border-color: #d6defa; }
+  .col-item.off .tag { display: none; }
+  .eye {
+    flex: none; width: 26px; height: 26px; border: 1px solid var(--bd); border-radius: 7px; background: #fff;
+    font-size: 13px; line-height: 1; cursor: pointer; color: var(--teal-ink);
+  }
+  .eye:hover { border-color: var(--teal); background: var(--teal-soft); }
+  .col-item.off .eye { color: var(--mut); }
+  .mv { flex: none; display: flex; gap: 3px; }
+  .mv button {
+    width: 22px; height: 26px; border: 1px solid var(--bd); border-radius: 6px; background: #fff;
+    font-size: 11px; color: var(--sub); cursor: pointer;
+  }
+  .mv button:hover { border-color: var(--teal); color: var(--teal-ink); }
+  .mv button:disabled { opacity: .35; cursor: default; }
+
+  /* ---------- 右：预览 ---------- */
+  .preview { flex: 1; min-width: 0; }
+  .preview-h { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--sub); display: flex; align-items: center; gap: 8px; }
+  .preview-h::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--teal); }
+  .preview-h small { font-weight: 400; color: var(--mut2); font-size: 11.5px; }
+  /* 分享卡同款视觉：白纸卡 + 青绿顶条 + table 网格 */
+  .card {
+    background: var(--paper); border-radius: 14px; box-shadow: 0 10px 26px rgba(10,10,10,.10);
+    padding: 22px 26px 18px; overflow-x: auto;
+  }
+  .mast { border-top: 5px solid var(--teal); padding: 14px 0 12px; display: flex; align-items: center; gap: 12px; }
+  .mast .bar-v { width: 4px; height: 34px; border-radius: 2px; background: var(--teal); }
+  .mast .en { font-size: 10px; font-weight: 700; letter-spacing: 3px; color: var(--teal-ink); }
+  .mast .zh { font-size: 21px; font-weight: 700; line-height: 1.2; }
+  .mast .meta { font-size: 11px; color: var(--mut2); }
+  .block-head { display: flex; align-items: center; gap: 8px; padding: 6px 0 8px; border-bottom: 1px solid var(--bd-soft); }
+  .block-head .bar-v { width: 4px; height: 30px; border-radius: 2px; background: var(--teal); flex: none; }
+  .block-head .rname { font-size: 15px; font-weight: 700; }
+  .grade {
+    font-size: 10.5px; font-weight: 700; color: #fff; background: var(--g1);
+    border-radius: 4px; padding: 2px 6px;
+  }
+  .grade.local { background: #787b84; }
+  .block-head .rmeta { font-size: 12px; color: var(--mut2); }
+  .block-head .rmeta b { color: var(--teal-ink); font-weight: 700; }
+  table.pc { width: 100%; border-collapse: collapse; border: 1px solid #c7ced5; table-layout: auto; }
+  table.pc th {
+    background: #f3f5f7; border-bottom: 1px solid #d3d9df; font-size: 10.5px; font-weight: 600;
+    color: var(--mut2); padding: 6px 8px; white-space: nowrap; text-align: center;
+  }
+  table.pc td { padding: 7px 8px; font-size: 13px; border-bottom: 1px solid #f0f2f4; white-space: nowrap; vertical-align: middle; }
+  table.pc.dense td { padding: 5px 8px; font-size: 12.5px; }
+  table.pc tr:nth-child(even) td { background: #f6f8fa; }
+  td.c, th.c { text-align: center; }
+  td.l, th.l { text-align: left; }
+  td.merge { border-bottom: 1px solid #dfe3e8; background: #fbfcfd !important; }
+  td.merge.last { border-bottom: none; }
+  .wk {
+    display: inline-flex; width: 26px; height: 22px; align-items: center; justify-content: center;
+    border-radius: 4px; font-weight: 700; font-size: 13px; border: 1px solid transparent;
+  }
+  table.pc.dense .wk { width: 22px; height: 19px; font-size: 12px; }
+  .horse-name { font-weight: 600; font-size: 14px; }
+  table.pc.dense .horse-name { font-size: 13px; }
+  .sex { font-weight: 600; }
+  .sex.male { color: #2b62b0; } .sex.female { color: var(--nar); } .sex.geld { color: var(--teal); }
+  .age { color: var(--mut2); }
+  .dim { color: var(--mut2); font-size: 12.5px; }
+  .rn { font-weight: 700; color: var(--sub); }
+  .silk-ph {
+    display: inline-block; width: 20px; height: 15px; border-radius: 3px; vertical-align: middle;
+    background: repeating-linear-gradient(135deg, #2b62b0 0 4px, #fff 4px 7px, #d5302a 7px 11px, #fff 11px 14px);
+    border: 1px solid var(--bd);
+  }
+  .none-left { padding: 26px 0; text-align: center; color: var(--mut); font-size: 13px; }
+
+  /* ---------- JSON 输出 ---------- */
+  .json-block { margin-top: 18px; }
+  .json-block h2 { margin: 0 0 8px; font-size: 14px; }
+  .json-block h2 small { font-weight: 400; color: var(--mut2); font-size: 12px; margin-left: 8px; }
+  pre#json {
+    margin: 0; padding: 14px 16px; background: #17191d; color: #d6e2df; border-radius: 10px;
+    font-family: Consolas, "Courier New", monospace; font-size: 12.5px; line-height: 1.55;
+    overflow-x: auto; white-space: pre;
+  }
+  .foot-note { margin: 10px 2px 0; font-size: 12px; color: var(--mut2); }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <span class="tick"></span>出馬表分享卡 · 列配置工具
+    <small>两个版式分别配置 · 拖拽（或 ↑↓）调顺序 · 眼睛图标切显隐 · 右侧实时预览</small>
+  </div>
+  <div class="tools">
+    <button id="reset" class="btn ghost" type="button">恢复默认</button>
+    <button id="copy" class="btn" type="button">复制 JSON</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- 左：版式切换 + 列配置 -->
+  <section class="panel">
+    <div class="tabs" id="tabs">
+      <button type="button" class="tab" data-lay="dense">紧凑一览</button>
+      <button type="button" class="tab" data-lay="cards">逐场分卡</button>
+    </div>
+    <h2>列顺序与默认显隐 <span id="lay-label" style="color:var(--teal-ink)"></span></h2>
+    <p class="hint" id="lay-hint"></p>
+    <div class="col-list" id="col-list"></div>
+  </section>
+
+  <!-- 右：预览 + JSON -->
+  <section class="preview">
+    <h2 class="preview-h" id="pv-title">出图预览 <small id="pv-sub"></small></h2>
+    <div class="card">
+      <div class="mast">
+        <span class="bar-v"></span>
+        <span>
+          <span class="en">RACE CARD</span><br>
+          <span class="zh">出走表</span>
+          <span class="meta" id="mast-meta"></span>
+        </span>
+      </div>
+      <div id="pv-cards-head">
+        <div class="block-head">
+          <span class="bar-v"></span>
+          <span class="rname">菊花賞</span>
+          <span class="grade">GⅠ</span>
+          <span class="rmeta">京都11R 芝3000 · <b>北京 10-25 14:40</b></span>
+        </div>
+      </div>
+      <table class="pc" id="pv-table">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="pv-empty" class="none-left" hidden>全部列都已隐藏 —— 至少保留一列才能出图</div>
+    </div>
+
+    <div class="json-block">
+      <h2>配置 JSON <small>点右上「复制 JSON」发给开发，即可落地到分享卡（含两个版式）</small></h2>
+      <pre id="json"></pre>
+      <p class="foot-note">格式：dense / cards 各自一份 order（该版式全部列的展示顺序，含隐藏列）+ hidden（默认隐藏的列）。紧凑一览的「北京时间」列标签实际随分享工具栏「时间」选项变化；彩衣列实际出图时该场加载到图才显示。当前改动自动暂存在本浏览器，下次打开继续调。</p>
+    </div>
+  </section>
+</div>
+
+<script>
+'use strict';
+
+/* ================= 版式与列注册表（与 site/share.js drawDense / drawCards 同口径） =================
+ * race = 比赛级合并列（紧凑一览：整场一格跨行合并）；其余为逐马列。
+ * essential = 关键列提醒，仍允许隐藏。defOn = 当前线上默认显隐
+ * （追加列默认只开 负重/父/母父，与 rc.share.cols.v3 初始值一致）。 */
+const EXTRA_DEFS = [
+  { k:'weight',   label:'负重',    defOn:true },
+  { k:'trainer',  label:'练马师',  defOn:false },
+  { k:'sire',     label:'父',      defOn:true },
+  { k:'sireSire', label:'祖父',    defOn:false },
+  { k:'bms',      label:'母父',    defOn:true },
+  { k:'dam',      label:'母',      defOn:false },
+  { k:'owner',    label:'马主',    defOn:false },
+  { k:'breeder',  label:'生产牧场', defOn:false },
+];
+const EX = Object.fromEntries(EXTRA_DEFS.map((d) => [d.k, d]));
+const E = (k, on) => ({ ...EX[k], ...(on == null ? {} : { defOn: on }) });   // 追加列按定稿顺序显式展开
+
+const LAYOUTS = {
+  dense: {
+    label: '紧凑一览',
+    hint: '全部场次合并成一张大表，「比赛级」列（蓝标签）= 整场合并单元格，可穿插到逐马列之间。17 列全部参与排序。',
+    cols: [
+      { k:'time',   label:'北京时间', race:true, essential:true, defOn:true, note:'标签随「时间」选项' },
+      { k:'no',     label:'场次',    race:true, defOn:true },
+      { k:'rname',  label:'比赛',    race:true, defOn:true },
+      { k:'dist',   label:'赛道',    race:true, defOn:true },
+      { k:'wknum',  label:'马号',    essential:true, defOn:true },
+      { k:'silk',   label:'彩衣',    defOn:true, note:'该场有图才显示' },
+      { k:'horse',  label:'马名',    essential:true, defOn:true },
+      { k:'sexage', label:'性龄',    defOn:true },
+      E('weight'),
+      { k:'jockey', label:'骑手',    defOn:true },
+      E('trainer'),
+      E('sire'),
+      E('dam'),
+      E('sireSire'),
+      E('bms'),
+      E('owner'),
+      E('breeder'),
+    ],
+  },
+  cards: {
+    label: '逐场分卡',
+    hint: '每场一块卡片表格，比赛信息在卡片头行。13 列全部参与排序。',
+    cols: [
+      { k:'num',    label:'马号',    essential:true, defOn:true },
+      { k:'silk',   label:'彩衣',    defOn:true, note:'该场有图才显示' },
+      { k:'horse',  label:'马名',    essential:true, defOn:true },
+      { k:'sexage', label:'性龄',    defOn:true },
+      E('weight'),
+      { k:'jockey', label:'骑手',    defOn:true },
+      E('trainer', true),   // 分卡默认显示练马师（紧凑一览默认隐藏）
+      E('sire'),
+      E('dam'),
+      E('sireSire'),
+      E('bms'),
+      E('owner'),
+      E('breeder'),
+    ],
+  },
+};
+for (const L of Object.values(LAYOUTS)) {
+  L.defOrder = L.cols.map(c => c.k);
+  L.defHidden = L.cols.filter(c => !c.defOn).map(c => c.k);
+}
+
+/* 样例数据：design/sample-data.js 真实采集数据（菊花賞 6 頭 / 高知 4 頭） */
+const RACE_CARDS = { venue:'京都', raceNo:11, raceName:'菊花賞', level:'G1', surface:'芝', distance:3000, bj:'10-25 14:40' };
+const RUNNERS_CARDS = [
+  { frame:1, num:1, horseName:'エムズビギン', sex:'牡', age:3, jockey:'岩田望来', weight:57, trainer:'友道 康夫', sire:'キタサンブラック', sireSire:'ブラックタイド', bms:'Galileo(IRE)', dam:'デルフィニアⅡ(IRE)', owner:'エムズレーシング', breeder:'ノーザンファーム' },
+  { frame:1, num:2, horseName:'コンジェスタス', sex:'牡', age:3, jockey:'西村淳也', weight:57, trainer:'高野 友和', sire:'コントレイル', sireSire:'ディープインパクト', bms:'Alamosa(NZ)', dam:'キラモサ(NZ)', owner:'有限会社シルク', breeder:'ノーザンファーム' },
+  { frame:2, num:3, horseName:'アウダーシア', sex:'牡', age:3, jockey:'津村明秀', weight:57, trainer:'手塚 貴久', sire:'キズナ', sireSire:'ディープインパクト', bms:'ルーラーシップ', dam:'リリーノーブル', owner:'(有)サンデーレーシング', breeder:'ノーザンファーム' },
+  { frame:2, num:4, horseName:'ショウナンガルフ', sex:'牡', age:3, jockey:'田山旺佑', weight:57, trainer:'須貝 尚介', sire:'ハービンジャー(GB)', sireSire:'Dansili(GB)', bms:'ハーツクライ', dam:'ミカリーニョ', owner:'国本哲秀', breeder:'ノーザンファーム' },
+  { frame:3, num:5, horseName:'ジャスティンシカゴ', sex:'牡', age:3, jockey:'原優介', weight:57, trainer:'宮田 敬介', sire:'スワーヴリチャード', sireSire:'ハーツクライ', bms:'キングカメハメハ', dam:'エリカブライト', owner:'三木正浩', breeder:'ノーザンファーム' },
+  { frame:3, num:6, horseName:'バステール', sex:'牡', age:3, jockey:'川田将雅', weight:57, trainer:'斉藤 崇史', sire:'キタサンブラック', sireSire:'ブラックタイド', bms:'アルデバランⅡ(USA)', dam:'マンビア(GB)', owner:'有限会社シルク', breeder:'ノーザンファーム' },
+];
+/* 紧凑一览：两场 × 4 頭（比赛级合并列才能看出跨行合并效果） */
+const DENSE_RACES = [
+  { venue:'京都', raceNo:11, raceName:'菊花賞', grade:'GⅠ', g1:true, surface:'芝', distance:3000, bj:'10-25 14:40',
+    runners: RUNNERS_CARDS.slice(0, 4) },
+  { venue:'高知', raceNo:6, raceName:'ネクストスター高知', grade:'地方重賞', g1:false, surface:'ダ', distance:1400, bj:'10-25 17:05',
+    runners: [
+      { frame:1, num:1, horseName:'サンサンキック', sex:'牡', age:2, jockey:'多田羅誠也', weight:56, trainer:'工藤 真司', sire:'ヴァンゴッホ(USA)', sireSire:'アメリカンファラオ(USA)', bms:'アグネスフライト', dam:'プラネット', owner:'佐野幸一郎', breeder:'中山牧場' },
+      { frame:2, num:2, horseName:'ナインスマイル', sex:'牝', age:2, jockey:'新庄海誠', weight:55, trainer:'那俄性 哲也', sire:'サトノクラウン', sireSire:'Marju(IRE)', bms:'ハーツクライ', dam:'ナチュラリスト', owner:'岩田雅之', breeder:'藤本ファーム' },
+      { frame:3, num:3, horseName:'ベアマグナム', sex:'牡', age:2, jockey:'井上瑛太', weight:56, trainer:'田中 譲二', sire:'モズアスコット(USA)', sireSire:'Frankel(GB)', bms:'ブライアンズタイム(USA)', dam:'キリエ', owner:'熊木浩', breeder:'平野牧場' },
+      { frame:4, num:4, horseName:'ダイナヴェール', sex:'牝', age:2, jockey:'上田将司', weight:55, trainer:'宮路 洋一', sire:'ノヴェリスト(IRE)', sireSire:'Monsun(GER)', bms:'タートルボウル(IRE)', dam:'バースデーギフト', owner:'松本桂昌', breeder:'ハクツ牧場' },
+    ] },
+];
+
+/* 枠色（JRA 公式，与 share.js WAKU 同表） */
+const WAKU = [null,
+  { bg:'#ffffff', bd:'#c9ccd1', fg:'#0a0a0a' },
+  { bg:'#26262a', fg:'#ffffff' },
+  { bg:'#d0342c', fg:'#ffffff' },
+  { bg:'#2b62b0', fg:'#ffffff' },
+  { bg:'#f2c500', fg:'#4a3b00' },
+  { bg:'#1e7d46', fg:'#ffffff' },
+  { bg:'#e8791e', fg:'#ffffff' },
+  { bg:'#ef8bab', fg:'#8c2748' },
+];
+const SEX_C = { 牡:'male', 牝:'female', セ:'geld' };
+const ESC = document.createElement('i');
+const esc = (s) => (ESC.textContent = s ?? '', ESC.innerHTML);
+
+/* ================= 状态（每版式独立，localStorage 草稿） ================= */
+const LS_KEY = 'rc.colcfg.draft.v3', LS_OLD = 'rc.colcfg.draft.v1';   // v3 = 2026-11-11 第二版定稿顺序
+const validOrder = (arr, def) => {
+  const got = [...new Set((arr ?? []).filter(k => def.includes(k)))];
+  return got.concat(def.filter(k => !got.includes(k)));   // 缺的列补回默认位置
+};
+const load = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(LS_KEY));
+    if (v) return {
+      dense: { order: validOrder(v.dense?.order, LAYOUTS.dense.defOrder), hidden: (v.dense?.hidden ?? []).filter(k => LAYOUTS.dense.defOrder.includes(k)) },
+      cards: { order: validOrder(v.cards?.order, LAYOUTS.cards.defOrder), hidden: (v.cards?.hidden ?? []).filter(k => LAYOUTS.cards.defOrder.includes(k)) },
+    };
+    // 旧版单版式草稿迁移：runner 列子集应用到两个版式
+    const old = JSON.parse(localStorage.getItem(LS_OLD));
+    if (old && old.order) {
+      const seed = (def) => {
+        const order = validOrder(old.order.filter(k => def.includes(k)), def);
+        return { order, hidden: (old.hidden ?? []).filter(k => order.includes(k)) };
+      };
+      return { dense: seed(LAYOUTS.dense.defOrder), cards: seed(LAYOUTS.cards.defOrder) };
+    }
+  } catch {}
+  return null;
+};
+const save = (st) => { try { localStorage.setItem(LS_KEY, JSON.stringify(st)); } catch {} };
+
+let state = load() ?? {
+  dense: { order: [...LAYOUTS.dense.defOrder], hidden: [...LAYOUTS.dense.defHidden] },
+  cards: { order: [...LAYOUTS.cards.defOrder], hidden: [...LAYOUTS.cards.defHidden] },
+};
+let curLay = 'dense';   // 当前配置中的版式（预览跟随）
+
+/* ================= 左侧列表渲染 ================= */
+const listEl = document.getElementById('col-list');
+const lay = () => LAYOUTS[curLay];
+const cfg = () => state[curLay];
+
+function renderList() {
+  document.querySelectorAll('#tabs .tab').forEach(t => t.classList.toggle('on', t.dataset.lay === curLay));
+  document.getElementById('lay-label').textContent = '· ' + lay().label;
+  document.getElementById('lay-hint').textContent = lay().hint;
+  listEl.innerHTML = '';
+  cfg().order.forEach((k, i) => {
+    const c = lay().cols.find(x => x.k === k);
+    const on = !cfg().hidden.includes(k);
+    const li = document.createElement('div');
+    li.className = 'col-item' + (on ? '' : ' off') + (c.race ? ' race-level' : '');
+    li.draggable = true;
+    li.dataset.k = k;
+    li.innerHTML =
+      '<span class="grip" title="拖拽排序">⠿</span>' +
+      '<span class="idx">' + (i + 1) + '</span>' +
+      '<span class="col-name">' + esc(c.label) + '<span class="k">' + esc(c.k) + '</span></span>' +
+      (c.race ? '<span class="tag race">比赛级</span>' : '') +
+      (c.essential ? '<span class="tag">关键列</span>' : '') +
+      '<span class="mv">' +
+        '<button type="button" data-mv="up" title="上移" ' + (i === 0 ? 'disabled' : '') + '>↑</button>' +
+        '<button type="button" data-mv="dn" title="下移" ' + (i === cfg().order.length - 1 ? 'disabled' : '') + '>↓</button>' +
+      '</span>' +
+      '<button type="button" class="eye" data-eye title="' + (on ? '点击隐藏' : '点击显示') + '">' + (on ? '👁' : '🚫') + '</button>';
+    listEl.appendChild(li);
+  });
+}
+
+listEl.addEventListener('click', (e) => {
+  const item = e.target.closest('.col-item'); if (!item) return;
+  const k = item.dataset.k, i = cfg().order.indexOf(k);
+  if (e.target.closest('[data-eye]')) {                     // 显隐切换
+    const set = new Set(cfg().hidden);
+    set.has(k) ? set.delete(k) : set.add(k);
+    cfg().hidden = [...set];
+  } else if (e.target.closest('[data-mv="up"]') && i > 0) { // 上移
+    [cfg().order[i - 1], cfg().order[i]] = [cfg().order[i], cfg().order[i - 1]];
+  } else if (e.target.closest('[data-mv="dn"]') && i < cfg().order.length - 1) { // 下移
+    [cfg().order[i + 1], cfg().order[i]] = [cfg().order[i], cfg().order[i + 1]];
+  } else return;
+  save(state); renderAll();
+});
+
+document.getElementById('tabs').addEventListener('click', (e) => {
+  const t = e.target.closest('.tab'); if (!t || t.dataset.lay === curLay) return;
+  curLay = t.dataset.lay;
+  renderAll();
+});
+
+/* HTML5 拖拽排序：拖过目标行上半 → 插到其前，下半 → 插到其后。
+   注意：dragover 期间不能重渲染列表 —— 源节点被重建会让部分浏览器中断拖拽；
+   这里只做 DOM insertBefore + 状态更新，dragend / drop 时再整体重渲染。 */
+listEl.addEventListener('dragstart', (e) => {
+  const item = e.target.closest('.col-item'); if (!item) return;
+  dragIdx = cfg().order.indexOf(item.dataset.k);
+  item.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', item.dataset.k); } catch {}
+});
+let dragIdx = -1;
+const endDrag = () => {
+  dragIdx = -1;
+  save(state); renderAll();
+};
+listEl.addEventListener('drop', (e) => { e.preventDefault(); endDrag(); });
+listEl.addEventListener('dragend', endDrag);
+listEl.addEventListener('dragover', (e) => {
+  const item = e.target.closest('.col-item'); if (!item || dragIdx < 0) return;
+  e.preventDefault();
+  const dragged = listEl.querySelector('.col-item.dragging') ?? listEl.children[dragIdx];
+  if (!dragged || dragged === item) return;
+  const rect = item.getBoundingClientRect();
+  const before = e.clientY < rect.top + rect.height / 2;
+  listEl.querySelectorAll('.col-item').forEach(el => el.classList.remove('drag-over'));
+  if (before) item.parentNode.insertBefore(dragged, item);
+  else item.parentNode.insertBefore(dragged, item.nextSibling);
+  item.classList.add('drag-over');
+  // DOM 已就位，状态同步按 DOM 顺序来
+  cfg().order = [...listEl.children].map(el => el.dataset.k);
+  renderPreview(); renderJSON();   // 拖拽期间实时刷新预览（列表本体不动）
+});
+
+/* ================= 预览渲染 ================= */
+const thead = document.querySelector('#pv-table thead');
+const tbody = document.querySelector('#pv-table tbody');
+const pvEmpty = document.getElementById('pv-empty');
+const ALIGN_C = new Set(['time', 'no', 'dist', 'wknum', 'num', 'silk', 'sexage', 'weight', 'sireSire', 'bms', 'dam']);
+
+function wkCell(h, cls) {
+  const wk = WAKU[h.frame] ?? { bg:'#eceff2', fg:'#8a949e', bd:'#dfe3e7' };
+  return '<td class="' + cls + '"><span class="wk" style="background:' + wk.bg + ';color:' + wk.fg + ';border-color:' + (wk.bd ?? 'transparent') + '">' + h.num + '</span></td>';
+}
+function cellHTML(k, h) {
+  switch (k) {
+    case 'wknum': case 'num': return wkCell(h, ALIGN_C.has(k) ? 'c' : 'l');
+    case 'silk':    return '<td class="c"><span class="silk-ph"></span></td>';
+    case 'horse':   return '<td class="l"><span class="horse-name">' + esc(h.horseName) + '</span></td>';
+    case 'sexage':  return '<td class="c"><span class="sex ' + (SEX_C[h.sex] ?? '') + '">' + esc(h.sex) + '</span><span class="age">' + esc(h.age) + '</span></td>';
+    case 'jockey':  return '<td class="l"><span class="dim">' + esc(h.jockey) + '</span></td>';
+    case 'weight':  return '<td class="c">' + esc(h.weight) + '</td>';
+    case 'trainer': return '<td class="l"><span class="dim">' + esc(h.trainer) + '</span></td>';
+    case 'sire':    return '<td class="l"><span class="dim">' + esc(h.sire) + '</span></td>';
+    case 'sireSire':return '<td class="c"><span class="dim">' + esc(h.sireSire) + '</span></td>';
+    case 'bms':     return '<td class="c"><span class="dim">' + esc(h.bms) + '</span></td>';
+    case 'dam':     return '<td class="c"><span class="dim">' + esc(h.dam) + '</span></td>';
+    case 'owner':   return '<td class="l"><span class="dim">' + esc(h.owner) + '</span></td>';
+    case 'breeder': return '<td class="l"><span class="dim">' + esc(h.breeder) + '</span></td>';
+    default:        return '<td class="l"></td>';
+  }
+}
+
+function renderPreview() {
+  const L = lay(), visible = cfg().order.filter(k => !cfg().hidden.includes(k));
+  const dense = curLay === 'dense';
+  document.getElementById('pv-title').childNodes[0].textContent = '出图预览 · ' + L.label + ' ';
+  document.getElementById('pv-sub').textContent = dense
+    ? '两场合并表：比赛级列 = 跨行合并单元格'
+    : '与 site/share.js 分卡版式同视觉（彩衣为占位图，实际出图时该场加载到图才显示）';
+  document.getElementById('mast-meta').textContent = dense ? '共 8 頭出走 2 场' : '共 6 頭出走 1 场';
+  document.getElementById('pv-cards-head').hidden = dense;
+  document.getElementById('pv-table').classList.toggle('dense', dense);
+
+  pvEmpty.hidden = visible.length > 0;
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+  if (!visible.length) return;
+
+  const colDef = (k) => L.cols.find(c => c.k === k);
+  thead.innerHTML = '<tr>' + visible.map(k =>
+    '<th class="' + (ALIGN_C.has(k) ? 'c' : 'l') + '">' + esc(colDef(k).label) + '</th>'
+  ).join('') + '</tr>';
+
+  const rowHTML = (h, k) => cellHTML(k, h);
+  if (dense) {
+    // 比赛级列逐场 rowspan 合并；逐马列每行一格
+    tbody.innerHTML = DENSE_RACES.map((r, ri) => {
+      const lastRace = ri === DENSE_RACES.length - 1;
+      return r.runners.map((h, hi) => '<tr>' + visible.map(k => {
+        const c = colDef(k);
+        if (c.race) {
+          if (hi > 0) return '';
+          const mergeCls = 'merge' + (lastRace ? ' last' : '');
+          let v;
+          if (k === 'time') v = '<span class="dim">' + esc(r.bj) + '</span>';
+          else if (k === 'no') v = '<span class="rn">' + esc(r.venue) + esc(r.raceNo) + 'R</span>';
+          else if (k === 'rname') v = '<span class="rn">' + esc(r.raceName) + '</span> <span class="grade' + (r.g1 ? '' : ' local') + '">' + esc(r.grade) + '</span>';
+          else if (k === 'dist') v = '<span class="dim">' + esc(r.surface) + esc(r.distance) + '</span>';
+          else v = '';
+          return '<td class="c ' + mergeCls + '" rowspan="' + r.runners.length + '">' + v + '</td>';
+        }
+        return rowHTML(h, k);
+      }).join('') + '</tr>').join('');
+    }).join('');
+  } else {
+    tbody.innerHTML = RUNNERS_CARDS.map(h => '<tr>' + visible.map(k => rowHTML(h, k)).join('') + '</tr>').join('');
+  }
+}
+
+/* ================= JSON 输出 ================= */
+const jsonEl = document.getElementById('json');
+function renderJSON() {
+  jsonEl.textContent = JSON.stringify({
+    tool: 'racing-calendar · 出馬表分享卡列配置',
+    version: 2,
+    dense: { order: state.dense.order, hidden: state.dense.hidden },   // 紧凑一览（17 列，time/no/rname/dist = 比赛级合并列）
+    cards: { order: state.cards.order, hidden: state.cards.hidden },   // 逐场分卡（13 列）
+  }, null, 2);
+}
+
+function renderAll() { renderList(); renderPreview(); renderJSON(); }
+
+/* ================= 工具栏 ================= */
+document.getElementById('reset').addEventListener('click', () => {
+  state[curLay] = { order: [...lay().defOrder], hidden: [...lay().defHidden] };
+  save(state); renderAll();
+});
+document.getElementById('copy').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  const text = jsonEl.textContent;
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; }
+  catch {  // file:// 下 clipboard API 可能不可用 → 选中文本兜底
+    const r = document.createRange(); r.selectNodeContents(jsonEl);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    ok = document.execCommand('copy'); sel.removeAllRanges();
+  }
+  btn.textContent = ok ? '已复制 ✓' : '请手动全选复制';
+  setTimeout(() => (btn.textContent = '复制 JSON'), 1600);
+});
+
+renderAll();
+</script>
+</body>
+</html>
