@@ -1,0 +1,251 @@
+{
+  "schema": "jbis.race.result/v1",
+  "date": "2026-11-11",
+  "track": "224",
+  "venue": "名古屋",
+  "scope": "local",
+  "source": "netkeiba",
+  "updatedAt": "2026-11-11T03:40:47.186Z",
+  "races": [
+    {
+      "no": 1,
+      "raceKey": "20261111/224/01",
+      "nkRaceId": "202648111101",
+      "idVia": "built",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 11,
+      "joined": 11,
+      "linked": 11,
+      "byNumHit": 11,
+      "byNameHit": 0,
+      "shutubaNames": 22,
+      "startTime": "12:25",
+      "sourceUrl": "https://nar.netkeiba.com/race/result.html?race_id=202648111101",
+      "template": "All_Result_Table",
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 11,
+        "abnormal": 0,
+        "maxRank": 11,
+        "missingRanks": [],
+        "popCovered": 11,
+        "popTotal": 11,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "runners": [
+        {
+          "num": 1,
+          "frame": 1,
+          "horse": {
+            "id": "0001368626",
+            "name": "プラカーシャ",
+            "nkId": "2023107240"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "time": "1:40.1",
+          "margin": "4",
+          "passing": null,
+          "last3f": 38.8,
+          "pop": 8,
+          "winOdds": 94.8,
+          "bodyWeight": 468,
+          "bodyDelta": -4
+        },
+        {
+          "num": 2,
+          "frame": 2,
+          "horse": {
+            "id": "0001368343",
+            "name": "ハクノセブン",
+            "nkId": "2023105511"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "time": "1:38.8",
+          "margin": "2",
+          "passing": null,
+          "last3f": 39.7,
+          "pop": 6,
+          "winOdds": 51.6,
+          "bodyWeight": 423,
+          "bodyDelta": 0
+        },
+        {
+          "num": 3,
+          "frame": 3,
+          "horse": {
+            "id": "0001375250",
+            "name": "ウォーターブビンガ",
+            "nkId": "2023101867"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "time": "1:38.1",
+          "margin": "2",
+          "passing": null,
+          "last3f": 39.2,
+          "pop": 2,
+          "winOdds": 2.7,
+          "bodyWeight": 441,
+          "bodyDelta": -3
+        },
+        {
+          "num": 4,
+          "frame": 4,
+          "horse": {
+            "id": "0001337564",
+            "name": "メイショウウミカゼ",
+            "nkId": "2021103269"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "time": "1:41.7",
+          "margin": "5",
+          "passing": null,
+          "last3f": 40.9,
+          "pop": 11,
+          "winOdds": 211.6,
+          "bodyWeight": 473,
+          "bodyDelta": 1
+        },
+        {
+          "num": 5,
+          "frame": 5,
+          "horse": {
+            "id": "0001429780",
+            "name": "ホウオウワイズ(USA)",
+            "nkId": "2023107525"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "time": "1:37.0",
+          "margin": null,
+          "passing": null,
+          "last3f": 38.2,
+          "pop": 1,
+          "winOdds": 1.4,
+          "bodyWeight": 445,
+          "bodyDelta": -1
+        },
+        {
+          "num": 6,
+          "frame": 6,
+          "horse": {
+            "id": "0001368381",
+            "name": "ナムラカメコ",
+            "nkId": "2023106230"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "time": "1:39.2",
+          "margin": "1.1/2",
+          "passing": null,
+          "last3f": 39.8,
+          "pop": 9,
+          "winOdds": 129.8,
+          "bodyWeight": 473,
+          "bodyDelta": -2
+        },
+        {
+          "num": 7,
+          "frame": 6,
+          "horse": {
+            "id": "0001371806",
+            "name": "ハウスオンファイア",
+            "nkId": "2023101172"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "time": "1:39.3",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 38.6,
+          "pop": 5,
+          "winOdds": 40.7,
+          "bodyWeight": 505,
+          "bodyDelta": 0
+        },
+        {
+          "num": 8,
+          "frame": 7,
+          "horse": {
+            "id": "0001368706",
+            "name": "アニゴザントス",
+            "nkId": "2023105230"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "time": "1:38.4",
+          "margin": "1.1/2",
+          "passing": null,
+          "last3f": 39.5,
+          "pop": 3,
+          "winOdds": 14,
+          "bodyWeight": 428,
+          "bodyDelta": -3
+        },
+        {
+          "num": 9,
+          "frame": 7,
+          "horse": {
+            "id": "0001378310",
+            "name": "ゴッドシュアウイン",
+            "nkId": "2023105026"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "time": "1:38.9",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 39.1,
+          "pop": 7,
+          "winOdds": 58,
+          "bodyWeight": 502,
+          "bodyDelta": -9
+        },
+        {
+          "num": 10,
+          "frame": 8,
+          "horse": {
+            "id": "0001368407",
+            "name": "クツシタオトシタ",
+            "nkId": "2023100090"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "time": "1:37.7",
+          "margin": "3",
+          "passing": null,
+          "last3f": 38.6,
+          "pop": 4,
+          "winOdds": 40.1,
+          "bodyWeight": 427,
+          "bodyDelta": -1
+        },
+        {
+          "num": 11,
+          "frame": 8,
+          "horse": {
+            "id": "0001354332",
+            "name": "ガムピーリング",
+            "nkId": "2022106204"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "time": "1:40.7",
+          "margin": "3",
+          "passing": null,
+          "last3f": 40.8,
+          "pop": 10,
+          "winOdds": 154.5,
+          "bodyWeight": 505,
+          "bodyDelta": 4
+        }
+      ]
+    }
+  ]
+}
