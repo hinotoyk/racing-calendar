@@ -7,7 +7,12 @@
  *   一个挂载点 + 种马名，得到一个简洁的「该種牡馬产驹近期出走」结果视图。
  *   不照搬主站全功能页（无多维筛选卡/分享卡/CSV/Excel），只出结果。
  *
- * 视图（v2.2.0）= **同一份数据的双形态 + 三档宽度自适应**（2026-11-07 定稿）：
+ * 视图（v2.7.0）= **同一份数据的双形态 + 三档宽度自适应**（2026-11-11 更新）：
+ *   · **计数口径 = 未来（含今天）**（2026-11-11）：头部「共 X 頭 / N R」与分类 chips 的计数
+ *     只统计未来（含今天）的出走——出走表是前瞻视图，最近一周折叠区只是兜底，
+ *     不该把头部数字撑大；chips 过滤同时作用于主视图与折叠区。
+ *   · 卡片态（2026-11-11）：条头时间补「北京时间」小标（裸 13:55 会被读成当地时间）；
+ *     比赛名行的赛道距离不再 margin-left:auto 推到最右（短名时中间一大段空白）。
  *   宽容器再按宽度分三档（27 寸屏「太空洞」的反馈）：
  *   · 头部带「全部 / JRA·中央 / NAR·地方 / 海外」分类 chips（2026-11-07）：纯前端过滤，
  *     计数实时显示，**四个恒定展示**（0 条的也留着，点进去给空态）；状态存在挂载点上
@@ -65,7 +70,7 @@
  *   days    未来侧展示的有数据日期数（默认 4）；今天之前的日期收进底部
  *           <details>「最近一周」折叠区（出走表是前瞻视图，历史只做兜底可查）
  *   title   头部标题（默认 "<sire> 产驹 · 近期出走"）
- *   link    头部是否带「Racing Calendar ↗」外链（默认 true）
+ *   link    头部是否带「Racing Calendar ↗」外链（默认**不展示**；宿主显式传 true 才有）
  *
  * 数据契约 = docs/DESIGN.md §2：derived/index.json（dates 概览）+
  *   derived/{date}.json（race.rows.bundle/v1 字典包，本文件内联 unpackRows 解码——
@@ -79,7 +84,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "2.6.0";
+  var VERSION = "2.7.1";
   var WIDE_MIN = 720;   /* 容器宽 ≥ 此值走十列密表，否则走逐场卡片 */
 
   /* ---------- 工具 ---------- */
@@ -450,18 +455,23 @@
       /* 单场卡片 */
       ".rc-emb-rc{border:1px solid var(--re-border);border-radius:10px;overflow:hidden;",
       "background:var(--re-card)}",
-      /* 条头：场次 + 北京时间 */
+      /* 条头：场次 + 北京时间（2026-11-11：补「北京时间」小标，卡片态没列头、
+         裸一个 13:55 会被读成当地时间） */
       ".rc-emb-rcband{display:flex;align-items:baseline;gap:8px;padding:6px 10px;",
       "background:var(--re-soft);border-bottom:1px solid var(--re-line)}",
       ".rc-emb-rcband .v{font-size:12px;font-weight:600;color:var(--re-body);min-width:0;",
       "overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
       ".rc-emb-rcband .v i{font-style:normal;font-size:10.5px;color:var(--re-muted);margin-left:1px}",
       ".rc-emb-rcband .tm{margin-left:auto;font-size:12px;font-weight:700;color:var(--re-tealink)}",
+      ".rc-emb-rcband .tm i{font-style:normal;font-size:10px;font-weight:500;",
+      "color:var(--re-muted);margin-right:3px;letter-spacing:.02em}",
       /* 比赛名 + 赛道 */
       ".rc-emb-rcname{display:flex;align-items:center;gap:5px;padding:7px 10px 3px;min-width:0}",
       ".rc-emb-rcname .rn{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;",
       "white-space:nowrap;min-width:0}",
-      ".rc-emb-rcname .ds{margin-left:auto;flex:none;font-size:11px;font-weight:600;white-space:nowrap}",
+      /* 赛道紧跟比赛名（2026-11-11：去掉 margin-left:auto——短比赛名「C2一」时
+         auto 会把它推到最右，中间一大段空白；名字长了 rn 自己省略，dist 恒可见） */
+      ".rc-emb-rcname .ds{flex:none;font-size:11px;font-weight:600;white-space:nowrap}",
       /* 产驹行：第一行 马号 + 彩衣 + 馬名 + 性齢 + 斤量；第二行 騎手 + 母父 */
       ".rc-emb-runs{padding:0 10px 7px}",
       ".rc-emb-run{padding:5px 0;border-top:1px solid var(--re-line)}",
@@ -795,7 +805,7 @@
           '<div class="rc-emb-rcband">' +
             '<span class="v">' + esc(r0.venue || "–") +
               (r0.raceNo != null ? "<i>" + esc(r0.raceNo) + "R</i>" : "") + "</span>" +
-            '<span class="tm">' + esc(bjTime(r0.startTimeInstant) || "–") + "</span>" +
+            '<span class="tm"><i>北京时间</i>' + esc(bjTime(r0.startTimeInstant) || "–") + "</span>" +
           "</div>" +
           '<div class="rc-emb-rcname">' +
             r0open + '<span class="rn" title="' + esc(r0.raceName || "") + '">' + esc(cleanRaceName(r0.raceName) || "–") + "</span>" + r0close +
@@ -861,20 +871,29 @@
     var M = widthMeta(el);
     el.__rcMode = M.mode + "|" + M.tier;
 
-    /* ---- 赛事分类过滤（中央 / 地方 / 海外）：纯前端过滤，不重新取数、不写存储 ---- */
+    /* ---- 赛事分类过滤（中央 / 地方 / 海外）：纯前端过滤，不重新取数、不写存储 ----
+       计数口径（2026-11-11 定稿）：chips 与「共 X 頭」只统计**未来（含今天）**的出走——
+       出走表是前瞻视图，最近一周折叠区只是兜底可查，不该把头部数字撑大。 */
     var scope = el.__rcScope || "all";
-    var counts = { all: rows.length, jra: 0, nar: 0, ov: 0 };
-    rows.forEach(function (r) { counts[scopeOf(r)]++; });
+    var today = todayBJ();
+    var futureAll = [], pastAll = [];
+    rows.forEach(function (r) { (r.date >= today ? futureAll : pastAll).push(r); });
+    var counts = { all: futureAll.length, jra: 0, nar: 0, ov: 0 };
+    futureAll.forEach(function (r) { counts[scopeOf(r)]++; });
     el.__rcScope = scope;   /* 允许选中 0 条的分类（如海外），此时给出对应的空态而不是偷偷切回全部 */
-    var rowsF = scope === "all" ? rows : rows.filter(function (r) { return scopeOf(r) === scope; });
+    var byScope = function (rs) {
+      return scope === "all" ? rs : rs.filter(function (r) { return scopeOf(r) === scope; });
+    };
+    var futureRows = byScope(futureAll);   /* 主视图 = 未来（含今天） */
+    var pastRows = byScope(pastAll);       /* 底部折叠区 = 最近一周兜底（同受分类过滤） */
 
     var nR = 0, seen = {};
-    rowsF.forEach(function (r) { var k = raceKey(r); if (!seen[k]) { seen[k] = 1; nR++; } });
+    futureRows.forEach(function (r) { var k = raceKey(r); if (!seen[k]) { seen[k] = 1; nR++; } });
 
     var title = opts.title || (sire ? sire + " 产驹 · 近期出走" : "出走表 · 近期出走");
     /* 四个分类恒定展示（2026-11-07 用户要求：海外没有比赛也要有按钮）。
        计数为 0 的照样可点 —— 点进去是「暂无…」空态，比按钮直接消失更好理解。 */
-    var scopeHTML = rows.length
+    var scopeHTML = futureAll.length
       ? '<span class="rc-emb-scopes">' + SCOPES.map(function (x) {
           return '<button type="button" class="rc-emb-scope' + (x.k === scope ? " on" : "") +
             (counts[x.k] === 0 ? " is-zero" : "") +
@@ -884,14 +903,16 @@
       : "";
     var h = '<div class="rc-emb-head">' +
       '<span class="rc-emb-title">' + esc(title) + "</span>" +
-      '<span class="rc-emb-sum">共 <b>' + rowsF.length + "</b> 頭<i>·</i>" + nR + " R</span>" +
+      '<span class="rc-emb-sum">共 <b>' + futureRows.length + "</b> 頭<i>·</i>" + nR + " R</span>" +
       scopeHTML +
-      (opts.link !== false && base
+      /* 「Racing Calendar ↗」外链默认关闭（2026-11-11：MB/PC 两端都去掉——
+         兄弟站不想到处导流回本站；需要时宿主显式传 opts.link = true） */
+      (opts.link === true && base
         ? '<span class="rc-emb-home"><a href="' + esc(base + "/") + '" target="_blank" rel="noopener">Racing Calendar ↗</a></span>'
         : "") +
       "</div>";
 
-    if (!rowsF.length) {
+    if (!futureRows.length) {
       var scopeName = (SCOPES.filter(function (x) { return x.k === scope; })[0] || {}).label || "";
       h += '<div class="rc-emb-state"><div>窗口期内暂无' + (sire ? esc(sire) + " 产驹" : "") +
         (scope !== "all" ? "在" + esc(scopeName) + "的" : "的") + "出走记录</div></div>";
@@ -899,11 +920,8 @@
       return;
     }
 
-    var today = todayBJ();
-    var futureRows = rowsF.filter(function (r) { return r.date >= today; });
-    var pastRows = rowsF.filter(function (r) { return r.date < today; });
-    /* 彩衣：整批一条都没有（纯海外源 / 未覆盖马主）时整列不摆 —— 空列比缺列更费解 */
-    var withSilk = rowsF.some(function (r) { return !!r.silk; });
+    /* 彩衣：整批一条都没有（纯海外源 / 未覆盖马主，含折叠区）→ 整列不摆 —— 空列比缺列更费解 */
+    var withSilk = futureRows.concat(pastRows).some(function (r) { return !!r.silk; });
     var build = M.mode === "cards"
       ? function (rs) { return cardsHTML(rs, base); }
       : function (rs) { return tableHTML(rs, M.tier, base, withSilk); };
