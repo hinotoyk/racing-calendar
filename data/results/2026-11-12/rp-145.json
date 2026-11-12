@@ -1,0 +1,994 @@
+{
+  "schema": "rp.race.result/v1",
+  "date": "2026-11-12",
+  "track": "rp-145",
+  "trackId": "145",
+  "venue": "Vincennes",
+  "country": "FR",
+  "source": "sportinglife",
+  "updatedAt": "2026-11-12T14:34:12.575Z",
+  "races": [
+    {
+      "no": 1,
+      "raceKey": "948771",
+      "status": "result",
+      "heads": 16,
+      "resultHeads": 17,
+      "joined": 16,
+      "linked": 16,
+      "hasOdds": true,
+      "favouriteCloth": 2,
+      "stage": "WEIGHEDIN",
+      "winningTime": "2m 28.25s",
+      "nonRunners": [
+        {
+          "num": 17,
+          "name": "Midway Lady"
+        }
+      ],
+      "completeness": {
+        "heads": 16,
+        "rows": 16,
+        "numeric": 14,
+        "abnormal": 2,
+        "maxRank": 14,
+        "missingRanks": [],
+        "popCovered": 14,
+        "popTotal": 14,
+        "popRatio": 1,
+        "finishRatio": 0.875
+      },
+      "startTime": "12:55",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-12/vincennes/948771/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1124807",
+            "name": "Lombok Jiel"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "22/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1134128",
+            "name": "Frank Gio"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "5/6",
+          "time": "2m 28.25s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": null
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1127761",
+            "name": "Lionheart"
+          },
+          "finish": 12,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 13,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1159214",
+            "name": "Magic Night"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1193104",
+            "name": "Falco Killer Gar"
+          },
+          "finish": "未",
+          "abnormal": "未",
+          "abnormalReason": "Sporting Life 未公布原因",
+          "pop": 4,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1118183",
+            "name": "Liza Josselyn"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "4/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1167349",
+            "name": "Maitre Jacques"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 11,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1210283",
+            "name": "Bullet The Bluesky"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1133434",
+            "name": "L'as Desbois"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 12,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1143045",
+            "name": "Lancier Du Goutier"
+          },
+          "finish": "未",
+          "abnormal": "未",
+          "abnormalReason": "Sporting Life 未公布原因",
+          "pop": 5,
+          "winOdds": "11/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1165840",
+            "name": "Liberte De Choisel"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1147893",
+            "name": "Lord Du Bassin"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "9/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1166108",
+            "name": "Madrid Haufor"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 14,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245546",
+            "name": "Koogoo Gaagaa"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 16,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 15,
+          "frame": null,
+          "horse": {
+            "id": "rp:1188390",
+            "name": "Mila Des Couperies"
+          },
+          "finish": 13,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 14,
+          "winOdds": "100/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 16,
+          "frame": null,
+          "horse": {
+            "id": "rp:1147898",
+            "name": "L'ecrin D'or"
+          },
+          "finish": 14,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 14,
+          "winOdds": "100/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "raceKey": "948772",
+      "status": "result",
+      "heads": 14,
+      "resultHeads": 14,
+      "joined": 14,
+      "linked": 14,
+      "hasOdds": true,
+      "favouriteCloth": 10,
+      "stage": "WEIGHEDIN",
+      "winningTime": "3m 24.41s",
+      "nonRunners": [],
+      "completeness": {
+        "heads": 14,
+        "rows": 14,
+        "numeric": 14,
+        "abnormal": 0,
+        "maxRank": 14,
+        "missingRanks": [],
+        "popCovered": 14,
+        "popTotal": 14,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "13:30",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-12/vincennes/948772/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1132081",
+            "name": "Karina Josselyn"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1029407",
+            "name": "Intrigue De Viette"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1052860",
+            "name": "Giorgio Du Vivier"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 13,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1107761",
+            "name": "Jardin D'erable"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1002616",
+            "name": "Ivalo Du Bocage"
+          },
+          "finish": 12,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1047318",
+            "name": "Iquem Marvic"
+          },
+          "finish": 14,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1065086",
+            "name": "Ingenious Bond"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1130533",
+            "name": "Junon Des Roses"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "4/1",
+          "time": "3m 24.41s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1024117",
+            "name": "Iokina De Keryann"
+          },
+          "finish": 13,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 14,
+          "winOdds": "100/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1105770",
+            "name": "Klarck De Vandel"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "15/8",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": null
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1153867",
+            "name": "Iloviroiz Di Leone"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 12,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:967806",
+            "name": "Hokitolove"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1047321",
+            "name": "Illinois"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "2/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 14,
+          "frame": null,
+          "horse": {
+            "id": "rp:1037130",
+            "name": "Jackson Hill"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "7/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "raceKey": "948773",
+      "status": "result",
+      "heads": 12,
+      "resultHeads": 13,
+      "joined": 12,
+      "linked": 12,
+      "hasOdds": true,
+      "favouriteCloth": 13,
+      "stage": "WEIGHEDIN",
+      "winningTime": "3m 19.64s",
+      "nonRunners": [
+        {
+          "num": 2,
+          "name": "No One"
+        }
+      ],
+      "completeness": {
+        "heads": 12,
+        "rows": 12,
+        "numeric": 10,
+        "abnormal": 2,
+        "maxRank": 10,
+        "missingRanks": [],
+        "popCovered": 10,
+        "popTotal": 10,
+        "popRatio": 1,
+        "finishRatio": 0.833
+      },
+      "startTime": "14:05",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-12/vincennes/948773/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1241833",
+            "name": "Under Pressure"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1204605",
+            "name": "Nala De Smarves"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1203677",
+            "name": "Nina Time"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "14/1",
+          "time": "3m 19.64s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1220258",
+            "name": "Nissa La Bella"
+          },
+          "finish": "未",
+          "abnormal": "未",
+          "abnormalReason": "Sporting Life 未公布原因",
+          "pop": 7,
+          "winOdds": "18/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1209239",
+            "name": "Nord Americaine"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 12,
+          "winOdds": "80/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1203176",
+            "name": "New Wave"
+          },
+          "finish": "未",
+          "abnormal": "未",
+          "abnormalReason": "Sporting Life 未公布原因",
+          "pop": 8,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1207187",
+            "name": "Nafi De Reve D'or"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "9/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1206662",
+            "name": "Noire Intense"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "17/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1197770",
+            "name": "Nova Tim"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1199504",
+            "name": "Nacre Du Mouthieux"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "7/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1199502",
+            "name": "Nymphe D'elle"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": null
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1193096",
+            "name": "Nikki Beach Jisce"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "4/6",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": null
+        }
+      ]
+    }
+  ]
+}

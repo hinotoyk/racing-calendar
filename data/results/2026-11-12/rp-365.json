@@ -1,0 +1,709 @@
+{
+  "schema": "rp.race.result/v1",
+  "date": "2026-11-12",
+  "track": "rp-365",
+  "trackId": "365",
+  "venue": "Hereford",
+  "country": "ENG",
+  "source": "sportinglife",
+  "updatedAt": "2026-11-12T14:34:39.532Z",
+  "races": [
+    {
+      "no": 1,
+      "raceKey": "948181",
+      "status": "result",
+      "heads": 3,
+      "resultHeads": 4,
+      "joined": 3,
+      "linked": 3,
+      "hasOdds": true,
+      "favouriteCloth": 3,
+      "stage": "WEIGHEDIN",
+      "winningTime": "3m 54.89s",
+      "nonRunners": [
+        {
+          "num": 1,
+          "name": "Echo Valley"
+        }
+      ],
+      "completeness": {
+        "heads": 3,
+        "rows": 3,
+        "numeric": 3,
+        "abnormal": 0,
+        "maxRank": 3,
+        "missingRanks": [],
+        "popCovered": 3,
+        "popTotal": 3,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "12:30",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-12/hereford/948181/x",
+      "runners": [
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1203745",
+            "name": "Antiquarian"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Tracked front pair, pushed along after 4 out, no response and soon tailed off"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1208554",
+            "name": "Koala Rose"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "1/2",
+          "time": "3m 54.89s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Made all, wandered and green on approach to 2nd, forged on 4 out, well clear after 2 out, coasted home"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1218890",
+            "name": "Princess Of Habo"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "2/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Raced in second, awkward 4th, outpaced by leader and reminder 4 out, beaten after 2 out and eased"
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "raceKey": "948182",
+      "status": "result",
+      "heads": 12,
+      "resultHeads": 12,
+      "joined": 12,
+      "linked": 12,
+      "hasOdds": true,
+      "favouriteCloth": 1,
+      "stage": "WEIGHEDIN",
+      "winningTime": "3m 55.71s",
+      "nonRunners": [],
+      "completeness": {
+        "heads": 12,
+        "rows": 12,
+        "numeric": 11,
+        "abnormal": 1,
+        "maxRank": 11,
+        "missingRanks": [],
+        "popCovered": 11,
+        "popTotal": 11,
+        "popRatio": 1,
+        "finishRatio": 0.917
+      },
+      "startTime": "13:05",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-12/hereford/948182/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1190599",
+            "name": "Governors Rock"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "1/2",
+          "time": "3m 55.71s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Made all, cleared away after 2 out, kept on in canter"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243587",
+            "name": "Dressed Overall"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "125/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, never involved"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1228729",
+            "name": "Jaunty Trooper"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, hesitant 2nd, pushed along and weakened 2 out"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1215615",
+            "name": "Jersey Tex"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, not fluent 4 out, never in contention"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1210759",
+            "name": "Moscow Star"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "2/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Close up in second, not fluent 3rd, pushed along before 2 out, no match for winner after 2 out, plugged on"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1238598",
+            "name": "Sir Vinnie Kent"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 12,
+          "winOdds": "300/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, not fluent 4 out and dropped away, pulled up 2 out"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243591",
+            "name": "Unbelievable Jeff"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Rear mid-division, always well behind"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1196200",
+            "name": "Valenciaga"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore red hood to post, rear mid-division, minor headway 4 out, went modest fifth 3 out, untidy 2 out and pushed along, no response"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1221700",
+            "name": "Bonnie Lazarevic"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 11,
+          "winOdds": "200/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, bad mistake 2nd, awkward next, soon lost touch"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1164385",
+            "name": "Maria's Joy"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, weakened 2 out"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1178147",
+            "name": "Robin Blue Breast"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, jumped left throughout, never showed"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1227261",
+            "name": "Thetype Istitle"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "15/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, pushed along 2 out and soon held by front duo"
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "raceKey": "948183",
+      "status": "result",
+      "heads": 7,
+      "resultHeads": 7,
+      "joined": 7,
+      "linked": 7,
+      "hasOdds": true,
+      "favouriteCloth": 2,
+      "stage": "WEIGHEDIN",
+      "winningTime": "5m 24.07s",
+      "nonRunners": [],
+      "completeness": {
+        "heads": 7,
+        "rows": 7,
+        "numeric": 6,
+        "abnormal": 1,
+        "maxRank": 6,
+        "missingRanks": [],
+        "popCovered": 6,
+        "popTotal": 6,
+        "popRatio": 1,
+        "finishRatio": 0.857
+      },
+      "startTime": "13:40",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-12/hereford/948183/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1122941",
+            "name": "Lightning Flash"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Handy, lost position and pushed along before 2 out, soon beaten"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1179095",
+            "name": "Mr Jukebox"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "11/8",
+          "time": "5m 24.07s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Towards rear, closed 4 out, disputed third 3 out, led 2 out, drew clear on bridle before last, easily"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1180514",
+            "name": "Windsor Blue"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led narrowly, headed 2 out and pushed along, faded"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1164371",
+            "name": "City Of Diamonds"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=Fell",
+          "pop": 7,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, mistake 6th, fell 3 out"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1152338",
+            "name": "Person Of Interest"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, pushed along before 3 out, went second after 2 out, kept on but no chance with facile winner"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1172271",
+            "name": "Lydeard Girl"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Tracked leaders, mistake 6th, pushed along approaching 2 out, weakened home turn before last"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1209200",
+            "name": "Dublinofficecallin"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "9/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore red hood to post, in rear, not fluent 6th, plugged on from 2 out, took modest third approaching last"
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "raceKey": "948184",
+      "status": "result",
+      "heads": 5,
+      "resultHeads": 6,
+      "joined": 5,
+      "linked": 5,
+      "hasOdds": true,
+      "favouriteCloth": 1,
+      "stage": "WEIGHEDIN",
+      "winningTime": "6m 27.21s",
+      "nonRunners": [
+        {
+          "num": 2,
+          "name": "Cinnodin"
+        }
+      ],
+      "completeness": {
+        "heads": 5,
+        "rows": 5,
+        "numeric": 2,
+        "abnormal": 3,
+        "maxRank": 2,
+        "missingRanks": [],
+        "popCovered": 2,
+        "popTotal": 2,
+        "popRatio": 1,
+        "finishRatio": 0.4
+      },
+      "startTime": "14:15",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-12/hereford/948184/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1175122",
+            "name": "Oneinthewell"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 1,
+          "winOdds": "1/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Steadily improved in handicaps for a fine yard, opening his hurdles account at Market Rasen in July. Finished 10 lengths third of 15 in a Worcester novice final (2½m) that's working out very well last time. Interesting back up in trip, for all going right-handed is a slight niggle (jumps left). "
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1206762",
+            "name": "Elated"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "9/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Knocking on the door in maiden hurdles this season. Pipped in a weak mares race at Market Rasen (2m) on final start for Ben Pauling in late-September. In a stronger event on handicap/stable debut, though not out of the question she improves for the longer trip (dam fairly useful up to 3m)."
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1205281",
+            "name": "Alan Bresil"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=UnseatedRider",
+          "pop": 2,
+          "winOdds": "4/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Out-and-out stayer who is operating from a much reduced mark. Clearly benefited from the addition of blinkers recently, finishing third over C&D before filling the same position (beaten 2 lengths) at Huntingdon (25f) last time. Well weighted but may need a proper stamina test to capitalise. "
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1185041",
+            "name": "Lord Cauvelliere"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "5/1",
+          "time": "6m 27.21s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Point/bumper winner who has gone the wrong way over hurdles. Picked up the pieces in a well-run race when distant fourth here 2½m latest. Now 5 lb out of the weights and longer trip at least no harm for one who's been making hard work of it. Tongue strap also added. "
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1209356",
+            "name": "Wishful Wings"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 5,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Runner-up in an Irish point. Showed first real ability under Rules when beaten 6 lengths in first-time cheekpieces at Ludlow (21f) in April. Bred to stay this far but hard to be confident from well out of the handicap on return."
+        }
+      ]
+    }
+  ]
+}
