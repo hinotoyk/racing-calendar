@@ -551,6 +551,11 @@
       <li><b>指纹幂等</b>：赛事数 / 头数 / 每匹 <code>马ID:番号:枠番:性齢:彩衣URL:登录名:英文名</code> 全一致 → 跳过不写；
       枠順更新、性齢修正、彩衣补全、<b>马名权威化回写</b>都会触发重写；</li>
       <li><b>防截断</b>：<code>--limit / --tracks / --dates</code> 部分采集时，已存文档头数更多则不覆盖；</li>
+      <li><b>覆盖保护（<code>src/lib/guard.js</code>）</b>：写盘前按「旧文档 runners ↔ 本次 runners」判空壳（本次 0 头）与腰斩
+      （不足旧值 50% 且旧值 ≥5 头）→ 保留旧文档，日志 <code>[keep] …（空壳 / 腰斩）</code>；<code>--force</code> 一律放行；</li>
+      <li><b>非 entries 场次整段继承</b>：<code>result / pending</code> 场次不抓取，但上次快照里有该场出走马就整段沿用
+      （<code>keepPrev</code>，<code>status</code> 仍记当日页真值）—— 覆盖保护只在<b>整份文档</b>层面判据，
+      同文件里「部分场次已完赛、其余仍 entries」时总头数可能仍过半 → 会放过写入，此时按场次继承才不会清空已采到的枠順/馬番；</li>
       <li><b>彩衣继承</b>：采集重建 runner 时按 <code>(raceNo, horseId)</code> 继承已有彩衣（<code>inheritSilk</code>），防止把回填结果冲掉；</li>
       <li><b>旧明文迁移</b>：兼容读 <code>.json</code>，写后删除旧明文，统一 gzip；</li>
       <li><b>二进制保护</b>：<code>.gitattributes</code> 锁定 <code>*.gz / *.png / *.gif</code> 与 <code>data/races/**</code>、<code>data/silks/**</code> 为 binary，
@@ -622,7 +627,7 @@
     <table>
       <tr><th>档 / workflow</th><th>触发（cron 按 UTC）</th><th>动作</th><th>step 超时</th></tr>
       <tr><td><span class="kbd">北京 02:00</span> 全量 · <code>update-data.yml</code></td><td><code>cron 0 18 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 120 / 15 min</td></tr>
-      <tr><td><span class="kbd">北京 12:00</span> 补采 · <code>update-jbis.yml</code></td><td><code>cron 0 4 * * *</code> / 手动 dispatch</td><td>仅 collect-races（枠番/馬番通常前日傍晚公布）→ build</td><td>80 / 15 min</td></tr>
+      <tr><td><span class="kbd">北京 12:00</span> 补采 · <code>update-jbis.yml</code></td><td><code>cron 0 4 * * *</code> / 手动 dispatch</td><td>仅 <code>backfill-waku.js --days 2</code>（整表缺失 → 重建；缺号 → 本地 <code>data/results</code> 终态号 / 馬番→枠番 推导优先，仍缺才抓 1 次出馬表）→ 有变化才 build。全完整时 0 请求 0 写盘，无变化不 build/提交/部署</td><td>30 / 15 min</td></tr>
     </table>
     <ul>
       <li>两档<b>拆成独立 workflow</b>：各自独立调度 / 手动触发 / run 历史，诊断分别带与不带 <code>--rp</code>；共用 <code>concurrency: group: pages</code> 串行发布；</li>
@@ -631,14 +636,14 @@
       <li><b>分级闸门（全量档）</b>：<code>shell: bash</code> + <code>PIPESTATUS</code> 抓真实退出码，写 <code>test-logs/rp-verdict.txt</code>（默认 FAIL，正常收尾才覆盖 OK）；gate 读 <code>verdict.txt</code> + <code>rp-verdict.txt</code>，任一 FAIL 标红。deploy-pages 在 gate 之前 → <b>只报警不拦发布</b>，保留 <code>continue-on-error</code> 以免 RP 挂了把 JBIS 数据一起丢掉；</li>
       <li>提交前 <code>git pull --rebase</code>，冲突则放弃本次数据提交（下次调度自动重算）；无变化跳过提交；</li>
       <li>artifact：<code>update-full-log-&lt;run_id&gt;</code> / <code>update-jbis-log-&lt;run_id&gt;</code>，内含 <code>test-logs/</code> + <code>data/logs/requests-*.jsonl</code>，保留 <b>30 天</b>，<code>if: always()</code>；</li>
-      <li>缓存包随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求；<b>回填脚本（⑨）不在 CI 里跑</b>，避免长链路阻塞每日两档的发布窗口。</li>
+      <li>缓存包随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求；<b>回填脚本（⑨）除 <code>backfill-waku.js</code>（12:00 补采档）外都不在 CI 里跑</b>，避免长链路阻塞每日两档的发布窗口。</li>
     </ul>
   </div>
 </section>
 
 <!-- ================= ⑨ backfill ================= -->
 <section id="backfill">
-  <h2><span class="no">⑨</span> 回填脚本族（本地运维，CI 不跑）</h2>
+  <h2><span class="no">⑨</span> 回填脚本族（本地运维；仅 <code>backfill-waku</code> 由 CI 12:00 档执行）</h2>
 
   <div class="note">
     <b>为什么需要单独一层</b>：日常采集只覆盖「当前窗口内的出馬表」，而三类数据只能事后补 ——
@@ -651,6 +656,7 @@
     <h3>四个脚本与执行顺序</h3>
     <table>
       <tr><th>#</th><th>脚本</th><th>补什么</th><th>典型命令</th><th>缓存</th></tr>
+      <tr><td>0</td><td><code>backfill-waku.js</code></td><td><b>枠番/馬番 轻量补采</b>（唯一随 CI 每日 12:00 跑的）：整表缺失 → 抓 1 次出馬表重建、马名/父父/彩衣全走缓存；缺号 → <code>data/results</code> 终态号 + 馬番→枠番 推导优先，仍缺才抓 1 次；只填 null，不覆盖、不改人马构成</td><td><code>node src/backfill-waku.js [--days 2] [--dates …] [--tracks …] [--delay 1200] [--dry] [--limit N]</code></td><td><code>jbis-name</code> / <code>jbis-sire</code> / <code>wf-*</code> / <code>data/results</code></td></tr>
       <tr><td>1</td><td><code>backfill-names.js</code></td><td>出馬表显示名 → JBIS 登录名 + <code>nameJp/nameEn/country/foaled</code></td><td><code>node src/backfill-names.js [--dates …] [--tracks …] [--name-conc 1] [--name-delay 1200] [--limit-docs N] [--dry]</code></td><td><code>jbis-name.json</code></td></tr>
       <tr><td>2</td><td><code>backfill-silks-v4.js</code></td><td>日本源彩衣（⓪ 马主级 → ① netkeiba → ② winfinal）</td><td><code>node src/backfill-silks-v4.js [--dates …] [--tracks 236,105] [--delay 1200] [--no-clear]</code></td><td><code>nk-owner</code> / <code>nk-owner-v3</code> / <code>nk-map</code> / <code>wf-*</code></td></tr>
       <tr><td>3</td><td><code>backfill-silks-rp.js</code></td><td>欧美源彩衣（重抓历史 racecard 取 <code>silk_filename</code>）</td><td><code>node src/backfill-silks-rp.js [--dates …] [--tracks FNT,ASC] [--delay 600] [--limit-docs N] [--dry] [--no-image]</code></td><td><code>sl-silk.json</code></td></tr>
