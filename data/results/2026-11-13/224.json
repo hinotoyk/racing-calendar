@@ -1,0 +1,251 @@
+{
+  "schema": "jbis.race.result/v1",
+  "date": "2026-11-13",
+  "track": "224",
+  "venue": "名古屋",
+  "scope": "local",
+  "source": "netkeiba",
+  "updatedAt": "2026-11-13T03:59:33.976Z",
+  "races": [
+    {
+      "no": 1,
+      "raceKey": "20261113/224/01",
+      "nkRaceId": "202648111301",
+      "idVia": "built",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 11,
+      "joined": 11,
+      "linked": 11,
+      "byNumHit": 11,
+      "byNameHit": 0,
+      "shutubaNames": 22,
+      "startTime": "12:30",
+      "sourceUrl": "https://nar.netkeiba.com/race/result.html?race_id=202648111301",
+      "template": "All_Result_Table",
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 11,
+        "abnormal": 0,
+        "maxRank": 11,
+        "missingRanks": [],
+        "popCovered": 11,
+        "popTotal": 11,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "runners": [
+        {
+          "num": 1,
+          "frame": 1,
+          "horse": {
+            "id": "0001354460",
+            "name": "ロイヤルイブキ",
+            "nkId": "2022101511"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "time": "0:56.6",
+          "margin": "クビ",
+          "passing": null,
+          "last3f": 37.5,
+          "pop": 1,
+          "winOdds": 2.1,
+          "bodyWeight": 497,
+          "bodyDelta": 11
+        },
+        {
+          "num": 2,
+          "frame": 2,
+          "horse": {
+            "id": "0001354784",
+            "name": "スイートゥンビター",
+            "nkId": "2022103141"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "time": "0:58.1",
+          "margin": "クビ",
+          "passing": null,
+          "last3f": 38.2,
+          "pop": 11,
+          "winOdds": 183.1,
+          "bodyWeight": 455,
+          "bodyDelta": 3
+        },
+        {
+          "num": 3,
+          "frame": 3,
+          "horse": {
+            "id": "0001378222",
+            "name": "ニキータ",
+            "nkId": "2023101879"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "time": "0:58.1",
+          "margin": "1.1/2",
+          "passing": null,
+          "last3f": 38.3,
+          "pop": 5,
+          "winOdds": 28.2,
+          "bodyWeight": 459,
+          "bodyDelta": -5
+        },
+        {
+          "num": 4,
+          "frame": 4,
+          "horse": {
+            "id": "0001332253",
+            "name": "ウォーオブサウンド",
+            "nkId": "2021103284"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "time": "0:57.8",
+          "margin": "1.1/2",
+          "passing": null,
+          "last3f": 37.1,
+          "pop": 8,
+          "winOdds": 66.5,
+          "bodyWeight": 524,
+          "bodyDelta": 4
+        },
+        {
+          "num": 5,
+          "frame": 5,
+          "horse": {
+            "id": "0001378303",
+            "name": "ブールドネージュ",
+            "nkId": "2023106591"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "time": "0:57.2",
+          "margin": "3",
+          "passing": null,
+          "last3f": 37.5,
+          "pop": 6,
+          "winOdds": 33.3,
+          "bodyWeight": 451,
+          "bodyDelta": 0
+        },
+        {
+          "num": 6,
+          "frame": 6,
+          "horse": {
+            "id": "0001374503",
+            "name": "ノーブルスナイパー",
+            "nkId": "2023106710"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "time": "0:57.2",
+          "margin": "アタマ",
+          "passing": null,
+          "last3f": 36.8,
+          "pop": 3,
+          "winOdds": 7.5,
+          "bodyWeight": 463,
+          "bodyDelta": 3
+        },
+        {
+          "num": 7,
+          "frame": 6,
+          "horse": {
+            "id": "0001335511",
+            "name": "アブソリュート",
+            "nkId": "2021100459"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "time": "0:57.5",
+          "margin": "1",
+          "passing": null,
+          "last3f": 36.8,
+          "pop": 7,
+          "winOdds": 65,
+          "bodyWeight": 497,
+          "bodyDelta": 6
+        },
+        {
+          "num": 8,
+          "frame": 7,
+          "horse": {
+            "id": "0001359643",
+            "name": "シャインモノリス",
+            "nkId": "2022104417"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "time": "0:57.3",
+          "margin": "3/4",
+          "passing": null,
+          "last3f": 37,
+          "pop": 10,
+          "winOdds": 129.8,
+          "bodyWeight": 463,
+          "bodyDelta": -2
+        },
+        {
+          "num": 9,
+          "frame": 7,
+          "horse": {
+            "id": "0001360532",
+            "name": "エクメノポリス",
+            "nkId": "2022107298"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "time": "0:58.5",
+          "margin": "2",
+          "passing": null,
+          "last3f": 37.8,
+          "pop": 9,
+          "winOdds": 84.5,
+          "bodyWeight": 492,
+          "bodyDelta": 2
+        },
+        {
+          "num": 10,
+          "frame": 8,
+          "horse": {
+            "id": "0001360132",
+            "name": "トレジャービート",
+            "nkId": "2022103826"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "time": "0:56.6",
+          "margin": "3",
+          "passing": null,
+          "last3f": 37.6,
+          "pop": 2,
+          "winOdds": 2.4,
+          "bodyWeight": 483,
+          "bodyDelta": 1
+        },
+        {
+          "num": 11,
+          "frame": 8,
+          "horse": {
+            "id": "0001357609",
+            "name": "バウアピアーズ",
+            "nkId": "2022101770"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "time": "0:55.9",
+          "margin": null,
+          "passing": null,
+          "last3f": 36.3,
+          "pop": 4,
+          "winOdds": 8.1,
+          "bodyWeight": 505,
+          "bodyDelta": 3
+        }
+      ]
+    }
+  ]
+}
