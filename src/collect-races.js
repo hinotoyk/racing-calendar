@@ -173,7 +173,13 @@ async function collectTrack(date, track, dayHtml, existing) {
   };
 
   for (const race of races) {
-    const rec = { ...race, runners: [], status: race.status };
+    const prev = existing?.races?.find((r) => r.no === race.no) ?? null;
+    // 本次不抓的场次（已出结果 / 头数未公布）沿用上次采到的出走马：
+    // 否则在比赛日中途手动重跑（或补采档误用本脚本）时，当天上午已完赛的场次会以
+    // runners=[] 覆盖旧文档，已采到的枠順/馬番 被清空。status 仍记当日页真值，不伪造成 entries。
+    const keepPrev = race.status !== "entries" && prev?.runners?.length;
+    const rec = { ...race, runners: keepPrev ? prev.runners : [], status: race.status };
+    if (keepPrev) rec.heads = prev.heads ?? race.heads;
     if (race.status === "entries" && (!LIMIT || out.races.length < LIMIT)) {
       const rr = String(race.no).padStart(2, "0");
       let html = await fetchHtmlSoft(`https://www.jbis.or.jp/race/${ymd(date)}/${track}/${rr}/`);
@@ -201,12 +207,20 @@ async function collectTrack(date, track, dayHtml, existing) {
         }
         // ② 彩衣：netkeiba 优先（马名+生年唯一性）→ winfinal 兜底
         await enrichSilks(date, track, rec);
+      } else if (prev?.runners?.length) {
+        // 两条路径都取不到（404 / 403 限流 / 模板改版）：沿用旧骨架，不写空壳。
+        // 番号的增量补采由 backfill-waku.js（12:00 档）负责，这里只保证不丢已有数据。
+        rec.runners = prev.runners.map((x) => ({ ...x }));
+        rec.heads = prev.heads ?? race.heads;
+        console.log(`[keep] ${date} ${track} ${race.no}R 出馬表缺页，沿用旧骨架 ${rec.runners.length} 頭`);
       } else {
         rec.status = "pending";
       }
     }
     out.races.push(rec);
   }
+  // 彩衣继承：重采重建 runner 时不要把 backfill-silks 回填的彩衣丢掉（原先定义未接线）
+  inheritSilk(existing, out);
   return out;
 }
 
