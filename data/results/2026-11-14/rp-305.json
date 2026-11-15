@@ -1,0 +1,1563 @@
+{
+  "schema": "rp.race.result/v1",
+  "date": "2026-11-14",
+  "track": "rp-305",
+  "trackId": "305",
+  "venue": "Cheltenham",
+  "country": "ENG",
+  "source": "sportinglife",
+  "updatedAt": "2026-11-15T04:40:58.216Z",
+  "races": [
+    {
+      "no": 1,
+      "raceKey": "948532",
+      "status": "result",
+      "heads": 9,
+      "resultHeads": 12,
+      "joined": 9,
+      "linked": 9,
+      "hasOdds": true,
+      "favouriteCloth": 4,
+      "stage": "WEIGHEDIN",
+      "winningTime": "6m 29.37s",
+      "nonRunners": [
+        {
+          "num": 2,
+          "name": "Transmission"
+        },
+        {
+          "num": 9,
+          "name": "Top Guy"
+        },
+        {
+          "num": 10,
+          "name": "Jaccours"
+        }
+      ],
+      "completeness": {
+        "heads": 9,
+        "rows": 9,
+        "numeric": 8,
+        "abnormal": 1,
+        "maxRank": 8,
+        "missingRanks": [],
+        "popCovered": 8,
+        "popTotal": 8,
+        "popRatio": 1,
+        "finishRatio": 0.889
+      },
+      "startTime": "12:35",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-14/cheltenham/948532/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1049820",
+            "name": "Herakles Westwood"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "15/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore red hood to post, tracked leaders, led before 9th, headed next and pressed leader, not fluent 15th, pushed along and dropped away 3 out"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1093944",
+            "name": "Sound And Fury"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=UnseatedRider",
+          "pop": 8,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Close up, hampered and unseated rider 2nd"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1166539",
+            "name": "Little Ledgend"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "5/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Rear mid-division, headway after 4 out, went second after 3 out, pressed leader 2 out, pushed along before last, not pace of winner run-in"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1150633",
+            "name": "Karnaval Point"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "4/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, mid-division 7th, pushed along 3 out, no response"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1095877",
+            "name": "Our Soldier"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, mid-division 5th, pushed along 4 out and gradually weakened"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1057219",
+            "name": "Dinoland"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "4/1",
+          "time": "6m 29.37s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent, mistake 1st, led 10th, mistake 13th, not fluent next, faced challenge 2 out, stayed on strongly and drew away flat"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1051095",
+            "name": "Brucejack"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, jumped right 2nd, headed before 9th, remained handy, pushed along after 3 out, no impression on front duo"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1040987",
+            "name": "Awaythelad"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, closed before 5th, tracked front pair 8th, lost position approaching 3 out, plugged on"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1160494",
+            "name": "Ladies Well"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "11/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, slow 6th and in rear, closed after 4 out, pushed along 3 out, took fourth before 2 out, one pace"
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "raceKey": "948533",
+      "status": "result",
+      "heads": 8,
+      "resultHeads": 9,
+      "joined": 8,
+      "linked": 8,
+      "hasOdds": true,
+      "favouriteCloth": 2,
+      "stage": "WEIGHEDIN",
+      "winningTime": "3m 54.80s",
+      "nonRunners": [
+        {
+          "num": 8,
+          "name": "Mix Match"
+        }
+      ],
+      "completeness": {
+        "heads": 8,
+        "rows": 8,
+        "numeric": 7,
+        "abnormal": 1,
+        "maxRank": 7,
+        "missingRanks": [],
+        "popCovered": 7,
+        "popTotal": 7,
+        "popRatio": 1,
+        "finishRatio": 0.875
+      },
+      "startTime": "13:10",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-14/cheltenham/948533/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1197826",
+            "name": "Admiral Will Brown"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "4/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, pushed along and every chance before last, ridden and hung right whilst fading run-in"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1204832",
+            "name": "Atomic City"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "11/10",
+          "time": "3m 54.80s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Wore red hood to post, towards rear, closed 3 out travelling strongly, disputed third 2 out, ridden and led 1f out run-in, won going away"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1212601",
+            "name": "Charles Darnay"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "3/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore red hood to post, mid-division, headway before 3 out, pushed along and led after 2 out, headed 1f out run-in, no extra"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1222044",
+            "name": "Confused"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, mistake 2nd, ridden 3 out, beaten 2 out"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1217674",
+            "name": "Don Dandy"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "11/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore red hood to post, tracked leaders, not fluent 4th, dropped away tamely before 3 out, pushed along after 2 out and rallied, stayed on well run-in and went third inside final 110yds, nearest finish"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1190769",
+            "name": "Electrical"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Very keen early and led, headed after 2nd, close up, slow next, pushed along and weakened after 3 out"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1200710",
+            "name": "Magnetude"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "17/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Handy, led after 2nd, pushed along and headed after 2 out, weakened before last"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1200719",
+            "name": "Tiny Riot"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 8,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, detached by 3rd, pulled up before 3 out"
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "raceKey": "948534",
+      "status": "result",
+      "heads": 5,
+      "resultHeads": 7,
+      "joined": 5,
+      "linked": 5,
+      "hasOdds": true,
+      "favouriteCloth": 6,
+      "stage": "WEIGHEDIN",
+      "winningTime": "3m 53.34s",
+      "nonRunners": [
+        {
+          "num": 1,
+          "name": "Kabral Du Mathan"
+        },
+        {
+          "num": 3,
+          "name": "Old Park Star"
+        }
+      ],
+      "completeness": {
+        "heads": 5,
+        "rows": 5,
+        "numeric": 4,
+        "abnormal": 1,
+        "maxRank": 4,
+        "missingRanks": [],
+        "popCovered": 4,
+        "popTotal": 4,
+        "popRatio": 1,
+        "finishRatio": 0.8
+      },
+      "startTime": "13:45",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-14/cheltenham/948534/x",
+      "runners": [
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1144562",
+            "name": "Newtown Rambler"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=Fell",
+          "pop": 5,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Tracked leaders, fell 2nd"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1186381",
+            "name": "Passing Diamond"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "13/2",
+          "time": "3m 53.34s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, hit 1st, not fluent and headed 2 out, soon pushed along in second, rallied run-in and led again final 110yds, stayed on gamely"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1138180",
+            "name": "Putapoundinthejar"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "9/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, slow 7th, closed up next, chased leaders, weakened before 2 out"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1163912",
+            "name": "Workahead"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "10/11",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Handy in second, mistake 6th, pushed along before 2 out where led, ridden and re-challenged run-in, headed 110yds out and no extra"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1179701",
+            "name": "Folie Golith"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "4/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, closed up 7th, headway before 2 out, pushed along before last, ridden run-in and not pace to challenge"
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "raceKey": "946551",
+      "status": "result",
+      "heads": 10,
+      "resultHeads": 15,
+      "joined": 10,
+      "linked": 10,
+      "hasOdds": true,
+      "favouriteCloth": 3,
+      "stage": "WEIGHEDIN",
+      "winningTime": "4m 52.36s",
+      "nonRunners": [
+        {
+          "num": 2,
+          "name": "Madara"
+        },
+        {
+          "num": 12,
+          "name": "Norn Iron"
+        },
+        {
+          "num": 4,
+          "name": "Johnnywho"
+        },
+        {
+          "num": 7,
+          "name": "July Flower"
+        },
+        {
+          "num": 10,
+          "name": "Guard Your Dreams"
+        }
+      ],
+      "completeness": {
+        "heads": 10,
+        "rows": 10,
+        "numeric": 8,
+        "abnormal": 2,
+        "maxRank": 8,
+        "missingRanks": [],
+        "popCovered": 8,
+        "popTotal": 8,
+        "popRatio": 1,
+        "finishRatio": 0.8
+      },
+      "startTime": "14:20",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-14/cheltenham/946551/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1057190",
+            "name": "Matata"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, chased leaders 3rd, slow 8th, pushed along after 3 out, stayed on one pace from 2 out"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1166775",
+            "name": "Meetmebythesea"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "2/1",
+          "time": "4m 52.36s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Pressed leader, led 3 out, pushed along and faced challenge before 2 out, stumbled last, ridden run-in and stayed on resolutely to forge away 110yds out"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1054806",
+            "name": "Blueking D'oroux"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "10/3",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, chased leaders 3rd, pressed leader before 2 out, every chance when hit last, ridden run-in and no extra final 110yds"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1041741",
+            "name": "Riskintheground"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 9,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, pushed along after 4 out and tailed off, pulled up 2 out"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1128814",
+            "name": "Quebecois"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led but pestered, hit 5th, headed 3 out, pushed along before 2 out, faded before last"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1042485",
+            "name": "O'Moore Park"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, pushed along and weakened 3 out"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1110914",
+            "name": "Zurich"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "8/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, towards rear 3rd, pushed along before 4 out and lost touch"
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1123101",
+            "name": "Release The Beast"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 4,
+          "winOdds": "15/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, mistake 4th, blundered 4 out and lost ground, tailed off and pulled up before next"
+        },
+        {
+          "num": 14,
+          "frame": null,
+          "horse": {
+            "id": "rp:1081572",
+            "name": "Torneo"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Handy, pushed along before 2 out,stayed on but no real impression on front duo before last"
+        },
+        {
+          "num": 15,
+          "frame": null,
+          "horse": {
+            "id": "rp:1173064",
+            "name": "Dunkerque"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, mid-division 3rd, pushed along and weakened before 2 out"
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "raceKey": "948535",
+      "status": "result",
+      "heads": 10,
+      "resultHeads": 16,
+      "joined": 10,
+      "linked": 10,
+      "hasOdds": true,
+      "favouriteCloth": 16,
+      "stage": "WEIGHEDIN",
+      "winningTime": "5m 50.22s",
+      "nonRunners": [
+        {
+          "num": 1,
+          "name": "Ace Of Spades"
+        },
+        {
+          "num": 6,
+          "name": "Wonderful Eagle"
+        },
+        {
+          "num": 11,
+          "name": "Geezer Rockstar"
+        },
+        {
+          "num": 10,
+          "name": "Gold For Alec"
+        },
+        {
+          "num": 15,
+          "name": "Moon Mission"
+        },
+        {
+          "num": 4,
+          "name": "Horaces Pearl"
+        }
+      ],
+      "completeness": {
+        "heads": 10,
+        "rows": 10,
+        "numeric": 10,
+        "abnormal": 0,
+        "maxRank": 10,
+        "missingRanks": [],
+        "popCovered": 10,
+        "popTotal": 10,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "14:55",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-14/cheltenham/948535/x",
+      "runners": [
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1118807",
+            "name": "Sir Galahad"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Rear mid-division, ridden 3 out, awkward 2 out, plenty to do when stayed on well before last, never nearer"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1041916",
+            "name": "Rambo T"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "7/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, never involved"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1058398",
+            "name": "Lucky Lyreen"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, hit 5th and headed, remained in second, lost position before 2 out, stayed on same pace"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1055711",
+            "name": "Blizzard Of Oz"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, slow 8th and pushed along, soon lost touch"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1058393",
+            "name": "Ifiwerearichman"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "4/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Rear mid-division, closed 8th, disputed third 4 out, pushed along and weakened before last"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:983371",
+            "name": "Margaret's Legacy"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led into start, very slow to jump off, mid-division by 3rd, pushed along before 3 out, soon beaten"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1047878",
+            "name": "Hartur D'arc"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, mistake 6th and reminder, lost ground and pushed along after 2 out, tailed off"
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1019171",
+            "name": "Black Bamboo"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "12/1",
+          "time": "5m 50.22s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Close up, led 5th, not fluent 7th, mistake 2 out, pushed along before last where headed narrowly, stayed on gamely and led again final 110yds forging away"
+        },
+        {
+          "num": 14,
+          "frame": null,
+          "horse": {
+            "id": "rp:1058168",
+            "name": "Aimeric"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, improved 8th, disputed third 4 out, hit 2 out and found nil"
+        },
+        {
+          "num": 16,
+          "frame": null,
+          "horse": {
+            "id": "rp:1203161",
+            "name": "William Yeats"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "3/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Mid-division, headway before 3 out, went third 2 out, soon chased leader, led narrowly last, ridden run-in and headed final 110yds, no extra"
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "raceKey": "948536",
+      "status": "result",
+      "heads": 6,
+      "resultHeads": 13,
+      "joined": 6,
+      "linked": 6,
+      "hasOdds": true,
+      "favouriteCloth": 1,
+      "stage": "WEIGHEDIN",
+      "winningTime": "5m 5.16s",
+      "nonRunners": [
+        {
+          "num": 11,
+          "name": "Emerald Breeze"
+        },
+        {
+          "num": 6,
+          "name": "Grand Conqueror"
+        },
+        {
+          "num": 8,
+          "name": "Caspari"
+        },
+        {
+          "num": 2,
+          "name": "Moneygarrow"
+        },
+        {
+          "num": 4,
+          "name": "A King Of Magic"
+        },
+        {
+          "num": 7,
+          "name": "Luck Between Us"
+        },
+        {
+          "num": 12,
+          "name": "Guchen"
+        }
+      ],
+      "completeness": {
+        "heads": 6,
+        "rows": 6,
+        "numeric": 5,
+        "abnormal": 1,
+        "maxRank": 5,
+        "missingRanks": [],
+        "popCovered": 5,
+        "popTotal": 5,
+        "popRatio": 1,
+        "finishRatio": 0.833
+      },
+      "startTime": "15:30",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-14/cheltenham/948536/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1204837",
+            "name": "Daylatedollarshort"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "11/8",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Wore hood to post, held up in touch, chased leaders 3rd, ridden approaching last, stayed on flat, just failed for second"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1129736",
+            "name": "Open Secret"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "22/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, pushed along before 2 out, weakened before last"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1206378",
+            "name": "Seamoon Story"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, hung right from 4th, headed after 7th, hung badly right on bend before 3 out, ridden before last, hung left and rallied after last, no extra final 50yds"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1202517",
+            "name": "Hillberry Hill"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "3/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent, led after 7th, pushed along before 2 out, ridden before last where jumped left and awkward, headed flat, no extra final 50yds, just held second"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1169174",
+            "name": "Sunny South West"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "4/1",
+          "time": "5m 5.16s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in touch, not fluent 7th, headway before 2 out, went second before last, ridden to lead flat, asserted final 50yds"
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1173079",
+            "name": "Give Him A Chance"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=UnseatedRider",
+          "pop": 5,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in rear, ridden 2 out, well held when went wrong and unseated rider last"
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "raceKey": "948537",
+      "status": "result",
+      "heads": 10,
+      "resultHeads": 15,
+      "joined": 10,
+      "linked": 10,
+      "hasOdds": true,
+      "favouriteCloth": 3,
+      "stage": "WEIGHEDIN",
+      "winningTime": "3m 53.74s",
+      "nonRunners": [
+        {
+          "num": 5,
+          "name": "Island Jetaway"
+        },
+        {
+          "num": 12,
+          "name": "Queen Alice"
+        },
+        {
+          "num": 8,
+          "name": "Miss Spec"
+        },
+        {
+          "num": 9,
+          "name": "Northern Singer"
+        },
+        {
+          "num": 11,
+          "name": "Pether's Angel"
+        }
+      ],
+      "completeness": {
+        "heads": 10,
+        "rows": 10,
+        "numeric": 10,
+        "abnormal": 0,
+        "maxRank": 10,
+        "missingRanks": [],
+        "popCovered": 10,
+        "popTotal": 10,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "16:00",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-14/cheltenham/948537/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1201787",
+            "name": "Clovelly Charm"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, lost position just after halfway, towards rear, pushed along 3f out, ran on over 1f out, took fourth closing stages"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1241869",
+            "name": "Eastern Whisper"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "11/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, closer 4f out, went third and pushed along over 2f out, stayed on but no match for winner inside final 110yds"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1233714",
+            "name": "Elegantemente"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "15/8",
+          "time": "3m 53.74s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Prominent, pushed along and led over 2f out, ridden over 1f out, stayed on well and asserted final 110yds"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1240898",
+            "name": "Gypsy Sky"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, pushed along over 2f out, no progress"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245341",
+            "name": "Kshira Sagara"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, pushed along 2f out, no response"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245342",
+            "name": "Miss Master"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore red hood to post, mid-division, pushed along over 2f out, stayed on same pace"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245343",
+            "name": "Orderandout"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Tracked leaders, pushed along and weakened tamely over 2f out"
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245344",
+            "name": "Sarah's Sister"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Front mid-division, closer 4f out, pushed along over 2f out, soon held"
+        },
+        {
+          "num": 14,
+          "frame": null,
+          "horse": {
+            "id": "rp:1233419",
+            "name": "She Was The One"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "15/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, pushed along and headed over 2f out, weakened 1f out"
+        },
+        {
+          "num": 15,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243073",
+            "name": "Soleretta"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "5/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Wore red hood to post, towards rear, smooth headway over 3f out, moved into third and switched left well over 1f out, stayed on, always held"
+        }
+      ]
+    }
+  ]
+}
