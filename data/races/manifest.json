@@ -1,6 +1,6 @@
 {
   "schema": "jbis.race.manifest/v1",
-  "updatedAt": "2026-11-14T23:13:02.906Z",
+  "updatedAt": "2026-11-15T23:27:31.607Z",
   "dates": {
     "2026-10-24": {
       "104": {
@@ -4181,11 +4181,11 @@
         "scope": "overseas",
         "timeZone": "Europe/London",
         "localTimeZone": "America/New_York",
-        "races": 2,
-        "decoded": 0,
-        "runners": 0,
-        "status": "pending",
-        "capturedAt": "2026-11-14T23:13:02.906Z"
+        "races": 7,
+        "decoded": 7,
+        "runners": 50,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.598Z"
       },
       "rp:51": {
         "source": "racingpost",
@@ -4199,6 +4199,162 @@
         "runners": 0,
         "status": "pending",
         "capturedAt": "2026-11-14T23:13:02.906Z"
+      },
+      "rp:305": {
+        "source": "racingpost",
+        "venue": "Cheltenham",
+        "country": "ENG",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "Europe/London",
+        "races": 6,
+        "decoded": 6,
+        "runners": 79,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.573Z"
+      },
+      "rp:358": {
+        "source": "racingpost",
+        "venue": "Fontwell",
+        "country": "ENG",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "Europe/London",
+        "races": 6,
+        "decoded": 6,
+        "runners": 65,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.576Z"
+      },
+      "rp:355": {
+        "source": "racingpost",
+        "venue": "Navan",
+        "country": "Eire",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "Europe/Dublin",
+        "races": 8,
+        "decoded": 8,
+        "runners": 123,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.580Z"
+      },
+      "rp:75": {
+        "source": "racingpost",
+        "venue": "Auteuil",
+        "country": "FR",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "Europe/Paris",
+        "races": 8,
+        "decoded": 8,
+        "runners": 95,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.583Z"
+      },
+      "rp:970": {
+        "source": "racingpost",
+        "venue": "Beaumont-De-Lomagne",
+        "country": "FR",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "Europe/Paris",
+        "races": 5,
+        "decoded": 5,
+        "runners": 67,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.585Z"
+      },
+      "rp:963": {
+        "source": "racingpost",
+        "venue": "Laval",
+        "country": "FR",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "Europe/Paris",
+        "races": 8,
+        "decoded": 8,
+        "runners": 105,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.589Z"
+      },
+      "rp:122": {
+        "source": "racingpost",
+        "venue": "Toulouse",
+        "country": "FR",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "Europe/Paris",
+        "races": 8,
+        "decoded": 8,
+        "runners": 81,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.591Z"
+      },
+      "rp:176": {
+        "source": "racingpost",
+        "venue": "Belmont Park",
+        "country": "USA",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "America/New_York",
+        "races": 8,
+        "decoded": 8,
+        "runners": 63,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.593Z"
+      },
+      "rp:249": {
+        "source": "racingpost",
+        "venue": "Churchill Downs",
+        "country": "USA",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "America/New_York",
+        "races": 10,
+        "decoded": 10,
+        "runners": 100,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.596Z"
+      },
+      "rp:187": {
+        "source": "racingpost",
+        "venue": "Gulfstream",
+        "country": "USA",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "America/New_York",
+        "races": 11,
+        "decoded": 11,
+        "runners": 94,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.601Z"
+      },
+      "rp:39": {
+        "source": "racingpost",
+        "venue": "Laurel Park",
+        "country": "USA",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "America/New_York",
+        "races": 10,
+        "decoded": 10,
+        "runners": 113,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.604Z"
+      },
+      "rp:911": {
+        "source": "racingpost",
+        "venue": "Woodbine",
+        "country": "USA",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "America/Toronto",
+        "races": 11,
+        "decoded": 11,
+        "runners": 79,
+        "status": "ok",
+        "capturedAt": "2026-11-15T23:27:31.607Z"
       }
     },
     "2026-11-16": {
@@ -4209,7 +4365,7 @@
         "decoded": 12,
         "runners": 134,
         "status": "ok",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "capturedAt": "2026-11-16T00:00:00+09:00"
       },
       "220": {
         "venue": "大井",
@@ -4218,7 +4374,7 @@
         "decoded": 12,
         "runners": 144,
         "status": "ok",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "capturedAt": "2026-11-16T00:00:00+09:00"
       },
       "222": {
         "venue": "金沢",
@@ -4227,7 +4383,33 @@
         "decoded": 12,
         "runners": 106,
         "status": "ok",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "capturedAt": "2026-11-16T00:00:00+09:00"
+      },
+      "rp:251": {
+        "source": "racingpost",
+        "venue": "Del Mar",
+        "country": "USA",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "America/New_York",
+        "races": 2,
+        "decoded": 0,
+        "runners": 0,
+        "status": "pending",
+        "capturedAt": "2026-11-15T23:27:31.607Z"
+      },
+      "rp:913": {
+        "source": "racingpost",
+        "venue": "Mountaineer",
+        "country": "USA",
+        "scope": "overseas",
+        "timeZone": "Europe/London",
+        "localTimeZone": "America/New_York",
+        "races": 8,
+        "decoded": 0,
+        "runners": 0,
+        "status": "pending",
+        "capturedAt": "2026-11-15T23:27:31.607Z"
       }
     },
     "2026-11-17": {
@@ -4238,7 +4420,7 @@
         "decoded": 12,
         "runners": 131,
         "status": "ok",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "capturedAt": "2026-11-16T00:00:00+09:00"
       },
       "220": {
         "venue": "大井",
@@ -4247,7 +4429,7 @@
         "decoded": 12,
         "runners": 153,
         "status": "ok",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "capturedAt": "2026-11-16T00:00:00+09:00"
       },
       "222": {
         "venue": "金沢",
@@ -4256,10 +4438,39 @@
         "decoded": 12,
         "runners": 120,
         "status": "ok",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "capturedAt": "2026-11-16T00:00:00+09:00"
       }
     },
     "2026-11-18": {
+      "220": {
+        "venue": "大井",
+        "scope": "local",
+        "races": 12,
+        "decoded": 12,
+        "runners": 149,
+        "status": "ok",
+        "capturedAt": "2026-11-16T00:00:00+09:00"
+      },
+      "223": {
+        "venue": "笠松",
+        "scope": "local",
+        "races": 12,
+        "decoded": 12,
+        "runners": 126,
+        "status": "ok",
+        "capturedAt": "2026-11-16T00:00:00+09:00"
+      },
+      "227": {
+        "venue": "園田",
+        "scope": "local",
+        "races": 12,
+        "decoded": 12,
+        "runners": 123,
+        "status": "ok",
+        "capturedAt": "2026-11-16T00:00:00+09:00"
+      }
+    },
+    "2026-11-19": {
       "220": {
         "venue": "大井",
         "scope": "local",
@@ -4267,7 +4478,7 @@
         "decoded": 0,
         "runners": 0,
         "status": "pending",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "capturedAt": "2026-11-16T00:00:00+09:00"
       },
       "223": {
         "venue": "笠松",
@@ -4276,16 +4487,16 @@
         "decoded": 0,
         "runners": 0,
         "status": "pending",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "capturedAt": "2026-11-16T00:00:00+09:00"
       },
       "227": {
         "venue": "園田",
         "scope": "local",
-        "races": 0,
-        "decoded": 0,
-        "runners": 0,
-        "status": "pending",
-        "capturedAt": "2026-11-15T00:00:00+09:00"
+        "races": 12,
+        "decoded": 12,
+        "runners": 122,
+        "status": "ok",
+        "capturedAt": "2026-11-16T00:00:00+09:00"
       }
     }
   }
