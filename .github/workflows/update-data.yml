@@ -1,8 +1,12 @@
 name: update-data · 全量采集
 
 # 每日一档全量采集 → 构建 → 落库 data/ → 重新部署静态页面（Pages）：
-#   北京 02:00 = UTC 18:00：JBIS 出馬表（今天起 3 天）+ Racing Post（--countries all 全国家）
-#   美国/中东等夜间卡只在这个窗口还挂在 SL racecards 索引里，是抓它们的唯一窗口，缺一次即永久错过
+#   北京 22:00 = UTC 14:00：JBIS 出馬表（今天起 3 天）+ Racing Post（--countries all 全国家）
+# 为什么提前到 14:00（2026-11-16 调整，原 18:00）：
+#   GitHub schedule 实测晚 3–6 小时才启动，原 18:00 档多次落到 21:13–23:51；一旦跨过英国 00:00，
+#   SL 的「当天索引」就翻页，当天欧美卡永久错过（11-11 即此例）。14:00 档留足 8 小时余量，
+#   即使漂到 22:00 仍在英国当天内。代价：英美深夜场地（Charles Town / Mountaineer / Remington Park
+#   这类英国 23:00 后才开跑的）此时还没进索引，抓不到 —— 这些场次本就多是 0 头占位。
 # 另一档「枠順补采」拆到 update-jbis.yml：北京 12:00 = UTC 04:00，仅 JBIS，不跑 RP。
 # 两档各自独立调度 / 独立手动触发 / 独立 run 历史；共用 concurrency group `pages` 串行发布。
 # 结构对齐 yunji-web 的 update-data.yml（采集→构建→提交数据→运行日志 artifact）；
@@ -12,7 +16,7 @@ name: update-data · 全量采集
 #           Settings → Actions → General → Workflow permissions = Read and write permissions
 on:
   schedule:
-    - cron: '0 18 * * *'   # UTC 18:00 = 北京 02:00 · 全量（JBIS + RP all）
+    - cron: '0 14 * * *'   # UTC 14:00 = 北京 22:00 / 英国 14:00 · 全量（JBIS + RP all）
   workflow_dispatch:
 
 permissions:

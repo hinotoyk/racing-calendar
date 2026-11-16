@@ -3,13 +3,13 @@ name: update-data · 枠順补采
 # 每日一档「枠番/馬番」轻量补采 → 有新数据才构建 → 落库 data/ → 重新部署 Pages：
 #   北京 12:00 = UTC 04:00：当天/次日日本场次出馬表公開后的补采窗口。
 #   仅跑 src/backfill-waku.js，窗口 = 今天 + 明天，只做两件事：
-#     ① 整表缺失（02:00 全量档跑时出馬表还没公开 → 空壳文档）：1 场 1 请求建整表，
+#     ① 整表缺失（22:00 全量档跑时出馬表还没公开 → 空壳文档）：1 场 1 请求建整表，
 #        马名/血统/彩衣全部从 data/pedigree 缓存挂（0 额外请求）；
 #     ② 有表缺 枠番/馬番：先吃本地 data/results 的终态号与 馬番→枠番 推导，仍缺才请求。
 #   不跑赛历、不解析当日页、不抓马页/血统/彩衣（全量档职责）。
 #   全部已完整时 0 请求 0 写盘；有变化才 build/提交/部署。
 #   对比旧实现（直接跑 collect-races.js 全量重采）：1000+ 请求 / 20–45 分钟。
-# 全量档见 update-data.yml：北京 02:00 = UTC 18:00，JBIS 3 天全量 + RP --countries all。
+# 全量档见 update-data.yml：北京 22:00 = UTC 14:00，JBIS 3 天全量 + RP --countries all。
 # 两档各自独立调度 / 独立手动触发 / 独立 run 历史；共用 concurrency group `pages` 串行发布。
 # 前置要求：Settings → Pages → Source = GitHub Actions；
 #           Settings → Actions → General → Workflow permissions = Read and write permissions

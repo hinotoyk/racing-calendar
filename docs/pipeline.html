@@ -303,7 +303,8 @@
     （<code>sources/http.js → nextData()</code>），取 <code>props.pageProps.meetings</code>。
     同时从 <code>&lt;a href&gt;</code> 收集「race id → 单场路径」映射表（Next 路由需要）。</p>
     <p><b>会议过滤</b>：<code>meeting_summary.course.country.short_name</code> 按
-    <code>COUNTRY_GROUP</code> 折算（GB = ENG+Wale+SCO；IRE = Eire；另有 FR / UAE / SAF / USA / CAN），
+    <code>COUNTRY_GROUP</code> 折算（GB = ENG+Wale+SCO/<b>Scot</b>——苏格兰两种拼写都收，缺
+    <code>Scot</code> 会让 Musselburgh 漏出 GB 自成一组；IRE = Eire；另有 FR / UAE / SAF / USA / CAN），
     支持 <code>--countries all</code> 全量或 <code>--tracks</code> 指定课程。</p>
   </div>
 
@@ -626,7 +627,7 @@
     <h3>CI 调度（GitHub Actions，每日两档 · 各自独立 workflow）</h3>
     <table>
       <tr><th>档 / workflow</th><th>触发（cron 按 UTC）</th><th>动作</th><th>step 超时</th></tr>
-      <tr><td><span class="kbd">北京 02:00</span> 全量 · <code>update-data.yml</code></td><td><code>cron 0 18 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 120 / 15 min</td></tr>
+      <tr><td><span class="kbd">北京 22:00</span> 全量 · <code>update-data.yml</code></td><td><code>cron 0 14 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 120 / 15 min</td></tr>
       <tr><td><span class="kbd">北京 12:00</span> 补采 · <code>update-jbis.yml</code></td><td><code>cron 0 4 * * *</code> / 手动 dispatch</td><td>仅 <code>backfill-waku.js --days 2</code>（整表缺失 → 重建；缺号 → 本地 <code>data/results</code> 终态号 / 馬番→枠番 推导优先，仍缺才抓 1 次出馬表）→ 有变化才 build。全完整时 0 请求 0 写盘，无变化不 build/提交/部署</td><td>30 / 15 min</td></tr>
     </table>
     <ul>
