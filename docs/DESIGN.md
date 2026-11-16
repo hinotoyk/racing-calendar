@@ -342,3 +342,99 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 - **异常态（精确分类）**：单字与中文全称/说明/配色统一在 `src/lib/abnormal-finish.js`。判定严格分层：`ride_status=NONRUNNER→除(除外)` → `casualty.reason`（`PulledUp→中(中止)`、`Disqualified→失(失格)`、`Fell/UnseatedRider/BroughtDown/SlippedUp→落(落马)`、`Refused/RanOut→止(拒跳)`）→ `ride_description` 关键词（`Withdrawn→取`、`pulled up→中`、`fell→落`…）→ 都无则 `未(未完赛，源站未公布原因)`。旧版把 `Fell` 误标成「失格」、把无原因一律标成「中止」，已修正；`--recheck-abnormal` 只重抓历史含异常态场次做升级（不全量重跑）。每条 runner 存 `abnormalReason`，前端 tooltip 展示依据。`NONRUNNER` 不进 runners（记在 `nonRunners`），故 `heads` = 实际 RUNNER 数。SL 只有整场 `winning_time`（仅 1 着有值）、`tote_win` 派彩，无逐匹完走时间/着差/馬体重。
 - **校验口径（含一次误判修正）**：SL `WEIGHEDIN` 是终态，`finish_position=0` 是合法异常态（法国快步赛失格马 `casualty={}` 也记 0，`ride_count` 与 `rides.length` 一致），**不能按完赛比例判半截结果** —— 首版用 `minFinishRatio=0.8` 误拦了 102 场（多为 FR trot），已改为「结果表 `rides.length` vs 本地卡片 `runners.length`」防御。`checkCompleteness` 只新增 `requirePop`（无赔率场次只校验着顺），`minFinishRatio` 保留为可选参数但两个源都不启用；`verify-results.js` 按 schema 自动切换，日本源默认行为不变。`favourite` 与赔率最低者（1 番人气）交叉校验，不一致只告警。
 
+
+## 12. 同名异马（2026-11-16）
+
+**问题**：马名不是主键，但血统解析是按名字走的。海外行的父名一旦与日本马同名，就会被绑到那匹日本马：
+`Silver State`（美国种公马）→ `シルバーステート`（父 ディープインパクト，JBIS `0001171845`），
+连带把 runner 的「祖父」写成 `ディープインパクト`。已清理 18 行历史错绑（14 份 rp 文档，只把 `sireSire` 置 `null`）。
+
+**为什么不做自动消歧**：这个错误在名字这条线索上不可判定 —— JBIS 里 `Silver State` 只有 シルバーステート 一条，
+牡、種、生年 2016 全部对得上，「真实搜索 + 種标签 + 年龄窗口」都会选中它。只能靠外部知识人工裁决。
+
+### 12.1 三层口径
+
+| 层 | 键 | 规则 | 出处 |
+|---|---|---|---|
+| 身份 | `horse.id`（JBIS 10 位 / `rp:<SL id>`） | **永不跨源合并**：日本马与海外马不同命名空间 | `build.js::rowOf()` |
+| 归属 | 归一化名 → JBIS id | 只说明「这个写法**最可能**指哪匹」；同名按优先级（现役种公马 > 種 > 其它）挑一个 | `buildAliasDict()` |
+| 裁决 | `data/pedigree/homonym.json` | 优先级解决不了的跨语种同名在这里显式声明，**两侧都有归属**才算同名异马 | `src/lib/homonym.js` |
+
+### 12.2 裁决表
+
+```json
+{ "names": { "silverstate": {
+  "jbis": { "id": "0001171845", "label": "シルバーステート", "country": "JPN" },
+  "intl": { "label": "Silver State", "country": "USA" },
+  "note": "为什么判它们是两匹马" } } }
+```
+
+- **白名单式**：不写就不生效，对其它任何名字零影响。
+- 只有单边归属的记录**不算**歧义 —— 避免误伤 `Saxon Warrior` / `Karakontie` / `Sunday Break` 这类
+  「JBIS 记 (JPN) 出生、但在爱尔兰/法国/美国配种」的正常马（它们在美国赛事里当父系是对的，**不能按国别硬过滤**）。
+- `(JPN)` / `(USA)` 是**出生登记国**，不等于配种地，不能当身份位用。
+
+### 12.3 缓存 schema v2（一个名字装得下两个答案）
+
+`data/pedigree/name-lookup.json` 从 v1「一名一答」升到 v2：
+
+```json
+{ "schema": "ped.lookup.jbis/v2", "key": "silverstate", "name": "Silver State",
+  "answers": { "jpn": { "id": "0001171845", "name": "シルバーステート", "sire": {...} }, "intl": null },
+  "candidates": [...], "ambiguous": true, "adjudicated": true, "via": "preferred" }
+```
+
+- `answers.jpn` / `answers.intl` = 两个语境各自的答案；**`intl` 是稀疏覆盖**：缺省 = 与 `jpn` 同解，
+  只有两侧不同（裁决的同名异马 → `null`）才显式写出。3,868 条记录里目前只有 1 条有覆盖。
+- 读取一律走 `answerOf(rec, intl)`（`src/lib/horse-lookup.js`）。**不要再读 `rec.resolvedId`** —— v2 已不再镜像旧字段。
+- `ambiguous` = 答案不是唯一证据（多候选按「種+年龄」挑，或直接采信现役种公马缓存没搜过）。存量 846 条，巡检的候选池。
+- 迁移：`node src/migrate-lookup-v2.js [--dry]`（幂等，已完成 3,868 条；3868 条全部 v2，空 0 条）。
+
+### 12.4 生效点
+
+| 位置 | 行为 |
+|---|---|
+| `horse-lookup.js::resolve(name,{intl})` | 海外语境命中裁决 → 直接 `null`，不搜 JBIS、不复用缓存（改表立即生效） |
+| `racingpost.js::enrichSireSire` | 海外父名命中 → 不解析，且**无论 overwrite 与否**清掉已有祖父（用 `sireAnswerOf(rec,true)` 取语境答案） |
+| `build.js::pedCanonOf()` + `site/app.js::pedCanonOf()` | 海外行的父/母父/祖父 canonical 加 `intl:` 前缀，与日本那匹彻底分开；Excel 透视同口径 |
+
+日常 CI 不跑 `backfill-lookup.js`，所以不会新增错绑；只在手动回填时走这条路径，门禁即在此生效。
+
+### 12.5 性别护栏（自动，不需要人工裁决）
+
+父/母父位只能由**牡马**担任，性别本身就是反证。JBIS 搜索会命中同名的牝馬/セン馬：
+
+- `Big Picture`（美国种公马）→ JBIS `ビックピクチャー`（`0001215379`，2016 年生，**牝**，父 ディープインパクト）
+  → 于是美国马 `Bree Cola` 的祖父被写成 `ディープインパクト`（2026-11-16 用户发现）。
+- 全库同类错绑 **105 行**（牝 92 / セ 13，涉及 26 个名字，法 Trot 与 UAE 场次最多），已清空 `sireSire`。
+
+实现：`horse-lookup.js` 的 `resolve(name,{asSire:true})` 挑选候选时排除非牡马（`maleOk`），
+读取一律走 `sireAnswerOf(rec,intl)`（牝/セ → null）；`enrichSireSire` 对性别矛盾的行**无条件清值**。
+性别未知（`sex == null`）放行 —— 不拿缺失当反证。
+
+> 这两道闸是互补的：**性别**能自动否掉「不可能是父」的错绑（105 行，零人工）；
+> **裁决表**处理两侧都成立、只有外部知识能判的同名（Silver State，18 行）。
+
+### 12.6 维护
+
+```bash
+npm run audit:homonym            # ①同名赛马（信息项）②血统名候选（⚠＝日本马名用在海外行）③已判定错绑 ④缓存体检
+npm run audit:homonym -- --fix   # 清掉 ③ 的祖父（同名异马 + 性别矛盾，只把 sireSire 置 null）
+npm run migrate:lookup           # 缓存 v1 → v2（幂等）
+```
+
+发现一对同名异马 → 往 `homonym.json` 加一条 → `node src/backfill-lookup.js --skip-nameen`（命中裁决的行会被清成 `null`）
+→ `node src/build.js`。
+
+存量参考（2026-11-16）：① 53 组同名赛马（rp↔rp，**当前不影响 UI**，见 12.6）；② 572 个待核对父名，
+其中 22 个标 ⚠（多为进口到日本配种的美国马，属正常）；③ 已清零（同名异马 18 + 性别矛盾 105）；
+④ 3,868 条缓存 / 846 条 ambiguous / 1 条 intl 覆盖。
+
+### 12.7 已知未做
+
+- **同名赛马（①）当前不受影响，但也未做 id 化**：前端从不按马名做 canonical —— 马名只有自由文本搜索，
+  每行 key 用 `horseId`（`rowKeyOf`），下拉/分组只覆盖 sire/sireSire/bms/jockey/trainer。所以两匹不同的
+  `Thunder Bay` 本来就是两行、两个 key，不需要像 Silver State 那样分叉。将来若加「按马名分组」，需改用 `horseId`。
+- **产驹对账不做**：JBIS 产驹页（`/horse/{id}/sire/progeny/`）标题是「産駒一覧（**現役馬**）」，只覆盖中央/地方在册现役马，
+  海外产驹天然不在名单 → 「不在名单」不能证伪，只能当正例加分项，不值得为它加请求。
+- **`birth == null` 的年龄校验仍然放行**：全库收紧会让 3,636 行（日系 3,265 / 海外 371）变空，代价远大于收益，只对裁决名字生效。

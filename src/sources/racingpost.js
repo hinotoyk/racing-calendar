@@ -19,7 +19,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { fetchBuffer } from "../lib/fetch.js";
 import { pedCache } from "../lib/ped-cache.js";
-import { createHorseLookup, preferredMapFromSireCache } from "../lib/horse-lookup.js";
+import { createHorseLookup, sexInvalidAsSire, sireAnswerOf, preferredMapFromSireCache } from "../lib/horse-lookup.js";
 import { normalizeHorseName } from "../lib/horse-name.mjs";
 import {
   courseTzOf,
@@ -141,7 +141,11 @@ async function pedigreeOf(horseId, { store, delayMs, useCache = true, log = () =
 // 命中且行内有「父」列时把 runner.sireSire 补成 {id,name}（JBIS 表记，与 JBIS 源同形）。
 // overwrite=false（CI 日常）：只填空值，不清不覆盖；overwrite=true（--revalidate 回填）：
 // 解析记录有「父」列就覆盖（修错绑），解析为空就清回 null（撤掉当年错绑的旧值）。
-export async function enrichSireSire(docs, { lookup, log, overwrite = false }) {
+//
+// 同名异马（data/pedigree/homonym.json）：海外父名与日本马同名时（Silver State(USA) ≠
+// シルバーステート(JPN)）按名字解析必然错绑到日本马。这类名字一律不解析，且**无论
+// overwrite 与否**都清掉已有值 —— 错绑是已知事实，不必等一次全量 revalidate。
+export async function enrichSireSire(docs, { lookup, log, overwrite = false, homonym = null }) {
   const names = new Map();
   for (const doc of docs) for (const race of doc.races ?? []) for (const r of race.runners ?? []) for (const key of ["sire", "bms"]) {
     const n = r[key]?.name;
@@ -149,9 +153,12 @@ export async function enrichSireSire(docs, { lookup, log, overwrite = false }) {
   }
   if (!names.size) return;
   log(`[siresire] 待解析名字 ${names.size} 种`);
+  const blocked = [...names.values()].filter((n) => homonym?.blockedForIntl?.(n));
+  if (blocked.length) log(`[siresire] 同名异马裁决命中 ${blocked.length} 名（不解析）：${blocked.slice(0, 8).join(" / ")}`);
   const resolved = new Map();
   for (const [key, raw] of names) {
-    const rec = await lookup.resolve(raw, { log });
+    // asSire：父/母父位只可能是牡马，牝馬/セン馬的候选不参与挑选（性别即反证，无需人工裁决）
+    const rec = homonym?.blockedForIntl?.(raw) ? null : await lookup.resolve(raw, { log, intl: true, asSire: true });
     resolved.set(key, rec); // 未解析的也入表：overwrite 模式下用于清除过期 sireSire
   }
   let filled = 0;
@@ -159,18 +166,25 @@ export async function enrichSireSire(docs, { lookup, log, overwrite = false }) {
   for (const doc of docs)
     for (const race of doc.races ?? [])
       for (const r of race.runners ?? []) {
-        const rec = r.sire?.name ? resolved.get(normalizeHorseName(r.sire.name)) : null;
-        if (rec?.sire) {
+        const sireName = r.sire?.name ?? null;
+        const rec = sireName ? resolved.get(normalizeHorseName(sireName)) : null;
+        const isBlocked = Boolean(sireName && homonym?.blockedForIntl?.(sireName));
+        // 两道闸：① 人工裁决（同名异马）② 性别（牝/セ 当不了父）。命中任一条即为已知错绑。
+        const isSexWrong = sireName ? sexInvalidAsSire(rec, true) : false;
+        const answer = sireAnswerOf(rec, true);
+        if (answer?.sire) {
           if (!r.sireSire || overwrite) {
-            r.sireSire = rec.sire; // {id, name}
+            r.sireSire = answer.sire; // {id, name}
             filled++;
           }
-        } else if (overwrite && rec && r.sireSire) {
+        } else if (r.sireSire && ((overwrite && rec) || isBlocked || isSexWrong)) {
+          // overwrite 只在「解析记录存在」时清（避免网络失败把有值的行清空）；
+          // 裁决命中 / 性别矛盾则无条件清 —— 这是已知错绑
           r.sireSire = null;
           cleared++;
         }
       }
-  log(`[siresire] 父父补完 ${filled} 頭${cleared ? ` / 清除过期 ${cleared} 頭` : ""} / lookup ${lookup.size()} 名`);
+  log(`[siresire] 父父补完 ${filled} 頭${cleared ? ` / 清除 ${cleared} 頭（含同名异马）` : ""} / lookup ${lookup.size()} 名`);
 }
 
 // ---------- ride → canonical runner ----------

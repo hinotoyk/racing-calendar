@@ -8,8 +8,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { readGz, writeGz } from "./lib/bundle.js";
 import { pedCache } from "./lib/ped-cache.js";
-import { createHorseLookup, preferredMapFromSireCache } from "./lib/horse-lookup.js";
+import { createHorseLookup, answerOf, preferredMapFromSireCache } from "./lib/horse-lookup.js";
 import { fetchHtmlSoft } from "./lib/fetch.js";
+import { loadHomonym } from "./lib/homonym.js";
 import { parsePedigree } from "./lib/parse-race.js";
 import { normalizeHorseName } from "./lib/horse-name.mjs";
 import { SITE } from "./config.js";
@@ -40,9 +41,15 @@ function rpDocs() {
   return out;
 }
 
+// 同名异马人工裁决（data/pedigree/homonym.json）：裁决过的名字在海外语境下一律不解析，
+// 行内已有的错绑祖父会被清成 null —— 加一条裁决后重跑本脚本即可修历史数据。
+const homonym = loadHomonym();
+log(`== 同名异马裁决表 ${homonym.size()} 个写法（data/pedigree/homonym.json）`);
+
 const lookup = createHorseLookup({
   cache: pedCache(path.resolve("data", "pedigree", "name-lookup.json")),
   delayMs: DELAY,
+  homonym,
   preferred: (() => {
     try {
       const m = preferredMapFromSireCache(JSON.parse(fs.readFileSync(path.resolve("data", "pedigree", "jbis-sire.json"), "utf8")));
@@ -67,10 +74,11 @@ if (REVALIDATE) {
     claims.get(k).add(id);
   };
   for (const rec of Object.values(raw)) {
-    if (!rec.resolvedId) continue;
-    add(rec.name, rec.resolvedId);
-    if (rec.resolvedName) add(rec.resolvedName, rec.resolvedId);
-    if (rec.sire) add(rec.sire.name, rec.sire.id);
+    const a = answerOf(rec); // v2：日系语境的答案（旧字段已不再镜像）
+    if (!a?.id) continue;
+    add(rec.name, a.id);
+    if (a.name) add(a.name, a.id);
+    if (a.sire) add(a.sire.name, a.sire.id);
   }
   const sire = JSON.parse(fs.readFileSync(path.resolve("data", "pedigree", "jbis-sire.json"), "utf8"));
   for (const rec of Object.values(sire)) {
@@ -81,7 +89,8 @@ if (REVALIDATE) {
   const floor = new Date().getFullYear() - 45;
   const targets = new Set();
   for (const rec of Object.values(raw)) {
-    if (rec.resolvedId && rec.birth != null && rec.birth < floor) targets.add(rec.name); // 现代父系不可能的老马
+    const a = answerOf(rec);
+    if (a?.birth != null && a.birth < floor) targets.add(rec.name); // 现代父系不可能的老马
     if (claims.get(normalizeHorseName(rec.name ?? ""))?.size > 1) targets.add(rec.name); // 冲突别名
   }
   log(`== revalidate: ${targets.size} 名强刷（年龄下限 ${floor} 起 / 冲突别名）`);
@@ -95,7 +104,7 @@ log(`== rp 文档 ${units.length} 份`);
 const before = new Map(units.map((u) => [u.file, JSON.stringify(u.doc)]));
 await enrichSireSire(
   units.map((u) => u.doc),
-  { lookup, log, overwrite: REVALIDATE }
+  { lookup, log, overwrite: REVALIDATE, homonym }
 );
 
 if (PATCH_DOCS) {

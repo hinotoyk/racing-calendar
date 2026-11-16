@@ -1,0 +1,21 @@
+{
+  "schema": "ped.homonym/v1",
+  "updatedAt": "2026-11-16",
+  "note": "同名异马人工裁决表（单一事实来源）。键 = normalizeHorseName 后的写法；一条记录同时给出 jbis 与 intl 两侧归属 = 这个写法在日系与海外指两匹不同的马，采集层据此拒绝按名字绑 JBIS。不写 = 不生效（白名单式，不影响任何其它名字）。",
+  "names": {
+    "silverstate": {
+      "jbis": {
+        "id": "0001171845",
+        "label": "シルバーステート",
+        "country": "JPN",
+        "note": "父 ディープインパクト、日本配种的种公马，2016 年生"
+      },
+      "intl": {
+        "label": "Silver State",
+        "country": "USA",
+        "note": "美国种公马（后代母马多见 Curlin 系），与上面那匹无血缘关系"
+      },
+      "note": "欧美赛马里的 Silver State 不是ディープインパクト的子嗣。2026-11-16 由用户在 Horseshoe Indianapolis / Churchill Downs 场次比对发现，此前 18 行海外马的「祖父」被错绑成ディープインパクト。"
+    }
+  }
+}

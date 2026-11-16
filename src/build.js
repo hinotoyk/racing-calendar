@@ -7,6 +7,8 @@ import { buildXlsx } from "./lib/xlsx.js";
 import { readGz } from "./lib/bundle.js";
 import { assertRoundTrip, packRows, unpackRows } from "./lib/rows-codec.mjs";
 import { normalizeHorseName } from "./lib/horse-name.mjs";
+import { loadHomonym } from "./lib/homonym.js";
+import { answerOf } from "./lib/horse-lookup.js";
 import { abnormalMeta, ABNORMAL_FINISH_RE } from "./lib/abnormal-finish.js";
 import { countryGroupOf, LEVELS, TRACK_CENTRAL, TRACK_LOCAL, klassToLevel, scopeOfVenue } from "./race-config.js";
 
@@ -284,6 +286,11 @@ const weekMap = new Map();
 // 同名异马冲突（同名老马 vs 现役种公马）按优先级解决：
 //   3 = jbis-sire.json 键（出馬表里当过「父」= 现役种公马） > 2 = lookup 命中「種」标签 > 1 = 其它；
 // 同分先到先得并记日志。
+// 注意：本表的「名字→id」只表示**归属**（这个写法最可能指哪匹），不是身份。优先级解决不了的
+// 跨语种同名（Silver State(USA) ≠ シルバーステート(JPN)）交给 data/pedigree/homonym.json 裁决，
+// 读行时用 pedCanonOf() 把海外那一匹分叉出去（intl: 前缀），见 docs/DESIGN.md §12。
+const homonym = loadHomonym();
+
 function buildAliasDict(nameCounts) {
   const claims = new Map(); // 归一化名 → [{canon, prio, src}]
   let conflicts = 0;
@@ -312,11 +319,12 @@ function buildAliasDict(nameCounts) {
   };
 
   for (const rec of Object.values(lookup)) {
-    if (!rec.resolvedId) continue;
-    const base = rec.stallion ? 2 : 1;
-    if (rec.name) addClaim(rec.name, rec.resolvedId, prioOf(rec.resolvedId, base), "lookup");
-    if (rec.resolvedName) addClaim(rec.resolvedName, rec.resolvedId, prioOf(rec.resolvedId, base), "lookup");
-    if (rec.sire?.name && rec.sire?.id) addClaim(rec.sire.name, rec.sire.id, prioOf(rec.sire.id, 1), "lookup.sire");
+    const a = answerOf(rec); // v2：日系语境的答案（旧字段已不再镜像）
+    if (!a?.id) continue;
+    const base = a.stallion ? 2 : 1;
+    if (rec.name) addClaim(rec.name, a.id, prioOf(a.id, base), "lookup");
+    if (a.name) addClaim(a.name, a.id, prioOf(a.id, base), "lookup");
+    if (a.sire?.name && a.sire?.id) addClaim(a.sire.name, a.sire.id, prioOf(a.sire.id, 1), "lookup.sire");
   }
   for (const rec of Object.values(jbisSire)) {
     if (rec.name && rec.id) addClaim(rec.name, rec.id, 3, "sire");
@@ -359,11 +367,17 @@ function buildAliasDict(nameCounts) {
     display[canon] = [...fm.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))[0][0];
   }
   if (conflictNotes.length) console.log(`[alias] 同名异马冲突 ${conflicts} 处（现役种公马优先）:\n  ${conflictNotes.join("\n  ")}`);
+  // 同名异马：海外那一匹的 canonical 带 intl: 前缀（见 pedCanonOf），展示名用裁决表里的写法，
+  // 前端 displayOf 就不用处理「intl:silverstate」这种内部键
+  for (const e of homonym.entries()) {
+    if (e.intl?.label) display[`intl:${e.key}`] = e.intl.label;
+  }
   return {
-    schema: "horse.aliases/v1",
+    schema: "horse.aliases/v2",
     generatedAt: new Date().toISOString(),
     alias: Object.fromEntries([...alias].sort()),
     display,
+    homonym: homonym.toJSON(),
   };
 }
 
@@ -460,8 +474,20 @@ index.levels = LEVELS.map((level) => ({ level, count: klassMap.get(level) ?? 0 }
 const aliasDict = buildAliasDict(nameCounts);
 const canonOf = (raw) => aliasDict.alias[normalizeHorseName(raw)] ?? normalizeHorseName(raw);
 const displayOf = (canon) => aliasDict.display[canon] ?? canon;
+// 同名异马的行走分叉：海外行（非 JRA/NAR）的父/母父/祖父命中裁决表时，canonical 加 intl: 前缀，
+// 与日本那匹彻底分开（否则「父=シルバーステート」会把美国 Silver State 的子嗣一起捞出来）
+const PED_KEYS = new Set(["sire", "sireSire", "bms"]);
+const isJpScope = (s) => s === "JRA" || s === "NAR";
+const pedCanonOf = (r, raw) => {
+  if (!raw) return raw;
+  const c = canonOf(raw);
+  return homonym.blockedForIntl(raw) && !isJpScope(r.scope) ? `intl:${normalizeHorseName(raw)}` : c;
+};
 fs.writeFileSync(path.join(DERIVED, "horse-aliases.json"), JSON.stringify(aliasDict));
-console.log(`[alias] ${Object.keys(aliasDict.alias).length} 别名 / ${Object.keys(aliasDict.display).length} canonical → derived/horse-aliases.json`);
+console.log(
+  `[alias] ${Object.keys(aliasDict.alias).length} 别名 / ${Object.keys(aliasDict.display).length} canonical / ` +
+    `${Object.keys(aliasDict.homonym).length} 处同名异马裁决 → derived/horse-aliases.json`
+);
 
 // ---------- 每周 Excel ----------
 const COLS = [
@@ -486,10 +512,12 @@ const instantOffset = (iso) => (iso ? iso.slice(-6) : ""); // "+01:00"
 
 function pivot(rows, key, label) {
   const m = new Map();
+  const ped = PED_KEYS.has(key);
   for (const r of rows) {
     const raw = r[key];
     if (!raw) continue;
-    const k = canonOf(raw); // 同一匹马的不同写法（JBIS 片假名/国码表记 vs RP 英文名）合并统计
+    // 同一匹马的不同写法（JBIS 片假名/国码表记 vs RP 英文名）合并统计；同名异马不合并
+    const k = ped ? pedCanonOf(r, raw) : canonOf(raw);
     const e = m.get(k) ?? { name: displayOf(k), runners: 0, races: new Set(), jra: 0, nar: 0, overseas: 0 };
     e.runners++;
     e.races.add(`${r.date}/${r.track}/${r.raceNo}`);

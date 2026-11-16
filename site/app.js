@@ -376,7 +376,20 @@ function canonOf(raw) {
   canonMemo.set(raw, c);
   return c;
 }
-const displayOf = (canon) => state.alias?.display?.[canon] ?? canon;
+// 同名异马（horse-aliases.json 的 homonym 段）：海外行（非 JRA/NAR）的父/母父/祖父命中裁决表时
+// 加 intl: 前缀，与日本同名马彻底分开 —— Silver State(USA) ≠ シルバーステート(JPN)。
+const PED_KEYS = new Set(["sire", "sireSire", "bms"]);
+function pedCanonOf(r, key) {
+  const raw = r?.[key];
+  if (!raw) return raw || "";
+  if (!isJpScope(r.scope) && state.alias?.homonym?.[normalizeHorseName(raw)]?.blocked) return `intl:${normalizeHorseName(raw)}`;
+  return canonOf(raw);
+}
+const displayOf = (canon) => {
+  if (!canon) return canon;
+  if (canon.startsWith("intl:")) return state.alias?.display?.[canon] ?? state.alias?.homonym?.[canon.slice(5)]?.intlLabel ?? canon.slice(5);
+  return state.alias?.display?.[canon] ?? canon;
+};
 
 // ---------- 血统快捷标签（点击 → 对应下拉自动选中；本地存储，自由增删） ----------
 // 未保存过时用默认值；保存过则完全以本地为准（清空也是合法状态）。「＋当前」把下拉当前选择存为标签。
@@ -565,10 +578,11 @@ function makeSelector({ mount, placeholder, onPick }) {
 // key 行的选项列表（canonical 合并同名马，按头数降序，取前 400）
 function optionsOf(rows, key) {
   const m = new Map(); // canon → { n, raws: Map(原始写法→行数) }
+  const ped = PED_KEYS.has(key);
   for (const r of rows) {
     const raw = r[key];
     if (!raw) continue;
-    const c = canonOf(raw);
+    const c = ped ? pedCanonOf(r, key) : canonOf(raw);
     const e = m.get(c) ?? { n: 0, raws: new Map() };
     e.n++;
     e.raws.set(raw, (e.raws.get(raw) ?? 0) + 1);
@@ -581,7 +595,10 @@ function optionsOf(rows, key) {
       v: c,
       label: displayOf(c),
       n: e.n,
-      al: state.aliasGroups?.[c] ?? [normalizeHorseName(c)],   // 归一化别名（下拉搜索用）
+      // 归一化别名（下拉搜索用）；intl: 前缀的是同名异马里的海外那匹，用去掉前缀的写法检索
+      al: c.startsWith("intl:")
+        ? [c.slice(5), normalizeHorseName(displayOf(c))]
+        : (state.aliasGroups?.[c] ?? [normalizeHorseName(c)]),
     }));
 }
 
@@ -609,9 +626,9 @@ function apply() {
       if (state.scope.size && !state.scope.has(r.scope)) return false;
       if (state.venues.size && !state.venues.has(r.venue)) return false;
       if (state.levels.size && !state.levels.has(r.level)) return false;
-      if (state.sire && canonOf(r.sire) !== state.sire) return false;
-      if (state.sireSire && canonOf(r.sireSire) !== state.sireSire) return false;
-      if (state.bms && canonOf(r.bms) !== state.bms) return false;
+      if (state.sire && pedCanonOf(r, "sire") !== state.sire) return false;
+      if (state.sireSire && pedCanonOf(r, "sireSire") !== state.sireSire) return false;
+      if (state.bms && pedCanonOf(r, "bms") !== state.bms) return false;
       if (q) {
         const hay = [r.horseName, r.jockey, r.breeder, r.trainer, r.owner, r.raceName].join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
@@ -1057,7 +1074,7 @@ function render() {
     const pedKey = key === "sire" || key === "sireSire" || key === "bms";
     const groups = new Map();
     for (const r of rows) {
-      const k = pedKey && r[key] ? canonOf(r[key]) : r[key] || "—";
+      const k = pedKey && r[key] ? pedCanonOf(r, key) : r[key] || "—";
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(r);
     }
