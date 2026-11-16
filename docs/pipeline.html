@@ -624,27 +624,30 @@
     </ul>
   </div>
   <div class="card accent-sto">
-    <h3>CI 调度（GitHub Actions，每日两档 · 各自独立 workflow）</h3>
+    <h3>CI 调度（GitHub Actions，每日四档 · 各自独立 workflow）</h3>
     <table>
       <tr><th>档 / workflow</th><th>触发（cron 按 UTC）</th><th>动作</th><th>step 超时</th></tr>
-      <tr><td><span class="kbd">北京 22:00</span> 全量 · <code>update-data.yml</code></td><td><code>cron 0 14 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ collect-sources <code>--countries all</code> → build</td><td>80 / 120 / 15 min</td></tr>
-      <tr><td><span class="kbd">北京 12:00</span> 补采 · <code>update-jbis.yml</code></td><td><code>cron 0 4 * * *</code> / 手动 dispatch</td><td>仅 <code>backfill-waku.js --days 2</code>（整表缺失 → 重建；缺号 → 本地 <code>data/results</code> 终态号 / 馬番→枠番 推导优先，仍缺才抓 1 次出馬表）→ 有变化才 build。全完整时 0 请求 0 写盘，无变化不 build/提交/部署</td><td>30 / 15 min</td></tr>
+      <tr><td><span class="kbd">北京 02:00</span> 全量·日本源 · <code>update-jbis-full.yml</code></td><td><code>cron 0 18 * * *</code> / 手动 dispatch</td><td>collect-races（JBIS 今天起 3 天，含马名 + 彩衣内联）→ build。定在 JST 03:00 是为了拿到最远的 D+3 视野</td><td>80 / 15 min</td></tr>
+      <tr><td><span class="kbd">英国 14:00</span> 全量·欧美源 · <code>update-rp.yml</code></td><td><code>cron 0 14 * * *</code> / 手动 dispatch</td><td>collect-sources <code>--countries all</code> → build。留 8 小时余量，避免 GitHub 排队漂移跨过英国午夜导致当天卡永久错过</td><td>120 / 15 min</td></tr>
+      <tr><td><span class="kbd">北京 11:00 / 23:00</span> 枠順补采 · <code>update-jbis.yml</code></td><td><code>cron 0 3,15 * * *</code> / 手动 dispatch</td><td>仅 <code>backfill-waku.js --days 2</code>（整表缺失 → 重建；缺号 → 本地 <code>data/results</code> 终态号 / 馬番→枠番 推导优先，仍缺才抓 1 次出馬表）→ 有变化才 build。全完整时 0 请求 0 写盘，无变化不 build/提交/部署</td><td>30 / 15 min</td></tr>
+      <tr><td><span class="kbd">北京 08:00–20:00</span> 赛果·日本源 · <code>results-intraday.yml</code></td><td><code>cron 0 0-12 * * *</code> / 手动 dispatch</td><td><code>collect-results.js --days 1</code> → 只抓开赛满 10 分钟且着顺未完整的场次 → 有新结果才 build</td><td>≤10 / 15 min</td></tr>
+      <tr><td><span class="kbd">每 6 小时</span> 赛果·欧美源 · <code>results-intraday-rp.yml</code></td><td><code>cron 0 0,6,12 * * *</code> / 手动 dispatch</td><td><code>collect-results-rp.js --days 1</code> → 用本地 <code>rp-*</code> 卡驱动抓 Sporting Life 结果页 → 有新结果才 build</td><td>≤10 / 15 min</td></tr>
     </table>
     <ul>
-      <li>两档<b>拆成独立 workflow</b>：各自独立调度 / 手动触发 / run 历史，诊断分别带与不带 <code>--rp</code>；共用 <code>concurrency: group: pages</code> 串行发布；</li>
-      <li>两档都跑 <code>ci-summary.js</code>（全量档带 <code>--rp</code>，SL 0 请求 / 0 成功判 FAIL）→ 提交 <code>data/races/ data/pedigree/ data/silks/</code> → 同 workflow 内 <code>upload-pages-artifact</code> + <code>deploy-pages</code>（<code>GITHUB_TOKEN</code> 的 push 不触发其它 workflow，故不能依赖 deploy.yml）；</li>
-      <li>job 级 <code>timeout-minutes</code>：全量 <code>240</code> / 补采 <code>100</code>（平台上限 360），只作安全网；RP step 从 25min 放宽到 <b>120min</b>（历史实测 46–55min，25min 曾两次把采集砍断）；</li>
-      <li><b>分级闸门（全量档）</b>：<code>shell: bash</code> + <code>PIPESTATUS</code> 抓真实退出码，写 <code>test-logs/rp-verdict.txt</code>（默认 FAIL，正常收尾才覆盖 OK）；gate 读 <code>verdict.txt</code> + <code>rp-verdict.txt</code>，任一 FAIL 标红。deploy-pages 在 gate 之前 → <b>只报警不拦发布</b>，保留 <code>continue-on-error</code> 以免 RP 挂了把 JBIS 数据一起丢掉；</li>
+      <li>五档<b>全部拆成独立 workflow</b>：各自独立调度 / 手动触发 / run 历史，诊断按档位带 <code>--rp</code>（欧美源）或 <code>--no-jbis</code>（欧美源，避免把「JBIS 0 请求」记成告警）；共用 <code>concurrency: group: pages</code> 串行发布；</li>
+      <li>各档都跑 <code>ci-summary.js</code> → 提交 <code>data/races/ data/pedigree/ data/silks/</code>（赛果档只提交 <code>data/results/</code>）→ 同 workflow 内 <code>upload-pages-artifact</code> + <code>deploy-pages</code>（<code>GITHUB_TOKEN</code> 的 push 不触发其它 workflow，故不能依赖 deploy.yml）；</li>
+      <li>job 级 <code>timeout-minutes</code>：日本源全量 <code>150</code> / 欧美源全量 <code>180</code> / 补采 <code>60</code>（平台上限 360），只作安全网；RP step 上限 <b>120min</b>（历史实测 46–55min，25min 曾两次把采集砍断）；</li>
+      <li><b>分级闸门（欧美源全量档）</b>：<code>shell: bash</code> + <code>PIPESTATUS</code> 抓真实退出码，写 <code>test-logs/rp-verdict.txt</code>（默认 FAIL，正常收尾才覆盖 OK）；gate 读 <code>verdict.txt</code> + <code>rp-verdict.txt</code>，任一 FAIL 标红。deploy-pages 在 gate 之前 → <b>只报警不拦发布</b>；</li>
       <li>提交前 <code>git pull --rebase</code>，冲突则放弃本次数据提交（下次调度自动重算）；无变化跳过提交；</li>
-      <li>artifact：<code>update-full-log-&lt;run_id&gt;</code> / <code>update-jbis-log-&lt;run_id&gt;</code>，内含 <code>test-logs/</code> + <code>data/logs/requests-*.jsonl</code>，保留 <b>30 天</b>，<code>if: always()</code>；</li>
-      <li>缓存包随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求；<b>回填脚本（⑨）除 <code>backfill-waku.js</code>（12:00 补采档）外都不在 CI 里跑</b>，避免长链路阻塞每日两档的发布窗口。</li>
+      <li>artifact：<code>update-jbis-log-&lt;run_id&gt;</code> / <code>update-rp-log-&lt;run_id&gt;</code>（赛果档另有各自日志），内含 <code>test-logs/</code> + <code>data/logs/requests-*.jsonl</code>，保留 <b>30 天</b>，<code>if: always()</code>；</li>
+      <li>缓存包随仓库入库，CI 增量复用 —— 重跑已有终态缓存的马 0 网络请求；<b>回填脚本（⑨）除 <code>backfill-waku.js</code>（每日 11:00 / 23:00 两档）外都不在 CI 里跑</b>，避免长链路阻塞每日的发布窗口。</li>
     </ul>
   </div>
 </section>
 
 <!-- ================= ⑨ backfill ================= -->
 <section id="backfill">
-  <h2><span class="no">⑨</span> 回填脚本族（本地运维；仅 <code>backfill-waku</code> 由 CI 12:00 档执行）</h2>
+  <h2><span class="no">⑨</span> 回填脚本族（本地运维；仅 <code>backfill-waku</code> 由 CI 每日 11:00 / 23:00 两档执行）</h2>
 
   <div class="note">
     <b>为什么需要单独一层</b>：日常采集只覆盖「当前窗口内的出馬表」，而三类数据只能事后补 ——
@@ -657,7 +660,7 @@
     <h3>四个脚本与执行顺序</h3>
     <table>
       <tr><th>#</th><th>脚本</th><th>补什么</th><th>典型命令</th><th>缓存</th></tr>
-      <tr><td>0</td><td><code>backfill-waku.js</code></td><td><b>枠番/馬番 轻量补采</b>（唯一随 CI 每日 12:00 跑的）：整表缺失 → 抓 1 次出馬表重建、马名/父父/彩衣全走缓存；缺号 → <code>data/results</code> 终态号 + 馬番→枠番 推导优先，仍缺才抓 1 次；只填 null，不覆盖、不改人马构成</td><td><code>node src/backfill-waku.js [--days 2] [--dates …] [--tracks …] [--delay 1200] [--dry] [--limit N]</code></td><td><code>jbis-name</code> / <code>jbis-sire</code> / <code>wf-*</code> / <code>data/results</code></td></tr>
+      <tr><td>0</td><td><code>backfill-waku.js</code></td><td><b>枠番/馬番 轻量补采</b>（唯一随 CI 每日 11:00 / 23:00 跑的）：整表缺失 → 抓 1 次出馬表重建、马名/父父/彩衣全走缓存；缺号 → <code>data/results</code> 终态号 + 馬番→枠番 推导优先，仍缺才抓 1 次；只填 null，不覆盖、不改人马构成</td><td><code>node src/backfill-waku.js [--days 2] [--dates …] [--tracks …] [--delay 1200] [--dry] [--limit N]</code></td><td><code>jbis-name</code> / <code>jbis-sire</code> / <code>wf-*</code> / <code>data/results</code></td></tr>
       <tr><td>1</td><td><code>backfill-names.js</code></td><td>出馬表显示名 → JBIS 登录名 + <code>nameJp/nameEn/country/foaled</code></td><td><code>node src/backfill-names.js [--dates …] [--tracks …] [--name-conc 1] [--name-delay 1200] [--limit-docs N] [--dry]</code></td><td><code>jbis-name.json</code></td></tr>
       <tr><td>2</td><td><code>backfill-silks-v4.js</code></td><td>日本源彩衣（⓪ 马主级 → ① netkeiba → ② winfinal）</td><td><code>node src/backfill-silks-v4.js [--dates …] [--tracks 236,105] [--delay 1200] [--no-clear]</code></td><td><code>nk-owner</code> / <code>nk-owner-v3</code> / <code>nk-map</code> / <code>wf-*</code></td></tr>
       <tr><td>3</td><td><code>backfill-silks-rp.js</code></td><td>欧美源彩衣（重抓历史 racecard 取 <code>silk_filename</code>）</td><td><code>node src/backfill-silks-rp.js [--dates …] [--tracks FNT,ASC] [--delay 600] [--limit-docs N] [--dry] [--no-image]</code></td><td><code>sl-silk.json</code></td></tr>

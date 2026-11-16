@@ -2,7 +2,9 @@ name: results-intraday-rp · 欧美源赛果增量采集
 
 # 复制自 results-intraday.yml（日本源），两处调整：
 #   1. 每 1 小时一轮 → 每 6 小时一轮（北京时间 08:00 / 14:00 / 20:00 = UTC 0/6/12 点）
-#   2. 抓取今天 + 昨天（JST）还没有完整着顺结果的场次
+#   2. 抓取今天 + 昨天（JST）还没有完整着顺结果的场次；发送前先本地预过滤
+#      （读 data/races + data/results 算待抓清单）：整日 / 整场次都已完整 → 连日级列表都不发，
+#      日志打 `[prefilter] … → 0 请求`。
 # 欧美源链路：日级枚举(1/日) → 单场全序(1/场) → 分数赔率换算人气 → 落 rp-*.json；
 # 比日本源少一个出馬表请求/场，结果页自带 cloth_number，无需马级关联。
 # 已完整入库的场次幂等跳过；漏抓的场次下一轮（含昨天的滚动窗口）自动补上。
@@ -18,7 +20,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages      # 与 update-data.yml / update-jbis.yml / deploy.yml / results-intraday.yml 共用，串行发布
+  group: pages      # 与 update-jbis-full.yml / update-rp.yml / update-jbis.yml / deploy.yml / results-intraday.yml 共用，串行发布
   cancel-in-progress: false
 
 jobs:

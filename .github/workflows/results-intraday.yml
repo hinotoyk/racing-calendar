@@ -3,6 +3,8 @@ name: results-intraday · 日本源赛果增量采集
 # 北京时间 08:00–20:00 每 1 小时 = UTC 00:00–12:00（GitHub cron 用 UTC）
 #   '0 0-12 * * *' → UTC 0:00…12:00 = 北京 08:00…20:00，整点各一轮
 # 抓取范围：今天 + 昨天（JST）还没有完整着顺结果的场次；
+# 发送请求前先本地预过滤（读 data/races + data/results 算待抓清单）：
+#   整日 / 整场次都已完整 → 连日期级枚举、场次级页眉都不发，日志打 `[prefilter] … → 0 请求`。
 # GitHub 排队可能让实际触发后移；脚本只处理「开赛满 10 分钟」的场次，
 # 且已完整入库的场次幂等跳过，迟到 / 重复触发不会造成重复抓取。
 # 完整性校验在本地脚本完成：只放前三名 / 名次缺号 / 人气未齐 → partial 不入库，下轮重抓。
@@ -18,7 +20,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages      # 与 update-data.yml / update-jbis.yml / deploy.yml 共用，串行发布
+  group: pages      # 与 update-jbis-full.yml / update-rp.yml / update-jbis.yml / deploy.yml 共用，串行发布
   cancel-in-progress: false
 
 jobs:

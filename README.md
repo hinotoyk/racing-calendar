@@ -76,7 +76,7 @@ node src/collect-results.js --today --dry --settle-min 10   # 手动试跑，不
 - **异常态与同着**：`中 / 失 / 落 / 除 / 取 / 止 / 未` 是合法着顺（主表显示中文全称 + hover 说明与判定依据，见 `docs/FIELDS.md §3.5`），单独计数、不要求人气；并列第 N 着 c 匹时下一着顺应为 N+c（同着跳号合法），校验用「名次游标」判定缺号，避免把同着误报成半截结果。
 - **全库体检**：`node src/verify-results.js`（`--strict` 时退出码 1）扫描 `data/results/` 用同一规则复核，CI 每轮也会跑一次。
 - 每条入库记录带 `completeness`（heads / rows / numeric / abnormal / maxRank / missingRanks / popRatio），便于排查。
-- 定时任务只更新本地 `data/results/` 与本地预览；线上 Pages 由 `update-data.yml` 更新。
+- 定时任务只更新本地 `data/results/` 与本地预览；线上 Pages 由 `results-intraday*.yml`（提交后自带部署）更新。
 
 ### 欧美源结果（Sporting Life）
 
@@ -139,18 +139,21 @@ node src/collect-results-rp.js --today --no-index   # 更省：跳过日级列�
 
 ## 部署与自动运行（GitHub Pages）
 
-站点为纯静态零依赖：`_site/` 即完整产物（全相对路径 + `.nojekyll`），任意 base path 可用。参照 yunji-web 的 workflow 模式（[.github/workflows/](.github/workflows)，现为 3 条）：
+站点为纯静态零依赖：`_site/` 即完整产物（全相对路径 + `.nojekyll`），任意 base path 可用。参照 yunji-web 的 workflow 模式（[.github/workflows/](.github/workflows)，现为 6 条）：
 
 - **deploy.yml** — push main（人工推代码）→ `node src/build.js` → 发布 `_site/` 到 Pages
-- **update-data.yml（全量档）** — 每天 **UTC 14:00 = 北京 22:00**：JBIS 出馬表（今天起 3 天）+ Racing Post（`--countries all` 全国家；深夜美洲场次此时还没进 SL 索引，抓不到，见该 workflow 注释）→ 构建 → 有变化则 commit `data/races/` + `data/pedigree/` + `data/silks/` 回 main → **同一 workflow 内重新部署静态页面**
-- **update-jbis.yml（补采档）** — 每天 **UTC 04:00 = 北京 12:00**：窗口 **今天 + 明天**，只处理「整表缺失（22:00 时出馬表还没公开）」和「缺 枠番/馬番」两类场次（`src/backfill-waku.js`）。本地能解就不发请求：已完赛场次取 `data/results` 的终态号、有馬番缺枠番按时按头数推导；仍缺才抓出馬表页（**1 场 1 请求**）。整表重建用 `data/pedigree` 缓存挂马名/血统/彩衣，**0 额外请求**。全部完整时 **0 请求 0 写盘**；**无变化不 build、不提交、不部署**（旧实现是全量重采，1000+ 请求 / 20–45 分钟）
+- **update-jbis-full.yml（全量档 · 日本源）** — 每天 **UTC 18:00 = 北京 02:00 / JST 03:00**：JBIS 出馬表（今天起 3 天）→ 构建 → 有变化则 commit `data/races/` + `data/pedigree/` + `data/silks/` 回 main → **同一 workflow 内重新部署静态页面**。留在这个点是因为 JST 越早跑，远端视野越远（D+3）
+- **update-rp.yml（全量档 · 欧美源）** — 每天 **UTC 14:00 = 英国 14:00 = 北京 22:00**：Racing Post（`--countries all` 全国家；深夜美洲场次此时还没进 SL 索引，抓不到，见该 workflow 注释）→ 构建 → commit → 同一 workflow 内重新部署。定在 14:00 是为了给 GitHub 排队漂移留 8 小时，不跨英国午夜
+- **update-jbis.yml（枠順补采）** — 每天两档 **UTC 03:00 / 15:00 = 北京 11:00 / 23:00**：窗口 **今天 + 明天**，只处理「整表缺失（全量档跑时出馬表还没公开）」和「缺 枠番/馬番」两类场次（`src/backfill-waku.js`）。本地能解就不发请求：已完赛场次取 `data/results` 的终态号、有馬番缺枠番按时按头数推导；仍缺才抓出馬表页（**1 场 1 请求**）。整表重建用 `data/pedigree` 缓存挂马名/血统/彩衣，**0 额外请求**。全部完整时 **0 请求 0 写盘**；**无变化不 build、不提交、不部署**
+- **results-intraday.yml（赛果 · 日本源）** — **UTC 0–12 每小时 = 北京 08:00–20:00**：`collect-results.js --days 1`，只抓开赛满 10 分钟且着顺未完整入库的场次，落 `data/results/{date}/{track}.json`
+- **results-intraday-rp.yml（赛果 · 欧美源）** — **UTC 0/6/12 = 每 6 小时**：`collect-results-rp.js --days 1`，用本地 `rp-*` 卡驱动抓 Sporting Life 结果页，落 `data/results/{date}/rp-{trackId}.json`
 
-两档已**拆成独立 workflow**：各自独立调度、独立 run 历史、各自可手动 `workflow_dispatch` 触发，共用 `concurrency: group: pages` 串行发布。GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故部署不能依赖 `deploy.yml` 被 push 触发，由两条 update workflow 在提交后直接 build + 发布 Pages。`update-full-log-<run_id>` / `update-jbis-log-<run_id>` artifact 保留 **30 天**，内含 `test-logs/*.log`、诊断摘要与逐条 `requests-*.jsonl`
+各档**全部拆成独立 workflow**：独立调度、独立 run 历史、各自可手动 `workflow_dispatch` 触发，共用 `concurrency: group: pages` 串行发布。GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故部署不能依赖 `deploy.yml` 被 push 触发，由各 update workflow 在提交后直接 build + 发布 Pages。artifact 保留 **30 天**（`update-jbis-log-<run_id>` / `update-rp-log-<run_id>` 等），内含 `test-logs/*.log`、诊断摘要与逐条 `requests-*.jsonl`
 
 前置设置（一次性）：
 
 1. Settings → Pages → Source 选 **GitHub Actions**
-2. Settings → Actions → General → Workflow permissions 勾选 **Read and write permissions**（update-data 需要写入仓库）
+2. Settings → Actions → General → Workflow permissions 勾选 **Read and write permissions**（三个 update 档都需要写入仓库）
 3. 定时任务说明：cron 按 **UTC** 填写（北京 = UTC+8）；cron 在高峰期可能延迟数分钟到数小时，整点档尤其明显（2026-11 实测曾整体后移 4–8 小时，甚至整天丢失）；定时 workflow 只在默认分支（main）生效；私有仓库连续 60 天无活动会被暂停、且每分钟计费（补采档轻量化后单次约 1–3 分钟，两档合计约 25–50 分钟/天 ≈ 750–1,500 分钟/月，公开仓库不计费）
 
 数据落库范围：`data/races/`（源文档 `.json.gz`）+ `data/pedigree/`（血统/马名/彩衣缓存**单文件包**，`jbis-sire.json` / `jbis-horse.json` / `rp-horse.json` / `name-lookup.json` / `jbis-name.json` / `nk-*.json` / `wf-*.json` / `sl-silk.json`，文件数恒定、体积线性增长）+ `data/silks/`（按马主去重的彩衣图，必须入库，否则下次 checkout 会因缓存命中而永久缺图）——CI 每次运行增量复用缓存，不为已抓过的马重复请求上游。`.gitattributes` 将 `.gz` / `.gif` / `.png` 声明为二进制，避免行尾转换损坏快照。
@@ -202,7 +205,7 @@ node src/backfill-names.js --dates 2026-11-04 --tracks 236 --limit-docs 1   # �
 | 位置 | 内容 | 用途 |
 |---|---|---|
 | Actions → **Diagnostics from JSONL request log** step | 请求总量/失败率/按源 403·404·5xx、彩衣覆盖（全站 / JRA / NAR / 欧美）、马名权威化覆盖、彩衣引用缺图数、build 是否产出、判定 `OK / WARN / FAIL` | **不下载任何文件**就能判断跑挂没跑挂；异常项以 `::warning::` / `::error::` 注解显示 |
-| artifact `update-full-log-<run_id>` / `update-jbis-log-<run_id>` 的 `test-logs/summary.log`、`summary.json` | 同上，机器可读版；两档 artifact 名独立 | 复盘、跨次对比 |
+| artifact `update-jbis-log-<run_id>` / `update-rp-log-<run_id>` 的 `test-logs/summary.log`、`summary.json` | 同上，机器可读版；各档 artifact 名独立 | 复盘、跨次对比 |
 | artifact `data/logs/requests-*.jsonl` | 每条请求原始记录（含具体 URL 与错误） | 定位到「哪个源、哪一页、什么时候开始 403」 |
 | artifact `test-logs/jbis.log` / `rp.log` / `build.log` | 采集与构建 stdout（`rp.log` 仅全量档有） | 对应脚本报错堆栈 |
 

@@ -1,37 +1,37 @@
-name: update-data · 全量采集
+name: update-data · 全量采集（欧美源）
 
-# 每日一档全量采集 → 构建 → 落库 data/ → 重新部署静态页面（Pages）：
-#   北京 22:00 = UTC 14:00：JBIS 出馬表（今天起 3 天）+ Racing Post（--countries all 全国家）
-# 为什么提前到 14:00（2026-11-16 调整，原 18:00）：
+# 欧美源全量：Racing Post（经 Sporting Life）出馬表 → 构建 → 落库 data/ → 重新部署 Pages
+#   英国 14:00 = UTC 14:00 = 北京 22:00（2026-11-16 由合并档 update-data.yml 拆出；欧美源定在 14:00）
+# 为什么是 14:00 而不是更晚：
 #   GitHub schedule 实测晚 3–6 小时才启动，原 18:00 档多次落到 21:13–23:51；一旦跨过英国 00:00，
-#   SL 的「当天索引」就翻页，当天欧美卡永久错过（11-11 即此例）。14:00 档留足 8 小时余量，
-#   即使漂到 22:00 仍在英国当天内。代价：英美深夜场地（Charles Town / Mountaineer / Remington Park
-#   这类英国 23:00 后才开跑的）此时还没进索引，抓不到 —— 这些场次本就多是 0 头占位。
-# 另一档「枠順补采」拆到 update-jbis.yml：北京 12:00 = UTC 04:00，仅 JBIS，不跑 RP。
-# 两档各自独立调度 / 独立手动触发 / 独立 run 历史；共用 concurrency group `pages` 串行发布。
-# 结构对齐 yunji-web 的 update-data.yml（采集→构建→提交数据→运行日志 artifact）；
-# 差异：GitHub 规定 GITHUB_TOKEN 的 push 不触发其它 workflow，故部署不能依赖 deploy.yml 被 push 触发，
-#       由本 workflow 在提交后直接 build + 发布 Pages。
+#   SL 的「当天索引」就翻页，当天欧美卡永久错过（11-11 即此例；11-07 是 RP 步骤 120min 超时）。
+#   14:00 档留足 8 小时余量，即使漂到 22:00 仍在英国当天内。
+#   代价：英美深夜场地（Charles Town / Mountaineer / Remington Park 这类英国 23:00 后才开跑的）
+#   此时还没进 SL 索引，抓不到 —— 这些场次本就多是 0 头占位。
+# 日本源见 update-jbis-full.yml（UTC 18:00）；枠順补采见 update-jbis.yml（UTC 03:00 / 15:00）；
+# 赛果由 results-intraday*.yml 负责，本档只抓赛前卡片。
+# 三个档共用 concurrency group `pages` 串行发布：GITHUB_TOKEN 的 push 不触发 deploy.yml，
+# 所以每个档都必须自己 build + 发布 Pages。
 # 前置要求：Settings → Pages → Source = GitHub Actions；
 #           Settings → Actions → General → Workflow permissions = Read and write permissions
 on:
   schedule:
-    - cron: '0 14 * * *'   # UTC 14:00 = 北京 22:00 / 英国 14:00 · 全量（JBIS + RP all）
+    - cron: '0 14 * * *'   # UTC 14:00 = 英国 14:00 / 北京 22:00 · RP --countries all
   workflow_dispatch:
 
 permissions:
-  contents: write   # 提交数据（data/races、data/pedigree）
+  contents: write   # 提交数据（data/races、data/pedigree、data/silks）
   pages: write      # 发布 Pages
   id-token: write
 
 concurrency:
-  group: pages      # 与 update-jbis.yml / deploy.yml 共用 pages 组，避免两个发布并发
+  group: pages      # 与 update-jbis-full.yml / update-jbis.yml / deploy.yml 共用，避免并发发布
   cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 240  # 安全网：JBIS 80 + RP 120 + build 15 = 215，留余量给提交/发布/诊断；平台上限 360min
+    timeout-minutes: 180  # RP 120 + build 15 + 提交/发布/诊断余量（平台上限 360min）
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -42,14 +42,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: Collect JBIS racecards
-        timeout-minutes: 80
-        run: |
-          mkdir -p test-logs
-          node src/collect-races.js 2>&1 | tee test-logs/jbis.log
-
-      # Sporting Life 对数据中心 IP 的容忍度未验证 → 失败只告警，不阻断 JBIS 数据落库
-      # countries=all：GB/IRE/USA/... 全国家（SL racecards index 只滚出「明天起」的会议，
+      # Sporting Life 对数据中心 IP 的容忍度未验证 → 失败只告警，不阻断其它数据落库
+      # countries=all：GB/IRE/USA/... 全国家（SL racecards index 只滚出「当天」的会议，
       # 各国当日卡必须在各自的「当天窗口」内抓到，缺一次即错过——育马者杯 Keeneland 10-30/31 即为例证）
       # 超时 120min：历史实测 RP 需 46–55min；9fd66f6 曾设 25min，#22/#23 两次被砍在 25.2min 却判 success
       # 分级闸门：rp-verdict.txt 默认写 FAIL，只有「退出码 0 + 打印 manifest -> 收尾行」才覆盖为 OK；
@@ -73,29 +67,16 @@ jobs:
           fi
           exit "$rc"
 
-      # 着顺结果层（docs/RESULTS.md §4）：枚举 race_id → 出馬表关联 → 赛后结果页 → data/results/
-      # CI 出口 IP 可能被 netkeiba 地域限制 → 失败只告警不拦发布；需要代理时配仓库 secret RC_NK_PROXY
-      - name: Collect results (netkeiba)
-        timeout-minutes: 15
-        continue-on-error: true
-        shell: bash
-        env:
-          RC_NK_PROXY: ${{ secrets.RC_NK_PROXY }}
-        run: |
-          mkdir -p test-logs
-          node src/collect-results.js --days 2 2>&1 | tee test-logs/results.log
-
       # 构建：数据归一 + _site 产出（_site 本身不入库）
       - name: Build site
         timeout-minutes: 15
         run: node src/build.js 2>&1 | tee test-logs/build.log
 
-      # 逐条请求 JSONL（data/logs/，gitignore 不入库）聚合成可读摘要：
-      # 直接打印在 Actions step 日志里，无需下载 artifact 就能判断请求量/403/彩衣覆盖/归一结果。
-      # if: always() —— 采集或 build 失败/超时也要产出诊断。全量档带 --rp（SL 0 请求 / 0 成功判 FAIL）。
+      # 逐条请求 JSONL 聚合成可读摘要，直接打印在 step 日志里。
+      # --rp：本档应发 Sporting Life 请求，0 次或全失败判 FAIL；--no-jbis：不发 JBIS 请求，别报「JBIS 为 0」。
       - name: Diagnostics from JSONL request log
         if: always()
-        run: node src/ci-summary.js --rp
+        run: node src/ci-summary.js --rp --no-jbis
 
       - name: Commit data changes
         run: |
@@ -104,9 +85,9 @@ jobs:
           # data/pedigree/*.json 为血统/马名/彩衣缓存包（单文件存储 → 文件数恒定），入库后下次运行增量复用
           # data/silks/：按马主去重的彩衣图（collect 内下载），必须一起入库——否则本次部署能显示、
           #   下次 checkout 缺图 → 缓存命中不再重下 → 页面永久 404（2026-11-05 修）
-          git add data/races/ data/results/ data/pedigree/ data/silks/
+          git add data/races/ data/pedigree/ data/silks/
           if ! git diff --cached --quiet; then
-            git commit -m "data: auto collect $(date -u +%Y-%m-%dT%H:%MZ)"
+            git commit -m "data: auto collect rp $(date -u +%Y-%m-%dT%H:%MZ)"
             # 运行期间 main 可能被推进 → push 前 rebase；冲突则放弃本次（下次调度自动重算）
             git pull --rebase origin main || { git rebase --abort; echo "::error::远端冲突，本次数据提交放弃"; exit 1; }
             git push origin "HEAD:$GITHUB_REF_NAME"
@@ -128,14 +109,12 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      # 运行日志（对齐 yunji-web：always 上传，便于排查采集失败/为空）
-      # data/logs/requests-*.jsonl = 逐条出站请求（src/url/status/ok/ms/bytes/err），
-      # 本地 gitignore 不入库，只在 CI 作为 artifact 留存；配合 summary.log 定位到具体 URL。
+      # 运行日志（always 上传，便于排查采集失败/为空）
       - name: Upload run logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: update-full-log-${{ github.run_id }}
+          name: update-rp-log-${{ github.run_id }}
           path: |
             test-logs/
             data/logs/requests-*.jsonl
@@ -152,6 +131,6 @@ jobs:
           rp="$(cat test-logs/rp-verdict.txt 2>/dev/null || echo FAIL)"
           echo "verdict=$v rp=$rp"
           if [ "$v" = "FAIL" ] || [ "$rp" = "FAIL" ]; then
-            echo "::error::采集/构建异常，见 update-full-log artifact 的 summary.log 与 requests-*.jsonl"
+            echo "::error::采集/构建异常，见 update-rp-log artifact 的 summary.log 与 requests-*.jsonl"
             exit 1
           fi
