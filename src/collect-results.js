@@ -6,6 +6,8 @@
 //      node src/collect-results.js --until 2026-11-08  # 回填该日（含）以前的全部 JRA/NAR
 //      node src/collect-results.js --days 1 --settle-min 10  # 定时任务：今天+昨天已结束且未完整入库的场次
 // 完整性：只放前三名 / 名次缺号 / 人气未齐 → 判 partial，不入库，下轮自动重试
+// 发送前预过滤（2026-11-16）：先只读 data/races + data/results 算出「已开赛且未完整入库」的场次，
+//   整日 / 整场次都命中完整缓存时，连日期级枚举与场次级页眉都不发 → 0 请求（日志打 [prefilter]）
 // 可选代理：RC_NK_PROXY=http://127.0.0.1:10809（Node 22 内置 EnvHttpProxyAgent，零依赖）
 if (process.env.RC_NK_PROXY) {
   process.env.NODE_USE_ENV_PROXY = "1";
@@ -199,6 +201,14 @@ function joinRunners(race, parsed, linkMap) {
 const stats = { ok: 0, soft: 0, partial: 0, noid: 0, error: 0, skipped: 0, fallback: 0, linked: 0, runners: 0, requests: 0 };
 let budget = LIMIT > 0 ? LIMIT : Infinity;
 
+// ---------- 预过滤：先只看本地，算出「哪些场次真的需要请求」 ----------
+// 规则：只看已开赛（含 settle 缓冲）且尚未完整入库的场次；已完整的直接复用旧记录。
+// 全部命中缓存时，连「日期级枚举」「场次级页眉」都不发 —— 0 请求 0 写盘（2026-11-16 加的发送前过滤）。
+function cachedResultOk(cached, race) {
+  return !FORCE && cached?.status === "result"
+    && checkCompleteness(cached.runners, race.heads, { minPopRatio: MIN_POP_RATIO }).ok;
+}
+
 for (const date of dates) {
   const dir = path.join(DATA_DIR, date);
   if (!fs.existsSync(dir)) continue;
@@ -208,35 +218,59 @@ for (const date of dates) {
     .filter((t) => !TRACKS.length || TRACKS.includes(t))
     .sort();
   if (!files.length || budget <= 0) continue;
-  const listMap = await listMapOf(date);
-  stats.requests++;
 
+  // ① 本地预过滤（0 请求）
+  const plans = [];
   for (const track of files) {
-    if (budget <= 0) break;
     const doc = readDoc(date, track);
     if (!doc?.races?.length) continue;
     const scope = scopeOfDoc(doc);
     if (SCOPE !== "all" && SCOPE !== scope) continue;
-    const kd = scope === "central" ? await kaisaiDayOf(date, track) : null;
-    if (kd) console.log(`[results] ${date} ${track} 页眉 ${kd.kaisai}回${kd.day}日 → 构造中央 race_id`);
     const prev = readResult(date, track);
     const prevByKey = new Map((prev?.races ?? []).map((r) => [r.raceKey, r]));
-    const targets = doc.races.filter((r) => r.runners?.length && raceStarted(date, r.startTime));
-    console.log(`[results] ${date} ${track} ${doc.venue} (${scope}) 目标 ${targets.length} 场 / 已入库 ${prevByKey.size}`);
-    const out = [];
+    const started = doc.races.filter((r) => r.runners?.length && raceStarted(date, r.startTime));
+    const todo = started.filter((r) => !cachedResultOk(prevByKey.get(r.raceKey), r));
+    plans.push({ track, doc, scope, prevByKey, started, todo });
+  }
+  const needTotal = plans.reduce((n, p) => n + p.todo.length, 0);
+  const cachedTotal = plans.reduce((n, p) => n + p.started.length - p.todo.length, 0);
+  if (!needTotal) {
+    if (plans.length) console.log(`[prefilter] ${date} 已开赛 ${cachedTotal} 场全部完整 → 0 请求`);
+    continue;
+  }
+  console.log(`[prefilter] ${date} 待抓 ${needTotal} 场 / 已完整 ${cachedTotal} 场`);
 
-    for (const race of targets) {
+  // 日期级枚举（1 请求）：确实有待抓场次才发；多个场次共用同一份
+  let listMap = null;
+  const listMapLazy = async () => {
+    if (!listMap) { listMap = await listMapOf(date); stats.requests++; }
+    return listMap;
+  };
+
+  for (const plan of plans) {
+    if (budget <= 0) break;
+    const { track, doc, scope, prevByKey, started, todo } = plan;
+    // 该场次全部已完整 → 一次请求都不发，也不重写结果文件
+    if (!todo.length) {
+      console.log(`[prefilter] ${date} ${track} ${doc.venue} 已完整 ${started.length} 场 → 跳过`);
+      continue;
+    }
+    const kd = scope === "central" ? await kaisaiDayOf(date, track) : null;
+    if (kd) console.log(`[results] ${date} ${track} 页眉 ${kd.kaisai}回${kd.day}日 → 构造中央 race_id`);
+    const todoKeys = new Set(todo.map((r) => r.raceKey));
+    console.log(`[results] ${date} ${track} ${doc.venue} (${scope}) 待抓 ${todo.length} 场 / 已入库 ${prevByKey.size}`);
+    // 已完整的场次原样保留，只补抓缺的
+    const out = started.filter((r) => !todoKeys.has(r.raceKey)).map((r) => prevByKey.get(r.raceKey)).filter(Boolean);
+
+    for (const race of todo) {
       if (budget <= 0) break;
-      const cached = prevByKey.get(race.raceKey);
-      const cachedOk = !FORCE && cached?.status === "result"
-        && checkCompleteness(cached.runners, race.heads, { minPopRatio: MIN_POP_RATIO }).ok;
-      if (cachedOk) {
-        out.push(cached);
+      if (cachedResultOk(prevByKey.get(race.raceKey), race)) {
+        out.push(prevByKey.get(race.raceKey));
         stats.skipped++;
         continue;
       }
       budget--;
-      const anchor = anchorOf(date, track, race.no, listMap, kd);
+      const anchor = anchorOf(date, track, race.no, await listMapLazy(), kd);
       if (!anchor) {
         stats.noid++;
         console.log(`  [noid ] ${pad2(race.no)}R ${race.raceKey} 枚举口/构造均无 race_id`);

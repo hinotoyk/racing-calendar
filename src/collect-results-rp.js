@@ -8,6 +8,8 @@
 //      node src/collect-results-rp.js --today --no-index     # 更省：跳过日级列表，纯本地卡片驱动
 //      node src/collect-results-rp.js --until 2026-11-09 --recheck-abnormal
 //           # 只重抓「已落盘且含异常态」的场次，用于异常态分类升级后的历史回填
+// 发送前预过滤（2026-11-16）：先只读 data/races + data/results 算「已开赛且未完整入库」的场次，
+//   全部命中完整缓存时连日级列表都不发 → 0 请求（日志打 [prefilter]）
 import fs from "node:fs";
 import path from "node:path";
 import { SITE } from "./config.js";
@@ -141,6 +143,18 @@ const stats = {
 };
 let budget = LIMIT > 0 ? LIMIT : Infinity;
 
+// 预过滤用：这条已入库记录是否可直接复用（与主循环里的 cachedOk 同口径）
+function cachedRpOk(cached) {
+  if (FORCE || cached?.status !== "result") return false;
+  const legacyAbnormal = RECHECK_ABNORMAL
+    && (cached?.runners ?? []).some((x) => typeof x.finish === "string");
+  if (legacyAbnormal) return false;
+  return checkCompleteness(
+    cached.runners, cached.heads ?? cached.runners?.length ?? 0,
+    { requirePop: cached.hasOdds !== false }
+  ).ok;
+}
+
 for (const date of dates) {
   const dir = path.join(DATA_DIR, date);
   if (!fs.existsSync(dir) || budget <= 0) continue;
@@ -150,6 +164,30 @@ for (const date of dates) {
     .sort();
   if (!files.length) continue;
 
+  // ① 本地预过滤（0 请求）：只留「已开赛（含 settle 缓冲）且尚未完整入库」的场次
+  const plans = [];
+  for (const file of files) {
+    const doc = readDoc(date, file);
+    if (!doc?.races?.length) continue;
+    const trackId = String(doc.trackId ?? file.replace(/^rp-|\.json(\.gz)?$/g, ""));
+    const prev = readJson(resultFile(date, trackId));
+    const prevByKey = new Map((prev?.races ?? []).map((r) => [String(r.raceKey), r]));
+    const todo = doc.races.filter((r) => {
+      const raceKey = String(r.raceKey ?? "");
+      if (!/^\d+$/.test(raceKey)) return false;
+      return raceStarted(r) && !cachedRpOk(prevByKey.get(raceKey));
+    });
+    plans.push({ doc, trackId, prevByKey, todo });
+  }
+  const needTotal = plans.reduce((n, p) => n + p.todo.length, 0);
+  const cardTotal = plans.reduce((n, p) => n + p.doc.races.length, 0);
+  if (!needTotal) {
+    if (plans.length) console.log(`[prefilter] ${date} 卡片 ${cardTotal} 场，无待抓（未开赛或已完整）→ 0 请求`);
+    continue;
+  }
+  console.log(`[prefilter] ${date} 待抓 ${needTotal} 场 / 卡片 ${cardTotal} 场`);
+
+  // 日级列表（1 请求）：确实有待抓场次才发，用于判「已定稿」的 stage
   let dayMap = null;
   if (!NO_INDEX) {
     const html = await fetchPage(dayUrl(date));
@@ -160,15 +198,20 @@ for (const date of dates) {
     else console.log(`[rp] ${date} 日级枚举 ${dayMap.size} 场`);
   }
 
-  for (const file of files) {
+  for (const plan of plans) {
     if (budget <= 0) break;
-    const doc = readDoc(date, file);
-    if (!doc?.races?.length) continue;
-    const trackId = String(doc.trackId ?? file.replace(/^rp-|\.json(\.gz)?$/g, ""));
-    const prev = readJson(resultFile(date, trackId));
-    const prevByKey = new Map((prev?.races ?? []).map((r) => [String(r.raceKey), r]));
-    const out = [];
-    console.log(`[rp] ${date} rp-${trackId} ${doc.venue} (${doc.country}) 卡片 ${doc.races.length} 场 / 已入库 ${prevByKey.size}`);
+    const { doc, trackId, prevByKey, todo } = plan;
+    if (!todo.length) {
+      console.log(`[prefilter] ${date} rp-${trackId} ${doc.venue} 无待抓 → 跳过`);
+      continue;
+    }
+    const todoKeys = new Set(todo.map((r) => String(r.raceKey)));
+    // 已入库的场次原样保留，只补抓缺的
+    const out = doc.races
+      .filter((r) => !todoKeys.has(String(r.raceKey)))
+      .map((r) => prevByKey.get(String(r.raceKey)))
+      .filter((x) => x?.status === "result");
+    console.log(`[rp] ${date} rp-${trackId} ${doc.venue} (${doc.country}) 待抓 ${todo.length} 场 / 已入库 ${prevByKey.size}`);
 
     for (const race of doc.races) {
       const raceKey = String(race.raceKey ?? "");

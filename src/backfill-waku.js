@@ -270,10 +270,12 @@ for (const date of DATES) {
     let touched = false;
     let wholeTable = 0;
 
+    // ① 本地先解决（0 请求）：results 终态号 → 枠番推导；然后算出「还要发请求的场次」
+    //    过滤口径（2026-11-16）：只有真正缺 枠番/馬番 的场次才进 need，已齐的一个请求都不发。
+    const need = [];
     for (const race of doc.races ?? []) {
       if (race.status !== "entries") continue;
 
-      // ① 本地先解决：results 终态号 → 枠番推导
       if (race.runners?.length) {
         if (res) {
           for (const x of race.runners) {
@@ -303,7 +305,19 @@ for (const date of DATES) {
         if (race.runners?.length) stats.skipped++;
         continue;
       }
-      if (LIMIT && stats.requests >= LIMIT) continue;
+      need.push(race);
+    }
+    if (need.length) {
+      const blank = need.filter((r) => !r.runners?.length).length;
+      console.log(`[prefilter] ${date} ${track} 待补 ${need.length} 场（整表缺失 ${blank} / 仅缺号 ${need.length - blank}）`);
+    }
+
+    // ② 发请求：只针对 need 里的场次。整表缺失的场次若首个就抓不到 → 整场出馬表尚未公开，
+    //    同场其余 R 必然同样为空，本轮直接放弃，避免 12 次无效请求（11:00 / 23:00 两档各一次）。
+    let unpublished = false;
+    for (const race of need) {
+      if (LIMIT && stats.requests >= LIMIT) break;
+      if (unpublished) continue;
 
       let parsed = null;
       try {
@@ -315,6 +329,11 @@ for (const date of DATES) {
       }
       if (!parsed) {
         console.log(`[soft] ${date} ${track} ${race.no}R: 出馬表未公开/无枠列（可用本地数据已补）`);
+        if (!race.runners?.length) {
+          unpublished = true;
+          const rest = need.length - need.indexOf(race) - 1;
+          if (rest > 0) console.log(`[skip] ${date} ${track} 整场出馬表未公开 → 其余 ${rest} 场本轮不再请求`);
+        }
         continue;
       }
 

@@ -19,7 +19,8 @@ const OUT_DIR = path.resolve(argOf("--out-dir") ?? "test-logs");
 const RACE_DIR = path.resolve("data", "races");
 const SILK_DIR = path.resolve("data", "silks");
 const SINCE_MIN = parseInt(argOf("--since-minutes") ?? "0", 10);
-const FULL_RUN = argv.includes("--rp"); // 全量档 update-data.yml（北京 02:00）/ 手动 dispatch：应包含欧美请求
+const FULL_RUN = argv.includes("--rp"); // 欧美源档 update-rp.yml：应包含欧美请求（0 次 / 全失败判 FAIL）
+const NO_JBIS = argv.includes("--no-jbis"); // 同上：该档不发 JBIS 请求，别把「JBIS 为 0」记成告警
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const lines = [];
@@ -139,7 +140,7 @@ if (FULL_RUN && slRequests > 0 && slOk === 0) fatals.push(`全量档 Sporting Li
 if (n403 > 0) warnings.push(`JBIS/SL 限流 403/429 共 ${n403} 次（看按源分布判断影响面）`);
 if (n5xx > 0) warnings.push(`服务端 5xx 共 ${n5xx} 次`);
 if (nNetErr > 0) warnings.push(`网络层异常 ${nNetErr} 次`);
-if (jbisRequests === 0) warnings.push("JBIS 相关请求为 0");
+if (!NO_JBIS && jbisRequests === 0) warnings.push("JBIS 相关请求为 0");
 if (FULL_RUN && slRequests > 0 && slOk < slRequests * 0.5) warnings.push(`Sporting Life 成功率 ${pct(slOk, slRequests)} 偏低（${slOk}/${slRequests}）`);
 if (cov.central > 0 && cov.centralSilk < cov.central) warnings.push(`JRA 彩衣 ${cov.centralSilk}/${cov.central} 未满`);
 if (cov.nameOk < cov.jbisRows) warnings.push(`马名权威化缺 ${cov.jbisRows - cov.nameOk} 行`);

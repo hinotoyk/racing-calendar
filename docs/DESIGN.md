@@ -99,15 +99,17 @@ manifest 记录统一由 `manifestEntry()` 生成，**成功与失败路径共�
 
 礼貌抓取：间隔 `SITE.delayMs`（1.2s），UA 标识用途；单周约 250–400 次请求。
 
-### 4.1 枠番/馬番 轻量补采（`src/backfill-waku.js`，12:00 补采档）
+### 4.1 枠番/馬番 轻量补采（`src/backfill-waku.js`，北京 11:00 / 23:00 补采档）
 
-全量档（北京 22:00）跑的时候，次日及以后场次的出馬表往往还没公开，落下来的是空壳文档（`runners=[]`）。12:00 补采档只有两件事，且**本地能解就不发请求**：
+日本源全量档（北京 02:00 = JST 03:00）跑的时候，次日及以后场次的出馬表往往还没公开，落下来的是空壳文档（`runners=[]`）。补采档（`update-jbis.yml`，北京 11:00 / 23:00 各一次）只有两件事，且**本地能解就不发请求**：
 
 1. 读 `data/races/{date}/*.json.gz`（窗口 = **今天 + 明天**；`scope=overseas` 跳过，海外无「枠」概念）；
 2. 本地先解（0 请求）：
    - 已完赛场次 → `data/results/{date}/{CCC}.json` 的 runner 带终态 `num`+`frame`（含取消马），按馬 id 直取；
    - 有 `num` 缺 `frame` → 枠番是「馬番 + 出走頭数」的函数（8 枠制：≤8 头一台一枠；9–16 头自 8 枠往前每枠 2 头；17 头以上再往前每枠 3 头），**只在馬番 1..N 连续且与当日页头数一致时**推导（有取消/欠番会错位，直接放弃）；
 3. 仍缺才抓出馬表页 `/race/{ymd}/{CCC}/{RR}/`（失败回退 `/race/result/`），**1 场 1 请求**；
+   - **发送前过滤（2026-11-16）**：先跑完步骤 2 的本地推导，算出「仍缺 枠番/馬番」的 `need` 清单，只对 `need` 发请求；整场次都齐 → 该场次一个请求都不发，日志打 `[prefilter] … 待补 N 场`；
+   - **整场未公开快停**：整表缺失（`runners=[]`）时若第一场就抓不到，说明该场次出馬表整体还没公开 → 本轮放弃该場剩余 R（`[skip] … 其余 N 场本轮不再请求`），把 12 次无效请求压成 1 次；
 4. 有表缺号 → 按 **馬 id** 只填空值、不覆盖；整表缺失 → 整表写入并用 `data/pedigree` 缓存补齐：马名/英文名/国籍 ← `jbis-name.json`、父父 ← `jbis-sire.json`、彩衣 ← `nk-owner.json` / `wf-horse.json`（**0 额外请求**，实测 127 头复原结果与原文件逐字段一致）；
 5. 有变化才写 gz：只补号的场次记 `wakuAt`，整表重建才更新 `capturedAt`；同时刷新 `manifest.json` 对应场次。
 
@@ -333,7 +335,7 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 - **落盘**：`data/results/{date}/{track}.json`，`schema: jbis.race.result/v1`，按「日 × 场」与 `data/races/` 对齐；已 `result` 且完整则重跑 0 请求（幂等键 `raceKey`，`--force` 覆盖）。
 - **构建**：`src/build.js::resultsOf()` 按 `raceKey|num` 把 `finish / resultTime / resultMargin / resultPop / resultOdds / resultLast3f / resultBody / nkRaceId / nkId` 合并进扁平行；另出 `derived/results-{date}.json` 与 `index.json::resultDates`。主表「着顺」（1 着强调；异常态显示中文全称徽标、按类别配色，hover 给含义与判定依据）与「最终人气」（`resultPop`，1 番人气高亮；区别于前走 `lastPop`）两列，移动端卡片、分享卡字段白名单、Excel 表头同步（Excel 写全称）。异常态口径单一出处 `src/lib/abnormal-finish.js`，build 阶段生成 `resultLabel / resultDesc / resultAbClass / resultReason`。
 - **空态口径**：`ok / soft（200 无结果表）/ noid（枚举口与构造均无 id）/ error` 分开计数，不能合成一个 fail；另有 `fallback`（中央 db.* 回退命中）单独统计。`noid` 现在只会在枚举口与 JBIS 页眉都拿不到回/日时出现，属真异常。
-- **触发**：按 `startTime` 判开赛，不用 JBIS `status=result`；滚动 `--days 2` 天然补 T+1 / T+7 缺口。CI 挂全量档 `update-data.yml` 的 Build 之前，`continue-on-error: true`，`data/results/` 随数据提交。
+- **触发**：按 `startTime` 判开赛，不用 JBIS `status=result`；滚动 `--days 2` 天然补 T+1 / T+7 缺口。CI 里由独立档 `results-intraday.yml` 每小时跑（2026-11-16 起不再挂在全量档里），`data/results/` 随该档提交。
 - **增量模式（2026-11-09，同日调整为小时档）**：`--days 1` 跑 **JST 今天 + 昨天**（滚动窗口，跨零点 / 漏抓场次自动补），`--settle-min 10` 要求开赛满 10 分钟，`--min-pop-ratio` 可调人气覆盖阈值（默认 0.8）。定时调度在 **GitHub Actions** `.github/workflows/results-intraday.yml`：cron `0 0-12 * * *`（UTC 整点 0–12 时 = 北京 8:00–20:00 每 1 小时），共用 `concurrency: group: pages`，`workflow_dispatch` 可手动触发。步骤 = 采集 → `src/verify-results.js` 全库体检 → 按 `.results-dirty` 决定是否 build / commit `data/results/` / 部署 Pages → 日志 artifact + Gate 告警。GitHub cron 排队可能延迟，靠滚动窗口 + 开赛时间 + 幂等兜住。欧美源拆到独立档 `.github/workflows/results-intraday-rp.yml`（cron `0 0,6,12 * * *` = 北京 8/14/20 点每 6 小时，同 `--days 1` 口径），此前同档混跑 30 分钟一版。
 - **完整性校验（`src/lib/result-completeness.js`，纯本地）**：判 `partial` 的条件 = 结果为空 / 无数字着顺 / 名次缺号 / 结果行数 < 出馬表头数−2（只放前三名）/ 最大着顺明显不足 / 数字名次行的人气覆盖率 < 80%。`partial` **不入库**，下一轮自动重抓；已落盘缓存也要通过同一校验才算幂等命中。`除 / 中 / 失 / 取 / 止` 合法且不要求人气。
   - **同着（关键口径）**：日本赛马并列第 N 着 c 匹时下一着顺为 N+c（如 4 着并列两匹 → 没有 5 着、下一名 6 着），这是合法跳号。名次缺号用「游标」判定：`cursor=1`，读到名次 r 的计数 c 后 `cursor += c`，只有游标落在计数为 0 的名次才算缺号。初版用 `1..maxRank` 全覆盖判断，曾把 17 场同着误报为半截结果，已修正。
