@@ -46,7 +46,8 @@ const slugify = (s) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-// 国家组 → SL country.short_name
+// 国家组 → SL country.short_name（--countries GB,IRE,HK… 按此展开；"all" 不过滤，直接全收）
+// 注：CAN 目前选不到 —— SL 把北美整块标成 USA（Woodbine 实测 country=USA），留着仅为将来兼容
 const COUNTRY_GROUP = {
   // 实测 short_name：英格兰 ENG / 威尔士 Wale / 苏格兰 Scot（旧文档写 SCO，两种都收）
   GB: ["ENG", "Wale", "SCO", "Scot"],
@@ -55,6 +56,7 @@ const COUNTRY_GROUP = {
   UAE: ["UAE"],
   SAF: ["SAF"],
   USA: ["USA"],
+  HK: ["HK"],
   CAN: ["CAN"],
 };
 

@@ -68,7 +68,9 @@ export const COURSE_TZ = {
   CAN: "America/Toronto",
   AUS: "Australia/Sydney",
   JPN: "Asia/Tokyo",
-  HKG: "Asia/Hong_Kong",
+  // 香港：RP/SL 的 short_name 实际给 HK（旧表按 HKG 写，导致查不到、回退 Europe/London）；
+  // 香港比英国早，反推比赛日时 shift=0 恰好自洽，时刻没歪，但属于侥幸 —— 两种都收（2026-11-16 修）。
+  HK: "Asia/Hong_Kong", HKG: "Asia/Hong_Kong",
 };
 
 const COURSE_TZ_OVERRIDE = {

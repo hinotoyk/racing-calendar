@@ -301,6 +301,16 @@ function syncUrl() {
 // 场地 chips：全部 / 中央(JRA) / 地方(NAR) / 海外国家组码（动态，多选、带头数）
 // 分三段陈列（段间细竖线 + 「海外」组名）：中央·地方是日本国内，其余国家组码一律归海外
 const SCOPE_TAG = { JRA: "中央", NAR: "地方" };
+// 海外国家组码 → 中文名（**仅显示用**：data-v 与 URL 的 scope 仍是组码，深链/数据口径不变）
+// 未收录的组码退成原文，不至于显示空白
+const SCOPE_CN = {
+  GB: "英国", ENG: "英格兰", Wale: "威尔士", SCO: "苏格兰", Scot: "苏格兰",
+  IRE: "爱尔兰", Eire: "爱尔兰", FR: "法国", HK: "中国香港",
+  USA: "美国", CAN: "加拿大", UAE: "阿联酋", SAF: "南非",
+  GER: "德国", ITY: "意大利", SPA: "西班牙", AUS: "澳大利亚", NZ: "新西兰",
+  JPN: "日本", KOR: "韩国", SIN: "新加坡", TUR: "土耳其",
+};
+const scopeLabel = (sc) => SCOPE_CN[sc] ?? sc;
 const isJpScope = (s) => s === "JRA" || s === "NAR";
 function renderScopes() {
   const counts = new Map();
@@ -308,7 +318,7 @@ function renderScopes() {
   const codes = [...new Set(state.index.venues.map((v) => v.scope))];
   const jp = ["JRA", "NAR"].filter((s) => s === "JRA" || codes.includes(s));
   const ov = codes.filter((s) => !isJpScope(s)).sort((a, b) => a.localeCompare(b));
-  const one = (sc) => chip(sc, sc, state.scope.has(sc), "scope", counts.get(sc) ?? 0, SCOPE_TAG[sc]);
+  const one = (sc) => chip(scopeLabel(sc), sc, state.scope.has(sc), "scope", counts.get(sc) ?? 0, SCOPE_TAG[sc]);
   $("#scope-chips").innerHTML =
     chip("全部", "", state.scope.size === 0, "scope", null) +
     `<i class="f-sep"></i>` + jp.map(one).join("") +
@@ -336,7 +346,7 @@ function venueGroups() {
   const sorted = (arr) => arr.slice().sort((a, b) => a.localeCompare(b));
   // 选了多个国家 → 一国一组（组名「海外 FR」）；只选一个 / 场地=全部 → 合并成「海外」一组
   if (codes.length > 1 && !all)
-    for (const c of codes) groups.push({ label: `海外 ${c}`, names: sorted(byScope.get(c)) });
+    for (const c of codes) groups.push({ label: `海外 ${scopeLabel(c)}`, names: sorted(byScope.get(c)) });
   else if (codes.length)
     groups.push({ label: "海外", names: sorted(codes.flatMap((c) => byScope.get(c))) });
   return groups;

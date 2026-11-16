@@ -138,7 +138,9 @@ export const scopeOfVenue = (venue) =>
   TRACK_CENTRAL.includes(venue) ? "JRA" : TRACK_LOCAL.includes(venue) ? "NAR" : "海外";
 
 // SL country.short_name → 国家组码（与 sources/racingpost.js 的 COUNTRY_GROUP 同口径）
-const COUNTRY_GROUP_MAP = { ENG: "GB", Wale: "GB", SCO: "GB", Eire: "IRE" };
+// 苏格兰是 **两种拼写** 并存：旧文档写 SCO、RP 实测返回 Scot（见 sources/racingpost.js 注释），
+// 少写一种就会让苏格兰赛场（Musselburgh）漏出 GB、单独占一个「Scot」场地组（2026-11-16 修）。
+const COUNTRY_GROUP_MAP = { ENG: "GB", Wale: "GB", SCO: "GB", Scot: "GB", Eire: "IRE" };
 export const countryGroupOf = (code) => COUNTRY_GROUP_MAP[code] ?? code ?? "海外";
 
 // 级别（半角标签对齐 yunji-web GRADE 表）：原始比赛格 → 13 桶
