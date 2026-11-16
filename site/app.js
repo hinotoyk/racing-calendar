@@ -117,6 +117,15 @@ const levelBadge = (level) => {
 
 // 枠番传统色（JRA 公式 1白2黒3赤4青5黄6緑7橙8桃，与 share.js WAKU 同源）
 const frameBadge = (f) => (f == null || f === "" ? "" : `<span class="waku w${f}">${esc(f)}</span>`);
+// 马号 = 枠番 × 馬番 合并（2026-11-16）：色块底色 = 枠番色、块内只写馬番（与分享卡单色块同一手感）。
+// 无枠番（海外 RP 源 / 未確定页）退成纯数字，不套灰块 —— 灰块会被读成「这个字段坏了」。
+const wkNumChip = (f, n) => {
+  if (n == null || n === "") return "";
+  const fr = Number(f);
+  return fr >= 1 && fr <= 8
+    ? `<span class="waku waku-band w${fr}">${esc(n)}</span>`
+    : `<span class="yj-mb-no">${esc(n)}</span>`;
+};
 
 // 彩衣（勝負服）：有图出图，无图出「空彩衣」占位。
 // 采集未覆盖 / 马主未登记时原本整格留白，看起来像渲染坏了或漏了一列。
@@ -759,23 +768,26 @@ async function gridSelfTest(full) {
 }
 
 // ---------- 渲染 ----------
-// ---------- 列定义 / 顺序 / 显隐（localStorage rc.cols.v6） ----------
+// ---------- 列定义 / 顺序 / 显隐（localStorage rc.cols.v7） ----------
 // 数组顺序 = 出厂列顺序（可在「自定义显示列」里勾选，顺序由持久化的 order 决定）。
-// 出厂组合：马维度为主 —— 馬名 性齢 枠番 馬番 騎手 負重 彩衣 最終人気 着順 練馬師 父 母父。
-// 比赛级列（竞马场 / R / 比赛 / 距离 / 当地时间 / 北京时间）+ 祖父 出厂隐藏：
-// 每场首行前的分隔行已完整承载「場R · 比赛名 · 级别 · 北京时间 · 距离 · 当地 · 头数」，
+// 出厂组合（v7，2026-11-16 用户定稿）：距离 + 马维度 —— 距离 馬名 性齢 馬号 騎手 負重 彩衣 人気 着順 練馬師 父 母父。
+//   · 距离 进默认列（原来靠分隔行第二行承载，现在逐行也能直接看）；
+//   · 枠番 出厂隐藏：马号列本身就是「枠番 × 馬番」合并（满格色带，色 = 枠番、字 = 馬番，
+//     与分享卡 drawDense 的 wknum 格同款），单独的枠番列只在想核对枠番数字时才开回来。
+// 仍出厂隐藏：比赛级列（竞马场 / R / 比赛 / 当地时间 / 北京时间）+ 祖父：
+// 每场首行前的分隔行已完整承载「場R · 比赛名 · 级别」与「北京时间 · 距离 · 当地 · 头数」，
 // 逐行重复只会把马信息挤窄；需要时经「自定义显示列」随时开回（菜单底部有「恢复默认」）。
 const COLUMNS = [
   { k: "venue",    label: "竞马场", left: 1, defHide: 1 },
   { k: "raceno",   label: "R", defHide: 1 },
   { k: "race",     label: "比赛", left: 1, defHide: 1 },
-  { k: "dist",     label: "距离", defHide: 1 },
+  { k: "dist",     label: "距离" },
   { k: "start",    label: "当地时间", defHide: 1 },
   { k: "bj",       label: "北京时间", defHide: 1 },
   { k: "name",     label: "马名", left: 1 },
   { k: "sexage",   label: "性龄" },
-  { k: "waku",     label: "枠番" },
-  { k: "num",      label: "马号" },
+  { k: "waku",     label: "枠番", defHide: 1 },   // 已并进马号列（色带底色 = 枠番），默认不再单列
+  { k: "num",      label: "马号" },                // 枠番 × 馬番 合并列（满格色带）
   { k: "jockey",   label: "骑手", left: 1 },
   { k: "weight",   label: "负重" },
   { k: "silk",     label: "彩衣" },   // 勝負服小图（采集覆盖时才有值，无值则空）
@@ -791,9 +803,14 @@ const COL_KEYS = COLUMNS.map((c) => c.k);
 const colByKey = new Map(COLUMNS.map((c) => [c.k, c]));
 // 骟马 JBIS 原文为「セン」，展示统一收成单字「セ」：性齢列不再超宽截断
 const sexShort = (s) => (s === "セン" ? "セ" : (s ?? ""));
-// v6：列顺序 + 显隐合并成一个配置持久化（v5 只存隐藏列表、顺序写死，无法满足自定义排序）
+// v7：列顺序 + 显隐合并成一个配置持久化（v5 只存隐藏列表、顺序写死，无法满足自定义排序）
 // 存 { order: [key...], hidden: [key...] }；老值（纯数组）按「只有 hidden、顺序取出厂」兼容读取。
-const COLS_KEY = "rc.cols.v6";
+// v6 → v7 迁移（2026-11-16）：枠番 并进马号列、距离 进默认列。
+// 逐条迁移而不是直接换 key 丢弃，是为了保住用户辛苦排过的列序与显隐：
+//   · hidden 里始终补上 waku（合并后单列枠番是冗余信息，出厂就该收起）；
+//   · hidden 里去掉 dist（旧出厂把它藏了，用户没主动开过也照样显示，否则「默认列加距离」落不了地）。
+const COLS_KEY = "rc.cols.v7";
+const COLS_KEY_V6 = "rc.cols.v6";
 const COLS_DEFAULT_HIDE = COLUMNS.filter((c) => c.defHide).map((c) => c.k);
 let colOrder = [...COL_KEYS];
 let hiddenCols = new Set(COLS_DEFAULT_HIDE);
@@ -807,11 +824,18 @@ function normOrder(a) {
   for (const k of COL_KEYS) if (!seen.has(k)) out.push(k);
   return out;
 }
+// 旧配置 → v7 形态（相对 order 不动；hidden 按 v7 的出厂口径校正 waku / dist 两项）
+function migrateCols(order, hidden) {
+  const h = new Set(Array.isArray(hidden) ? hidden.filter((k) => colByKey.has(k)) : [...COLS_DEFAULT_HIDE]);
+  h.add("waku");
+  h.delete("dist");
+  return { order: normOrder(order), hidden: [...h] };
+}
 function loadCols() {
   try {
     const raw = JSON.parse(localStorage.getItem(COLS_KEY));
     if (Array.isArray(raw)) {                                   // v5 形态：只有 hidden
-      return { order: [...COL_KEYS], hidden: raw.filter((k) => colByKey.has(k)) };
+      return migrateCols(null, raw);
     }
     if (raw && typeof raw === "object") {
       return {
@@ -819,6 +843,11 @@ function loadCols() {
         hidden: Array.isArray(raw.hidden) ? raw.hidden.filter((k) => colByKey.has(k)) : [...COLS_DEFAULT_HIDE],
       };
     }
+  } catch {}
+  try {                                                        // v6 老值：迁到 v7 口径
+    const old = JSON.parse(localStorage.getItem(COLS_KEY_V6));
+    if (Array.isArray(old)) return migrateCols(null, old);
+    if (old && typeof old === "object") return migrateCols(old.order, old.hidden);
   } catch {}
   return { order: [...COL_KEYS], hidden: [...COLS_DEFAULT_HIDE] };   // 未保存过 = 出厂配置
 }
@@ -854,6 +883,7 @@ function cellHtml(r, c) {
     }
     case "dist": return `${surfDot(r.surface)}${esc(distText(r))}`;
     case "waku": return frameBadge(r.frame);
+    // 马号 = 枠番 × 馬番 合并列：底色（枠番色）刷在 td 上而不是这里，见 rowHtml 的 wknum 判定
     case "num":  return esc(r.num ?? "");
     case "name": return horseLink(r.horseId, r.horseName);
     case "sexage": return esc(sexShort(r.sex) + (r.age ?? ""));
@@ -892,42 +922,53 @@ function rowHtml(r) {
   const tds = visCols().map((c, i) => {
     // 勾选框锚定第一可见列（绝对定位在左侧预留区，任何列组合下都可用）
     const host = i === 0 ? " pk-host" : "";
-    const cls = `${c.left ? "c-left" : "num"}${c.k === "bj" ? " bj" : ""}${host}`;
+    // 马号列 = 枠番 × 馬番 合并满格色带（2026-11-16，样式参考分享卡 drawDense 的 wknum 格）：
+    // 底色刷在 td 上（单元格背景一定填满整格，不受内容高度影响），字 = 馬番、色 = 枠番。
+    // 无枠番（海外 RP 源 / 未確定页）不刷底、退普通居中数字 —— 灰块会被读成「字段坏了」。
+    const fr = Number(r.frame);
+    const band = c.k === "num" && fr >= 1 && fr <= 8 && r.num != null && r.num !== "";
+    const cls = `${c.left ? "c-left" : "num"}${c.k === "bj" ? " bj" : ""}${host}` +
+      (band ? ` wknum w${fr}` : "");
     return `<td class="${cls}" data-l="${esc(c.label)}">${i === 0 ? box : ""}${cellHtml(r, c)}</td>`;
   }).join("");
   return `<tr data-pk="${k}" title="${esc(r.startTimeInstant ?? "")}">${tds}</tr>`;
 }
 
 // 比赛分隔行（PC：同场比赛的首行前插入两行块头 —— 比赛级列默认隐藏后，这里是这些信息的唯一来源）
-//   行1：場R（主色，放大）· 比赛名 · 级别徽章 ······ 北京时间（右对齐）
-//   行2：距离 · 当地发走 · 头数（次要信息，浅色小字）
+//   行1：場R（主色，放大）· 比赛名 · 级别徽章
+//   行2：北京时间 · 距离 · 当地发走 · 头数（次要信息，浅色小字；北京时间在此行首、提一档字重）
+// 2026-11-16：北京时间从行1 末尾（右端）挪到行2 行首 —— 长冠名赛事（Horseshoe Indianapolis 这类）
+//   行1 挤到「比赛名 + 北京时间 11-13 05:35」后整行过长，时间还被挤到换行；时间本就和「距离 / 当地」
+//   同属赛前条件，落到行2 行首既腾空行1，也把三段时间信息排在一起。
 function raceSepHtml(r, heads) {
   const nm = r.raceUrl
     ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
     : esc(r.raceName ?? "");
   const bj = bjTime(r.startTimeInstant);   // MM-dd HH:mm，前面挂「北京时间」标签
-  const meta = [esc(distText(r)), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
-    .filter(Boolean).join(" · ");
+  const meta = [
+    bj ? `<span class="sep-bj"><span class="sep-bj-k">北京时间</span>${esc(bj)}</span>` : "",
+    esc(distText(r)), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : "",
+  ].filter(Boolean).join(" · ");
   return `<tr class="sep"><td colspan="${visCols().length}"><div class="sep-hd">` +
     `<b class="sep-no">${esc(r.venue)}${esc(r.raceNo)}R</b>` +
-    `<span class="sep-name">${nm}</span>${levelBadge(r.level)}` +
-    `${bj ? `<span class="sep-bj"><span class="sep-bj-k">北京时间</span>${esc(bj)}</span>` : ""}</div>` +
+    `<span class="sep-name">${nm}</span>${levelBadge(r.level)}</div>` +
     `${meta ? `<div class="sep-sub">${meta}</div>` : ""}</td></tr>`;
 }
 
 // ---------- 移动端（≤767px）卡片渲染（yunji race-rows mbCard 同方案：JS 独立路径，同一份列定义） ----------
-// 组头：比赛级信息一行带过（場R · 比赛名 · 级别 · 北京 · 距离 · 当地 · 头数），与 PC 分隔行同构
+// 组头：与 PC 分隔行同构 —— 行1 場R · 比赛名 · 级别；行2 北京时间 · 距离 · 当地 · 头数
 function mbSepHtml(r, heads) {
   const nm = r.raceUrl
     ? `<a class="rlink" href="${esc(r.raceUrl)}" target="_blank" rel="noopener">${esc(r.raceName ?? "")}</a>`
     : esc(r.raceName ?? "");
   const bj = bjTime(r.startTimeInstant);   // MM-dd HH:mm，前面挂「北京时间」标签
-  const meta = [esc(distText(r)), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : ""]
-    .filter(Boolean).join(" · ");
+  const meta = [
+    bj ? `<span class="sep-bj"><span class="sep-bj-k">北京时间</span>${esc(bj)}</span>` : "",
+    esc(distText(r)), r.startTime ? `当地 ${esc(r.startTime)}` : "", heads != null ? `${esc(heads)}頭` : "",
+  ].filter(Boolean).join(" · ");
   return `<div class="yj-mb-sep"><div class="sep-hd">` +
     `<b class="sep-no">${esc(r.venue)}${esc(r.raceNo)}R</b>` +
-    `<span class="sep-name">${nm}</span>${levelBadge(r.level)}` +
-    `${bj ? `<span class="sep-bj"><span class="sep-bj-k">北京时间</span>${esc(bj)}</span>` : ""}</div>` +
+    `<span class="sep-name">${nm}</span>${levelBadge(r.level)}</div>` +
     `${meta ? `<div class="sep-sub">${meta}</div>` : ""}</div>`;
 }
 
@@ -950,8 +991,8 @@ function mbCardHtml(r) {
   const stat = (v, u) => `<span class="yj-mb-c"><b>${esc(v)}</b>${u ? `<i>${u}</i>` : ""}</span>`;
   const top = [
     show("silk") ? (r.silk ? silkImgHtml(r.silk) : silkPhHtml("暂无彩衣图（未采集或马主未登记）")) : "",
-    show("waku") ? frameBadge(r.frame) : "",
-    show("num") && r.num != null ? `<span class="yj-mb-no">${esc(r.num)}</span>` : "",   // 未確定（num 空）不画占位符
+    // 马号（枠番合一色块）优先；马号隐藏时才退回单列枠番徽标
+    show("num") && r.num != null ? wkNumChip(r.frame, r.num) : (show("waku") ? frameBadge(r.frame) : ""),
     `<span class="yj-mb-horse">${horseLink(r.horseId, r.horseName)}</span>`,
     `<span class="yj-mb-nums">${stat(fin, finUnit)}${stat(pop, pop ? "人気" : "")}</span>`,
   ].join("");

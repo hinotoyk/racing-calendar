@@ -248,7 +248,8 @@ table.yj-lib td {
   white-space: nowrap; padding: 6px 5px; text-align: center;
   border-bottom: 1px solid var(--border-faint); font-variant-numeric: tabular-nums;
 }
-table.yj-lib tbody tr:hover td { background: var(--hover-row); }
+/* 马号色带格不参与行悬停刷色（背景要一直是枠色，否则悬停时整条竖带被抹掉） */
+table.yj-lib tbody tr:hover td:not(.wknum) { background: var(--hover-row); }
 table.yj-lib tbody tr:last-child td { border-bottom: 0; }
 td.c-left, th.c-left { text-align: left; padding-left: 10px; padding-right: 10px; }
 td.muted, .muted { color: var(--muted-foreground); }
@@ -309,6 +310,33 @@ td.num .pop-1 { font-weight: 700; }
 .waku.w6 { background: #1e7d46; color: #ffffff; }
 .waku.w7 { background: #e8791e; color: #ffffff; }
 .waku.w8 { background: #ef8bab; color: #8c2748; }
+/* 合一色块（移动端马卡片 / 分享卡同款）：色 = 枠番、字 = 馬番。
+   几何覆盖 .waku 的小胶囊（18×18、圆角 4），做成 26×19 的长方块、字提一档 —— 块内只有一个数字，
+   窄了会被两位数挤成两半。 */
+.waku.waku-band {
+  min-width: 26px; height: 19px; line-height: 19px; padding: 0 4px;
+  border-radius: 3px; font-size: 11.5px;
+}
+
+/* ---------- 马号列 = 枠番 × 馬番 合并满格色带（2026-11-16，样式参考分享卡 drawDense 的 wknum 格）----------
+ * 底色刷在 td 上：单元格背景一定填满整格、不受内容高度影响 → 相邻两行的同枠色直接相接成一条竖带。
+ * 零左右内距 + 居中：两位数也不会把色带挤成两半。上下不画横向分隔线（否则色带被切成一格一格）。
+ * 色值 / 字色与 .waku.w1–w8、share.js::WAKU 同源（JRA 官方 8 枠色），改一处必须同步另外两处。 */
+table.yj-lib td.wknum {
+  padding: 6px 0; min-width: 28px;
+  font-weight: 700; font-size: 12px; line-height: 1.3; letter-spacing: 0;
+  color: var(--foreground); border-bottom: 0;
+}
+table.yj-lib td.wknum.w1 { background: #ffffff; color: #0a0a0a; box-shadow: inset 0 0 0 1px #b6bcc2; }
+table.yj-lib td.wknum.w2 { background: #26262a; color: #ffffff; }
+table.yj-lib td.wknum.w3 { background: #d0342c; color: #ffffff; }
+table.yj-lib td.wknum.w4 { background: #2b62b0; color: #ffffff; }
+table.yj-lib td.wknum.w5 { background: #f2c500; color: #4a3b00; }
+table.yj-lib td.wknum.w6 { background: #1e7d46; color: #ffffff; }
+table.yj-lib td.wknum.w7 { background: #e8791e; color: #ffffff; }
+table.yj-lib td.wknum.w8 { background: #ef8bab; color: #8c2748; }
+/* 色带格若正好是第一可见列（承载勾选框）：给勾选框让出左侧 26px，数字仍在剩余空间居中 */
+table.yj-lib td.wknum.pk-host { padding-left: 28px; }
 
 /* ---------- 芝 / ダ / 障 色点（距离列扫读） ---------- */
 .surf-dot { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 4px; vertical-align: 1.5px; }
@@ -319,8 +347,8 @@ td.num .pop-1 { font-weight: 700; }
 
 /* ---------- 比赛分隔行（两行块头）----------
  * 比赛级列（竞马场 / R / 比赛 / 距离 / 北京时间）默认隐藏后，本行是这些信息的唯一来源，
- * 因此视觉比例比明细行高一档：場R 主色 15px/800 · 比赛名 14px/700 · 北京时间右对齐 13px/700，
- * 距离/当地/头数收到第二行浅色小字；左侧 3px 主色竖条 + 顶部细分隔线锚定场次边界。 */
+ * 因此视觉比例比明细行高一档：場R 主色 15px/800 · 比赛名 14px/700 · 级别徽章；
+ * 北京时间/距离/当地/头数收到第二行浅色小字；左侧 3px 主色竖条 + 顶部细分隔线锚定场次边界。 */
 table.yj-lib tbody tr.sep td {
   background: linear-gradient(90deg, var(--race-tint), transparent 62%);
   color: var(--foreground); text-align: left; padding: 9px 12px 10px;
@@ -333,12 +361,15 @@ table.yj-lib tbody tr.sep td {
 .sep-name { font-size: 14px; font-weight: 700; color: var(--foreground); }
 .sep-name a.rlink { color: inherit; }
 .sep-name a.rlink:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
-/* 北京时间紧跟比赛名（不右对齐独立成块），整串与比赛名同字号：「北京时间 10:35」 */
+/* 北京时间：2026-11-16 起从行1 右端挪到行2 行首（长冠名赛事行1 会挤到换行）。
+   在浅色小字的行2 里仍然要一眼找到，故保留正文色 + 700 字重，字号只比行2 大一档。 */
 .sep-bj {
   white-space: nowrap;
   font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--foreground);
 }
 .sep-bj-k { margin-right: 4px; font-weight: 600; color: var(--secondary-foreground); }
+.sep-sub .sep-bj { font-size: 12.5px; color: var(--foreground); }
+.sep-sub .sep-bj .sep-bj-k { font-size: 11.5px; color: var(--muted-foreground); }
 .sep-sub { margin-top: 2px; font-size: 12px; color: var(--muted-foreground); }
 tr.sep .yj-grade { vertical-align: 0; }
 
@@ -469,7 +500,8 @@ td.pk-host { position: relative; }
 /* 特异性须压过 table.yj-lib td（0,1,2）的 5px，否则勾选框（left:10px+13px 宽）会叠上首列文字 */
 table.yj-lib td.pk-host { padding-left: 28px; }
 table.yj-lib tbody tr[data-pk] { cursor: pointer; }   /* 整行点击 = 勾/取消 */
-table.yj-lib tbody tr[data-pk]:hover td { background: var(--race-tint); }
+/* 悬停刷整行，但马号色带格除外（底色是枠色，抹掉就看不出枠了） */
+table.yj-lib tbody tr[data-pk]:hover td:not(.wknum) { background: var(--race-tint); }
 
 /* 已选浮动条：胶囊造型 + 青绿主按钮 + 上拉预览列表 */
 #pick-bar {
@@ -701,7 +733,8 @@ table#sg-grid { border-collapse: collapse; font-size: 12px; width: max-content; 
 }
 .yj-mb-sep .sep-no { font-size: 14px; }
 .yj-mb-sep .sep-name { font-size: 13.5px; }
-.yj-mb-sep .sep-bj { font-size: 13.5px; }
+/* 北京时间已落在行2（sep-sub），字号跟着行2 走，不再单列 13.5px */
+.yj-mb-sep .sep-sub .sep-bj { font-size: 12.5px; }
 .yj-mb-sub { padding: 8px 12px 4px; background: var(--surface); border-bottom: 1px solid var(--border-soft); font-size: 12px; color: var(--muted-foreground); }
 .yj-mb-sub b { color: var(--foreground); font-size: 12.5px; margin-right: 6px; }
 .yj-mb { position: relative; padding: 8px 12px 9px 34px; border-bottom: 1px solid var(--border-soft); cursor: pointer; transition: background .12s; }
