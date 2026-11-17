@@ -8,6 +8,7 @@ import { readGz } from "./lib/bundle.js";
 import { assertRoundTrip, packRows, unpackRows } from "./lib/rows-codec.mjs";
 import { normalizeHorseName } from "./lib/horse-name.mjs";
 import { loadHomonym } from "./lib/homonym.js";
+import { sireSireOf } from "./lib/siresire-lookup.mjs";
 import { answerOf } from "./lib/horse-lookup.js";
 import { abnormalMeta, ABNORMAL_FINISH_RE } from "./lib/abnormal-finish.js";
 import { countryGroupOf, LEVELS, TRACK_CENTRAL, TRACK_LOCAL, klassToLevel, scopeOfVenue } from "./race-config.js";
@@ -184,7 +185,7 @@ function rowOf(doc, race, r) {
     owner: r.owner?.name ?? null,
     breeder: r.breeder?.name ?? null,
     sire: nameWithCountry(r.sire),
-    sireSire: nameWithCountry(r.sireSire),
+    sireSire: nameWithCountry(sireSireOf(r)),
     dam: r.dam?.name ?? null,
     bms: nameWithCountry(r.bms),
     raceKey: race.raceKey,
