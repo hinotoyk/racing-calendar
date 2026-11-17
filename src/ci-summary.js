@@ -21,6 +21,9 @@ const SILK_DIR = path.resolve("data", "silks");
 const SINCE_MIN = parseInt(argOf("--since-minutes") ?? "0", 10);
 const FULL_RUN = argv.includes("--rp"); // 欧美源档 update-rp.yml：应包含欧美请求（0 次 / 全失败判 FAIL）
 const NO_JBIS = argv.includes("--no-jbis"); // 同上：该档不发 JBIS 请求，别把「JBIS 为 0」记成告警
+// 第三方源档 update-thirdparty.yml：--expect-src tjk[,other] → 该前缀的请求数为 0 判 FAIL
+// （新增地区只需在 workflow 的 SOURCES 里加源名，这里不用改）
+const EXPECT_SRC = (argOf("--expect-src") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 const lines = [];
@@ -63,6 +66,9 @@ const slEntries = Object.entries(req.bySrc).filter(([k]) => /sportinglife|sl-sil
 const slRequests = slEntries.reduce((a, [, v]) => a + v.n, 0);
 const slOk = slEntries.reduce((a, [, v]) => a + v.ok, 0);
 const jbisRequests = Object.entries(req.bySrc).filter(([k]) => /jbis/.test(k)).reduce((a, [, v]) => a + v.n, 0);
+// 按源前缀统计（tjk / tjk-silk / tjk-csv 都算 tjk）
+const srcRequests = (p) => Object.entries(req.bySrc).filter(([k]) => k.startsWith(p)).reduce((a, [, v]) => a + v.n, 0);
+const srcOk = (p) => Object.entries(req.bySrc).filter(([k]) => k.startsWith(p)).reduce((a, [, v]) => a + v.ok, 0);
 
 // ---------- 2) 数据覆盖（彩衣 / 马名权威化） ----------
 const cov = { docs: 0, docsWithRunners: 0, rows: 0, silk: 0, central: 0, centralSilk: 0, local: 0, localSilk: 0,
@@ -115,6 +121,7 @@ say(`窗口: ${req.firstTs ?? "-"} → ${req.lastTs ?? "-"}（${req.firstTs && r
 say(`请求: 总 ${req.total} / 成功 ${req.ok} / 失败 ${req.err} / 字节 ${(req.bytes / 1048576).toFixed(1)} MB`);
 say(`状态: 403/429=${n403}  404=${statusOf(404)}  5xx=${n5xx}  网络异常(0)=${nNetErr}`);
 if (FULL_RUN) say(`Sporting Life: 请求 ${slRequests} / 成功 ${slOk} = ${pct(slOk, slRequests)}`);
+if (EXPECT_SRC.length) say(`第三方源请求: ${EXPECT_SRC.map((s) => `${s}=${srcRequests(s)}`).join(" ")}`);
 say("按源:");
 for (const [k, v] of Object.entries(req.bySrc).sort((a, b) => b[1].n - a[1].n)) {
   say(`  ${k.padEnd(16)} n=${String(v.n).padStart(5)} ok=${String(v.ok).padStart(5)} 403=${String(v["403"]).padStart(3)} 404=${String(v["404"]).padStart(3)} 5xx=${String(v["5xx"]).padStart(3)}`);
@@ -142,6 +149,12 @@ if (n5xx > 0) warnings.push(`服务端 5xx 共 ${n5xx} 次`);
 if (nNetErr > 0) warnings.push(`网络层异常 ${nNetErr} 次`);
 if (!NO_JBIS && jbisRequests === 0) warnings.push("JBIS 相关请求为 0");
 if (FULL_RUN && slRequests > 0 && slOk < slRequests * 0.5) warnings.push(`Sporting Life 成功率 ${pct(slOk, slRequests)} 偏低（${slOk}/${slRequests}）`);
+for (const s of EXPECT_SRC) {
+  const n = srcRequests(s);
+  if (n === 0) fatals.push(`本档应有的 ${s} 源请求为 0（采集未启动）`);
+  else if (srcOk(s) === 0) fatals.push(`${s} 源 ${n} 次请求全部失败（未采到卡片）`);
+  else if (srcOk(s) < n * 0.5) warnings.push(`${s} 源成功率 ${pct(srcOk(s), n)} 偏低（${srcOk(s)}/${n}）`);
+}
 if (cov.central > 0 && cov.centralSilk < cov.central) warnings.push(`JRA 彩衣 ${cov.centralSilk}/${cov.central} 未满`);
 if (cov.nameOk < cov.jbisRows) warnings.push(`马名权威化缺 ${cov.jbisRows - cov.nameOk} 行`);
 if (cov.silkMissing.size) warnings.push(`彩衣引用缺图 ${cov.silkMissing.size} 张`);
@@ -160,5 +173,5 @@ fs.writeFileSync(path.join(OUT_DIR, "summary.json"), JSON.stringify({
   requests: { total: req.total, ok: req.ok, err: req.err, status: req.status, bySrc: req.bySrc,
     n403, n5xx, nNetErr, jbisRequests, slRequests, slOk, bytes: req.bytes },
   coverage: { ...cov, silkRefs: cov.silkRefs.size, silkMissing: [...cov.silkMissing] },
-  buildOk, siteRows, fatals, warnings, errSamples: req.errSamples, logErrors,
+  buildOk, siteRows, fatals, warnings, errSamples: req.errSamples, logErrors, expectSrc: EXPECT_SRC,
 }, null, 2));

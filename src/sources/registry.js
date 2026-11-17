@@ -14,6 +14,7 @@
 //
 // ## 现有源
 //   racingpost  本目录 racingpost.js（抓取层 sportinglife.com，见其文件头说明）
+//   tjk         本目录 tjk.js（土耳其赛马会，www.tjk.org；robots.txt 为 Disallow: /，默认不进 CI）
 //   jbis        src/collect-races.js（既有专用采集器，输出本就符合 canonical 字段；
 //               待后续迁入 sources/jbis.js，接口不变）
 export const SOURCES = {
@@ -22,6 +23,12 @@ export const SOURCES = {
     label: "Racing Post",
     homeUrl: "https://www.racingpost.com/racecards/",
     ...(await import("./racingpost.js")),
+  }),
+  tjk: async () => ({
+    id: "tjk",
+    label: "TJK (Türkiye)",
+    homeUrl: "https://www.tjk.org/EN/YarisSever/Info/Page/GunlukYarisProgrami",
+    ...(await import("./tjk.js")),
   }),
 };
 

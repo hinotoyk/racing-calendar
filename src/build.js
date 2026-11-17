@@ -50,8 +50,10 @@ function readJson(file) {
   return JSON.parse(file.endsWith(".gz") ? readGz(file) : fs.readFileSync(file, "utf8"));
 }
 
-// 场地口径：日本源按场馆名单 → JRA/NAR；海外源（racingpost）→ 国家组码（GB/IRE/FR/USA…）
+// 场地口径：日本源按场馆名单 → JRA/NAR；海外源（racingpost / tjk …）→ 国家组码（GB/IRE/FR/USA/TUR…）
+// 判据用 doc.scope 而不是 source id：新增海外源不必再回来改这一行
 function scopeOfDoc(doc) {
+  if (doc.scope === "overseas") return countryGroupOf(doc.country);
   return sourceOf(doc) === "racingpost" ? countryGroupOf(doc.country) : scopeOfVenue(doc.venue);
 }
 
@@ -154,19 +156,22 @@ function rowOf(doc, race, r) {
     belongs: r.belongs,
     owner: r.owner?.name ?? null,
     breeder: r.breeder?.name ?? null,
-    sire: r.sire?.name ?? null,
-    sireSire: r.sireSire?.name ?? null,
+    sire: nameWithCountry(r.sire),
+    sireSire: nameWithCountry(r.sireSire),
     dam: r.dam?.name ?? null,
-    bms: r.bms?.name ?? null,
+    bms: nameWithCountry(r.bms),
     raceKey: race.raceKey,
     // 比赛页链接：RP = Sporting Life racecard（raceKey 即 race id，假 slug 可用）；
+    // TJK = 当日城市节目页 + 场次锚点（#raceId）；
     // JBIS = 比赛详情页（raceKey 即 URL 路径 20261101/108/01，比日历页直达）
     raceUrl:
       sourceOf(doc) === "racingpost" && /^\d+$/.test(String(race.raceKey))
         ? `https://www.sportinglife.com/racing/racecards/${doc.date}/x/racecard/${race.raceKey}/x`
-        : String(race.raceKey ?? "").match(/^\d{8}\/\w+\/\d{2}$/)
-          ? `https://www.jbis.or.jp/race/${race.raceKey}/`
-          : (doc.source ?? null),
+        : sourceOf(doc) === "tjk" && doc.sourceUrl && /^\d+$/.test(String(race.raceKey))
+          ? `${doc.sourceUrl}#${race.raceKey}`
+          : String(race.raceKey ?? "").match(/^\d{8}\/\w+\/\d{2}$/)
+            ? `https://www.jbis.or.jp/race/${race.raceKey}/`
+            : (doc.source ?? null),
     // 前走（embed「前走」列：比赛名 · 人气 · 着顺）：比赛名/着顺来自出馬表的前 3 走，
     //   人气出馬表没有 → 由 collect-recent-pop 从馬頁競走成績补，按 raceKey 对齐后才采信
     ...lastRunOf(r),
@@ -176,6 +181,14 @@ function rowOf(doc, race, r) {
     recent3: recentText(r.recent?.[2]) || null,
     dateLabel: `${m}-${d}`,
   };
+}
+
+// 血统名字：源里 if 带产地（TJK 的父/母父写成「SUPER SAVER (USA)」，结构上拆成 name + country）
+// → 展示口径拼回「名 (国码)」，与 JBIS 表的写法一致；名字本身已带括注时不重复拼。
+function nameWithCountry(x) {
+  if (!x?.name) return null;
+  if (!x.country || /\([A-Z]{2,3}\)$/.test(x.name)) return x.name;
+  return `${x.name} (${x.country})`;
 }
 
 function lastRunOf(r) {

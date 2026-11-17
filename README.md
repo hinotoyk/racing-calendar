@@ -34,15 +34,24 @@ node src/collect-races.js --days 7 --force
 node src/collect-races.js --tracks 105,231
 ```
 
-多源（Racing Post 海外卡片，架构与字段映射见 [docs/DESIGN.md](docs/DESIGN.md) §8）：
+多源（Racing Post 海外卡片 + TJK 土耳其，架构与字段映射见 [docs/DESIGN.md](docs/DESIGN.md) §8）：
 
 ```bash
 npm run collect:rp                                   # 英国当日 GB+IRE 卡片（默认）
 node src/collect-sources.js --source racingpost --countries all
+npm run collect:tjk                                  # 土耳其：今天 + 明天（欧洲/伊斯坦布尔）
+npm run collect:tjk:probe                            # 只探测 + 与官方 CSV 对账，不落 data/
 ```
 
 > RP 源抓取层为 Racing Post 集团旗下 sportinglife.com（racingpost.com 直连有 WAF）；
 > 发走时刻为英国当地时间（源口径），落盘同时标注场地时区（date 标签口径）与绝对时刻。
+
+> TJK 源取 www.tjk.org 的每日节目页（一城市一请求，含父/母/母父、骑手调教师马主 id、彩衣、赔率、人气）；
+> 祖父（父父）节目页没有，按父名查 TJK 马籍库的 At Sorgulama 补（一父名 1 请求，缓存
+> `data/pedigree/tjk-sire.json` 跨日复用 → 次日 0 请求）；
+> 该站 robots.txt 为 `Disallow: /`，日更采集由 `update-thirdparty.yml`（UTC 02:00 = 北京 10:00）
+> 承担，前提与替代方案见 DESIGN.md §8.5；该档同时是**新增第三方地区**的统一入口
+> （registry 注册适配器 → 源名加进 `SOURCES` 即可，workflow 不用改）。
 
 > 出馬表只在开赛前 1–2 日公开：地方 ≈ 前日，中央 ≈ 开赛前 2 日。窗口外的日期显示 0 头，重跑会补齐。
 
@@ -86,6 +95,19 @@ node src/collect-results.js --today --dry --settle-min 10   # 手动试跑，不
 node src/collect-results-rp.js --dates 2026-11-08 --tracks 176 --limit 3 --dry
 node src/collect-results-rp.js --today --no-index   # 更省：跳过日级列表，纯本地卡片驱动
 ```
+
+### 第三方源结果（TJK 土耳其）
+
+`npm run collect:results:tjk`（`src/collect-results-tjk.js`）：**官方赛果 CSV 一城市一次请求 → 拿到全天所有场次全序着顺 → 按场次号对齐本地卡片、按马名+闸位关联马号 → 落 `data/results/{date}/tjk-{trackId}.json` → 前端「着顺 / 时间 / 着差 / 最终人气 / 独胜赔率」自动显示**。`build.js` 按 `raceKey|num` 合并，无需改动。
+
+```bash
+node src/collect-results-tjk.js --dates 2026-11-15 --tracks 3 --dry   # 试跑
+node src/collect-results-tjk.js --days 2 --settle-min 10              # 定时任务口径
+```
+
+> CSV 首列是**着顺不是马号**，也没有 race id：raceKey 由本地出馬表按场次号取，马匹按马名关联
+> （CSV 名带装备码 `B H TT E`、出馬表名带产地括注 `AYTOR (IRE)`，两侧归一后剥离装备码匹配，闸位消歧）。
+> `Withdrawn` 记异常码「取（取消出走）」，不当名次。CDN 导出无 robots 限制，且整城市无待抓时 0 请求。
 
 - **链路比日本源短**：结果页 `rides[]` 自带 `cloth_number + finish_position + betting.current_odds` —— ① 不需要额外抓出馬表做马级关联（**每场 1 请求**，日本源 2 请求）；② 无需构造 race_id / 解析「回·日」/ 双模板 / EUC-JP / 代理；③ `__NEXT_DATA__` 直接 JSON 解析。日级列表 1 请求/天给出全部已完赛场次与 course slug。
 - **人气换算**：英式分数赔率（`10/3`）转小数排序得 `1..N` 人气，同赔率并列并跳号（与日本源同着游标一致）；`favourite` 标记作交叉校验。中国香港沙田等 `No Forecast Available.` 场次无赔率 → 人气留空，但着顺照常入库。
@@ -139,14 +161,16 @@ node src/collect-results-rp.js --today --no-index   # 更省：跳过日级列�
 
 ## 部署与自动运行（GitHub Pages）
 
-站点为纯静态零依赖：`_site/` 即完整产物（全相对路径 + `.nojekyll`），任意 base path 可用。参照 yunji-web 的 workflow 模式（[.github/workflows/](.github/workflows)，现为 6 条）：
+站点为纯静态零依赖：`_site/` 即完整产物（全相对路径 + `.nojekyll`），任意 base path 可用。参照 yunji-web 的 workflow 模式（[.github/workflows/](.github/workflows)，现为 8 条）：
 
 - **deploy.yml** — push main（人工推代码）→ `node src/build.js` → 发布 `_site/` 到 Pages
 - **update-jbis-full.yml（全量档 · 日本源）** — 每天 **UTC 18:00 = 北京 02:00 / JST 03:00**：JBIS 出馬表（今天起 3 天）→ 构建 → 有变化则 commit `data/races/` + `data/pedigree/` + `data/silks/` 回 main → **同一 workflow 内重新部署静态页面**。留在这个点是因为 JST 越早跑，远端视野越远（D+3）
 - **update-rp.yml（全量档 · 欧美源）** — 每天 **UTC 14:00 = 英国 14:00 = 北京 22:00**：Racing Post（`--countries all` 全国家；深夜美洲场次此时还没进 SL 索引，抓不到，见该 workflow 注释）→ 构建 → commit → 同一 workflow 内重新部署。定在 14:00 是为了给 GitHub 排队漂移留 8 小时，不跨英国午夜
+- **update-thirdparty.yml（第三方源 · TJK 土耳其 + 后续地区）** — 每天 **UTC 02:00 = 土耳其 05:00 = 北京 10:00**：按 `SOURCES` 列表逐源采集（今天 + 明天；一源失败不阻断其它源）→ 构建 → commit → 同一 workflow 内重新部署。这也是**新增第三方地区**的统一入口：在 `src/sources/registry.js` 注册适配器（`id/label/homeUrl/collect/probe`），把源名加进 `SOURCES` 即可，workflow 结构不用改；诊断用 `ci-summary.js --expect-src <源名>` 判「该源 0 请求 / 全失败」。TJK 的 robots.txt 前提与官方 CSV 替代方案见 DESIGN.md §8.5
 - **update-jbis.yml（枠順补采）** — 每天两档 **UTC 03:00 / 15:00 = 北京 11:00 / 23:00**：窗口 **今天 + 明天**，只处理「整表缺失（全量档跑时出馬表还没公开）」和「缺 枠番/馬番」两类场次（`src/backfill-waku.js`）。本地能解就不发请求：已完赛场次取 `data/results` 的终态号、有馬番缺枠番按时按头数推导；仍缺才抓出馬表页（**1 场 1 请求**）。整表重建用 `data/pedigree` 缓存挂马名/血统/彩衣，**0 额外请求**。全部完整时 **0 请求 0 写盘**；**无变化不 build、不提交、不部署**
 - **results-intraday.yml（赛果 · 日本源）** — **UTC 0–12 每小时 = 北京 08:00–20:00**：`collect-results.js --days 1`，只抓开赛满 10 分钟且着顺未完整入库的场次，落 `data/results/{date}/{track}.json`
 - **results-intraday-rp.yml（赛果 · 欧美源）** — **UTC 0/6/12 = 每 6 小时**：`collect-results-rp.js --days 1`，用本地 `rp-*` 卡驱动抓 Sporting Life 结果页，落 `data/results/{date}/rp-{trackId}.json`
+- **results-intraday-thirdparty.yml（赛果 · 第三方源）** — **UTC 11/14/17/20 = 土耳其 14/17/20/23 点 = 北京 19/22/次日 01/04 点**：`collect-results-tjk.js --days 2`，官方赛果 CSV 一城市一次请求拿全天全序，滚动覆盖今天/昨天/前天；整城市无待抓则 0 请求，无新入库不 build/不提交/不部署
 
 各档**全部拆成独立 workflow**：独立调度、独立 run 历史、各自可手动 `workflow_dispatch` 触发，共用 `concurrency: group: pages` 串行发布。GitHub 规定 `GITHUB_TOKEN` 的 push 不触发其它 workflow，故部署不能依赖 `deploy.yml` 被 push 触发，由各 update workflow 在提交后直接 build + 发布 Pages。artifact 保留 **30 天**（`update-jbis-log-<run_id>` / `update-rp-log-<run_id>` 等），内含 `test-logs/*.log`、诊断摘要与逐条 `requests-*.jsonl`
 

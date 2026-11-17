@@ -1,0 +1,157 @@
+name: update-data · 第三方源（TJK 土耳其 + 后续地区）
+
+# 第三方源档：既非 JBIS（日本）也非 Racing Post（欧美）的数据源，统一走这里。
+#   当前：tjk = 土耳其赛马会 tjk.org（适配器 src/sources/tjk.js，注册于 src/sources/registry.js）
+#   新增地区：在 registry 里注册适配器（实现 id/label/homeUrl/collect/probe）→
+#             把源名加进下面的 SOURCES / workflow_dispatch 默认值即可，本档结构不用动。
+#
+# 时刻选择（UTC 02:00 = 土耳其 05:00 = 北京 10:00）：
+#   土耳其赛事多在当地 13:30 后开跑，出马表在前一天就已公布 → 凌晨抓「今天 + 明天」两日都齐。
+#   GitHub schedule 实测常漂 3–6h，最迟落到 UTC 08:00 = 土耳其 11:00，仍在首场之前；
+#   再晚（当地午后）当天已开跑，卡片会边跑边变，宁可早不可晚。
+#
+# ⚠️ 合规说明：tjk.org 的 robots.txt 为 `User-agent: * → Disallow: /`，并逐条点名封禁了
+#   GPTBot / ClaudeBot / CCBot 等 AI 系爬虫（仅放行 Googlebot 与社交预览）。
+#   本档是在**站点明确不欢迎自动抓取**的前提下、由项目所有者决定启用的日更采集：
+#     · 每城市 1 次页面请求，请求间 2s 间隔，单日总请求个位数（+彩衣图）
+#     · 只取公开赛前节目表，不做高频轮询、不绕过任何鉴权
+#     · 若站方要求停止，删掉本文件的 schedule 段即回到「仅手动 workflow_dispatch」
+#   替代方案（合规性更好、字段更少）：改取官方公开导出 medya-cdn.tjk.org/.../CSV/*.csv
+#   （CDN 无 robots.txt，是站方自己挂在页面上的下载链接），代价是丢失马/骑手/马主稳定 id、
+#   母父（BMS）与彩衣，骑手名退化为缩写。
+#
+# 与其它档一致：GITHUB_TOKEN 的 push 不会触发 deploy.yml，所以本档自己 build + 发布 Pages；
+# 共用 concurrency group `pages` 串行，避免并发发布互相踩。
+on:
+  schedule:
+    - cron: '0 2 * * *'   # UTC 02:00 = 土耳其 05:00 / 北京 10:00 · 采集今天+明天
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: '源（逗号分隔，须已在 registry 注册）'
+        type: string
+        default: 'tjk'
+      dates:
+        description: '日期 YYYY-MM-DD,YYYY-MM-DD（留空=各源默认，tjk 为今天+明天）'
+        type: string
+        default: ''
+
+permissions:
+  contents: write   # 提交数据（data/races、data/silks、data/pedigree）
+  pages: write      # 发布 Pages
+  id-token: write
+
+concurrency:
+  group: pages      # 与 update-jbis*.yml / update-rp.yml / deploy.yml 共用
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 按 SOURCES 顺序逐个采集。每源独立日志与退出码：
+      # 一个源失败不阻断其它源落库（地区越多，越不能让单点拖垮整档）。
+      # 汇总闸门写在 collect-verdict.txt：全部源退出码 0 + 打印 manifest 收尾行才置 OK。
+      - name: Collect third-party sources
+        id: collect
+        timeout-minutes: 110
+        continue-on-error: true
+        shell: bash
+        env:
+          SOURCES_IN: ${{ inputs.sources || 'tjk' }}
+          DATES_IN: ${{ inputs.dates || '' }}
+        run: |
+          set +e
+          mkdir -p test-logs
+          echo "FAIL" > test-logs/collect-verdict.txt
+          FAILED=0
+          for s in ${SOURCES_IN//,/ }; do
+            [ -z "$s" ] && continue
+            echo "::group::collect $s"
+            # 日期留空 → 适配器用自己的默认窗口（tjk：今天+明天）
+            DATE_ARG=""
+            [ -n "$DATES_IN" ] && DATE_ARG="--dates $DATES_IN"
+            node src/collect-sources.js --source "$s" $DATE_ARG 2>&1 | tee "test-logs/${s}.log"
+            rc=${PIPESTATUS[0]}
+            # collect-sources.js 正常收尾才会打印 "manifest -> ...（written=N skipped=M）"
+            if [ "$rc" -ne 0 ] || ! grep -q '^manifest -> ' "test-logs/${s}.log"; then
+              echo "::warning::源 ${s} 未正常收尾（rc=$rc），该源数据可能不全"
+              FAILED=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$FAILED" -eq 0 ]; then echo "OK" > test-logs/collect-verdict.txt; fi
+          exit 0
+
+      - name: Build site
+        timeout-minutes: 15
+        run: node src/build.js 2>&1 | tee test-logs/build.log
+
+      # --no-jbis：本档不发 JBIS 请求；--expect-src：本档应有的源请求为 0 或全失败 → 判 FAIL
+      - name: Diagnostics from JSONL request log
+        if: always()
+        env:
+          SOURCES_IN: ${{ inputs.sources || 'tjk' }}
+        run: node src/ci-summary.js --no-jbis --expect-src "${SOURCES_IN// /}"
+
+      - name: Commit data changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # data/pedigree/：跨源共用的血统/马名/彩衣缓存包（增量复用）
+          # data/silks/：按马主去重的彩衣图，必须一起入库——否则本次部署有图、下次 checkout 缺图，
+          #   缓存命中不再重下 → 页面永久 404
+          git add data/races/ data/pedigree/ data/silks/
+          if ! git diff --cached --quiet; then
+            git commit -m "data: auto collect third-party $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase origin main || { git rebase --abort; echo "::error::远端冲突，本次数据提交放弃"; exit 1; }
+            git push origin "HEAD:$GITHUB_REF_NAME"
+            echo "::notice::data 已更新并推送"
+          else
+            echo "::notice::无变化，跳过提交"
+          fi
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Upload run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-thirdparty-log-${{ github.run_id }}
+          path: |
+            test-logs/
+            data/logs/requests-*.jsonl
+          if-no-files-found: warn
+          retention-days: 30
+
+      # 放最后：Deploy 已先行，FAIL 只标红报警，页面和数据照常发布
+      - name: Gate on diagnostics
+        if: always()
+        run: |
+          v="$(cat test-logs/verdict.txt 2>/dev/null || echo FAIL)"
+          c="$(cat test-logs/collect-verdict.txt 2>/dev/null || echo FAIL)"
+          echo "verdict=$v collect=$c"
+          if [ "$v" = "FAIL" ] || [ "$c" = "FAIL" ]; then
+            echo "::error::第三方源采集/构建异常，见 update-thirdparty-log artifact"
+            exit 1
+          fi

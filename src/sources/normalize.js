@@ -68,6 +68,9 @@ export const COURSE_TZ = {
   CAN: "America/Toronto",
   AUS: "Australia/Sydney",
   JPN: "Asia/Tokyo",
+  // 土耳其：UTC+3 全年不变（2016 年起无 DST）；TJK 源自己按 +03:00 出 absolute 时刻，
+  // 这里登记只为「回退 Europe/London」那类错配不再复发（对照 HK 的教训）
+  TUR: "Europe/Istanbul",
   // 香港：RP/SL 的 short_name 实际给 HK（旧表按 HKG 写，导致查不到、回退 Europe/London）；
   // 香港比英国早，反推比赛日时 shift=0 恰好自洽，时刻没歪，但属于侥幸 —— 两种都收（2026-11-16 修）。
   HK: "Asia/Hong_Kong", HKG: "Asia/Hong_Kong",

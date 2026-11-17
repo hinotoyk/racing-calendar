@@ -1,6 +1,6 @@
 // 多源采集入口（docs/DESIGN.md §8）
 //   node src/collect-sources.js --source racingpost [--countries GB,IRE|all] [--tracks Carlisle]
-//                               [--limit N] [--no-pedigree] [--dates 2026-10-22,...] [--force]
+//                               [--limit N] [--no-pedigree] [--no-silk] [--dates 2026-10-22,...] [--force]
 // 落盘：data/races/{date}/{源前缀}-{trackId}.json.gz（gzip 压缩）+ manifest.dates[date][sourceKey]
 import fs from "node:fs";
 import path from "node:path";
@@ -17,6 +17,7 @@ const COUNTRIES = COUNTRIES_RAW.includes("all") ? "all" : COUNTRIES_RAW;
 const TRACKS = argOf("--tracks")?.split(",").map((s) => s.trim()).filter(Boolean) ?? null;
 const LIMIT = parseInt(argOf("--limit") ?? "0", 10);
 const PEDIGREE = !argv.includes("--no-pedigree");
+const SILK = !argv.includes("--no-silk"); // 彩衣图下载（TJK 一城市几十上百张马主图，先关掉可省请求）
 const FORCE = argv.includes("--force");
 const DATES = argOf("--dates")?.split(",").map((s) => s.trim()).filter(Boolean) ?? null;
 
@@ -58,8 +59,10 @@ console.log(`== source: ${src.id} (${src.label ?? ""})`);
 const units = await src.collect({
   countries: COUNTRIES,
   tracks: TRACKS,
+  dates: DATES,           // --dates 同时下推给适配器：不传则适配器按自身默认（如 tjk 抓今天+明天）
   limit: LIMIT,
   pedigree: PEDIGREE,
+  silk: SILK,
   fs,
   path,
 });

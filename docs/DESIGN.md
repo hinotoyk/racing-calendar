@@ -164,6 +164,8 @@ src/sources/
   normalize.js    中间映射层：时区标注、单位换算、比赛格归一（纯函数）
   racingpost.js   Racing Post 适配器
   racingpost.probe.js  连通性自检（RP 直连 vs SL）
+  tjk.js          TJK（土耳其）适配器
+  tjk.probe.js    抓取 + 归一 + 官方 CSV 对账（不落盘）
 src/collect-sources.js 通用多源采集入口
 ```
 
@@ -232,6 +234,96 @@ node src/collect-sources.js --source racingpost --limit 3 --no-pedigree   # 快�
 - **父父补全借道 JBIS**：SL 档案父系引用 id 恒为页面自身 id（数据缺陷）无法链查，改为 父名/母父名 → JBIS 馬検索（`src/lib/horse-lookup.js`，缓存 `data/pedigree/name-lookup.json`）解析到 JBIS id 后取行内「父」列；消歧 = 名字归一精确匹配 +「種」标签 + 牡 + 生年 ≤ 当年-5 且 ≥ 当年-45（现代父系年龄下限，同名老马如 Highland Reel 1964 直接排除），英文名搜索但行内显示片假名时对前 5 行补抓马页核对官方英文名，不能唯一确定时留空。JBIS 未收录的名字（部分 US/挽马种公马）父父为空。
 - **别名字典同名异马冲突**：build 时现役种公马（`jbis-sire.json` 缓存键，出馬表里当过「父」）优先于 lookup「種」标签命中、再优先于其它声明，同分先到先得并打日志（`node src/backfill-lookup.js --revalidate` 可按新规则重验冲突/老马误绑并重写文档）。
 - US 场的 Woodbine 实际在加拿大（SL 标 USA），时区覆写为 America/Toronto。
+
+### 8.5 TJK 源（土耳其，`source: "tjk"`）
+
+- **抓取层**：`www.tjk.org`（EN 版），纯服务端渲染 XHTML，无 `__NEXT_DATA__`、无 JSON API。
+  请求结构：当日索引页 1 次（有比赛的场地清单，含本国 10 场 + TJK 代播的境外场）→
+  单城市页 1 次（该场地整日全部场次 + 出马表，600KB–1MB）。
+  页面另挂官方导出（PDF / CSV，`medya-cdn.tjk.org`），适配器不用它取数，只用它对账
+  （`tjk.probe.js` 校验场次数 / 时刻 / 距离 / 场地类型 / 比赛格码）。
+- **为什么不用官方 CSV**：CSV 没有马 / 骑手 / 调教师 / 马主的稳定 id，也没有母父（BMS）与彩衣；
+  骑手调教师的全名只在 HTML 的 `title` 属性里（CSV 是 `E.AKPINAR` 这种缩写）。
+- **请求字段**：马 `AtId`、骑手 `JokeyId`、调教师 `AntrenorId`、马主 `SahipId`（统一加 `tjk:` 前缀）、
+  父 / 母 / 母父、彩衣直链 `formaftp/{SahipId}.jpg`、让赛评分 `RT`、单胜赔率 `Gny`、
+  六重彩人气 `AGF`（含百分比与排名）、近 6 走名次串。
+- **时区**：`Europe/Istanbul`，UTC+3 全年不变（2016 年起无 DST）；`date` 标签与 `startTime` 同口径，
+  `startTimeInstant` 直接可按 +03:00 换算北京时间。
+- **场地口径**：本国 10 场用 `SehirId` 作 `trackId`、名字转 ASCII 作 `track`
+  （`İstanbul→istanbul`、`Şanlıurfa→sanliurfa`）；索引页里以国名结尾的是 TJK 代播的境外场，
+  直接跳过；`Karma` 是同日多场混编的复播位（内容与各国场重复），跳过。
+- **比赛格归一**（§8 的 klass 口径）：`G 1/2/3`（可带 `/ULS` 等资格后缀）→ `GⅠ-Ⅲ`；
+  `A 1/2/3`（本国 Pattern，低于 GⅢ）→ `A1-3` 且 `group=重賞`；`Listed` → `L`；
+  `Handicap N` / `Condition N` / `Condition Handicap N` / `Maiden` / `Claiming N` → 原文进 `klass`。
+  后缀是出赛资格限定（`/DHÖW` 国家种马场生产、`/Fillies`、`/Mares`、`/ULS` 国际开放），不影响级别。
+- **特有字段**（收进 `race.tjk` / `runner.tjk` 命名空间）：`breed`（TB 纯血 / ARAB 阿拉伯马）、
+  `ageCondition`、`sexCondition`、闸位 `St`（≠ 马番）与 `DS`（委员会议决改外枠出发，**不是**取消资格）、
+  装具短码 `B/H/TT/E/S/CP`、`weightOver`（`+0.40 Fazla Kilo` 超申报负重）。
+- **血统产地**：TJK 的父 / 母父带产地（`SUPER SAVER (USA)`），结构上拆成 `{name, country}`；
+  build 侧 `nameWithCountry()` 拼回展示名，与 JBIS 表写法一致。
+- **祖父（父父）**：节目页没有这一层，改按**父名**查 TJK 自家的 At Sorgulama
+  （`/TR/YarisSever/Query/Data/Atlar?QueryParameter_AtIsmi=<父名>`）。结果行带
+  `Orijin(Baba-Anne)` 列（`KITTEN'S JOY (USA) - GATA BELLA (USA)`），取第一段即本行的祖父。
+  - 不走 `racingpost.js::enrichSireSire`（借 JBIS）那条路：土耳其本国配种的种公马
+    （ÖZHABER / AŞIKBEY / GÜMBÜRGÜMBÜR…）与阿拉伯马在 JBIS 基本没有记录，TJK 马籍库才有。
+  - 成本：父名去重后 30–60 个/城市日（全国 150 上下），一父名 1 请求，结果缓存
+    `data/pedigree/tjk-sire.json`，**跨日复用（第二天起 0 请求）**。
+  - 匹配口径「宁缺勿错」：完全同名（前缀同名如 `ÖZHABER OĞLU` 排除）+ 国码否决
+    （卡上 `(JPN)` 必须与结果行一致）+ 性别否决（`Dişi`/`İğdiş` 不能当父）+ 品种收窄
+    （`Arap`/`İngiliz`）。同名多匹且父不同 → **留空**，记 `ambiguous` 进缓存待人工裁决。
+  - 两级兜底：① 默认名单查 0 命中时带 `QueryParameter_OLDUFLG=on` 再查一次（已故种公马
+    TURBO / KAIZBERT 只在「已故」名单里）；② 仍查无 → 借道 JBIS 馬検索（与 rp 源同一套
+    `name-lookup.json` 缓存，冻精进口、未在土耳其登记的种公马多能在这里命中，父父为日文表记）。
+  - 实测覆盖（2026-11-15 伊斯坦布尔 93 頭 + 11-16 Bursa/Şanlıurfa 195 頭）：**273/288 頭 = 95%**
+    （TJK 命中 125 父名、JBIS 兜底 13 父名）；余下 9 个父名（TURBO / BİLGİN / SİNCLAR /
+    TAMERİNOĞLU / MENDIP / KAIZBERT / SULTAN DE FAUST / ODİNHAN / POWERSCOURT）马籍库与 JBIS
+    都没有记录 → 留空。查无的进 `jbisMissAt` 标记，30 天内不再重复请求。
+  - 展示名仍是拉丁写法（`DEEP IMPACT (JPN)`），与日本源的 `ディープインパクト` 靠
+    `horse-aliases.json` 归一（都落到 JBIS id `0000742976`）→ 前端「祖父」筛选跨源可用。
+- **定时采集（`update-thirdparty.yml`，第三方源统一档）**：
+  - **robots.txt 前提**：`www.tjk.org` 是 `User-agent: * / Disallow: /`，并逐个点名封了
+    GPTBot / ClaudeBot / DeepSeekBot / CCBot 等（仅放行 Googlebot 与社交预览）。本源是在
+    **站点明确不欢迎自动抓取**的前提下，由项目所有者决定启用的日更采集：每城市 1 次页面请求、
+    `delayMs = 2s`、单日请求个位数（+彩衣图），只取公开赛前节目表，不做高频轮询、不绕过鉴权。
+    **若站方要求停止**：删掉 `update-thirdparty.yml` 的 `schedule` 段即回到纯手动。
+  - **合规性更好的替代**：官方公开导出 `medya-cdn.tjk.org/.../CSV/*.csv`（CDN 无 robots.txt，
+    是站方自己挂在页面上的下载链接）。代价：丢失马 / 骑手 / 马主稳定 id、母父（BMS）、彩衣，
+    骑手名退化为 `E.AKPINAR` 缩写 —— 故只作对账（`collect:tjk:probe`），不作主路径。
+  - **档位**：`cron 0 2 * * *`（UTC 02:00 = 土耳其 05:00 = 北京 10:00），抓今天 + 明天两日。
+    土耳其赛事多在当地 13:30 后开跑、出马表前一天已公布，此档留足 GitHub schedule 漂移
+    （实测 3–6h）余量；最迟落到土耳其 11:00，仍在首场之前。共用 `concurrency: pages` 串行发布。
+  - **可扩展**：档内按 `SOURCES` 列表逐个 `collect`（一源失败不阻断其它源），新增地区只需在
+    `registry.js` 注册适配器并把源名加进 `SOURCES` / dispatch 默认值，workflow 结构不用改；
+    诊断侧 `ci-summary.js --expect-src <源名>` 负责「该源 0 请求 / 全失败 → FAIL」。
+  - 页面偶发 400 / 长耗时（同 URL 重试即好），适配器已带退避重试；城市页 600KB–1MB，建议 `delayMs ≥ 2s`。
+  - 无 枠番（8 枠制）→ `frame` 恒 null；近走只有名次串（`5 2 1`，0 = 10 名外），
+    已拆成 `recent[]` 只带 `rank`（前走列显示「5着」，无日期 / 场地 / 人气）。
+- **赛果链路**（`src/collect-results-tjk.js` + `.github/workflows/results-intraday-thirdparty.yml`）：
+  - **数据源**：官方赛果 CSV `medya-cdn.tjk.org/.../CSV/GunlukYarisSonuclari/{d}.{m}.{y}-{城市}-...-EN.csv`
+    → **一城市一次请求拿到全天所有场次的全序着顺**（日本源 1 场 2 请求、欧美源 1 场 1 请求，本源最省）；
+    CDN 侧无 robots 限制，不碰比赛页。
+  - **对齐的坑**：CSV 首列是**着顺不是马号**（源按名次排列，退出马也占末位序号），也没有 race id。
+    因此：raceKey 由本地出馬表卡片按**场次号**取；马匹按**马名**关联（CSV 名带装备码 `B H TT E`、
+    出馬表名带产地括注 `AYTOR (IRE)` → 两侧归一后逐级剥离装备码匹配，最多 4 层），同名多匹时用**闸位**消歧。
+  - **字段映射**：`着顺→finish`（`Withdrawn` → 异常码 `取`「取消出走」，不当名次）／
+    `St→gate`（`13 - DS` = 改外枠出发，仍记闸位）／`PSF "%4.16(9)"→pop=9`（双彩池场次两值取第一组）／
+    `Time→time`（逐匹走破时，比日本源还全）／`Win "16,60"→winOdds`（土耳其小数逗号）／
+    `Margin→margin`（`2,5 Lengths→"2.5"`、`Half Length→"0.5"`、`Nose→"鼻"`、`Neck→"颈"`）／
+    `R→rating`（让赛评分）；无 上がり3F / 通过顺 / 马体重 → 恒 null。
+  - **幂等**：城市级预过滤（读 `data/races` + `data/results`），整城市无「已开赛且未完整入库」场次
+    → 0 请求；重抓失败 / 半截结果一律沿用已入库记录，不被空结果冲掉。
+  - **时点**：UTC 11/14/17/20 四档（土耳其 14/17/20/23 点），最后一档在收赛后 2 小时；
+    `--days 2` 滚动覆盖今天 / 昨天 / 前天，卡片某天抓失败还能救回来。
+
+采集命令：
+
+```bash
+npm run collect:tjk                                   # 今天 + 明天（欧洲/伊斯坦布尔）
+node src/collect-sources.js --source tjk --limit 1 --no-silk
+npm run collect:tjk:probe                             # 只探测 + 与官方 CSV 对账，不落 data/
+npm run collect:results:tjk                            # 赛果：今天/昨天/前天已开赛且未入库的场次
+node src/collect-results-tjk.js --dates 2026-11-15 --tracks 3 --dry   # 指定日期试跑
+```
 
 ## 9. 出馬表分享卡（`site/share.js`）
 
