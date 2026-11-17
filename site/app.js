@@ -64,8 +64,9 @@ const pgSizeDef = () => (isMb() ? 20 : 100);
 // 日期条滚动节流用的 rAF 句柄（见 #d-view 的 scroll 监听）
 let dateScrollRaf = 0;
 
-// 比赛唯一键（raceKey 缺失时兜底）
-const rkOf = (r) => r.raceKey ?? `${r.date}|${r.track}|${r.raceNo}`;
+// 场次唯一键 = 日期|场地|场次|源（raceKey 只在同源内唯一：La Plata 的 numReu、TJK 的城市内
+// 自增 id 都会跨场重复，单独用 raceKey 会把整日 11 场并成一场 —— 分页据此切页就会「一场被拆散」）
+const rkOf = (r) => `${r.date}|${r.track}|${r.raceNo ?? "x"}|${r.source ?? ""}`;
 // 行唯一键 = 比赛 + 馬番（未確定用馬名兜底）：勾选与分享卡都以行为单位
 const rowKeyOf = (r) => `${rkOf(r)}|${r.num ?? "x"}|${r.horseId ?? r.horseName ?? ""}`;
 
@@ -115,6 +116,10 @@ const levelBadge = (level) => {
   return c ? `<span class="yj-grade yj-${c}">${esc(level)}</span>` : "";
 };
 
+// 枠番是日本独有制度（JRA/NAR 才有 1~8 枠）。海外「mandil / 馬牌」是马号，不是枠 —— 数据层
+// （build.js rowOf）已把非日本行的 frame 置空，这里再按 country 硬门禁一次：旧数据、缓存、
+// 第三方分享卡传进来的 frame 都不会让海外场上色，杜绝「1~8 号牌被读成假分组」。
+const frameOf = (r) => (r && r.country === "JPN" ? r.frame : null);
 // 枠番传统色（JRA 公式 1白2黒3赤4青5黄6緑7橙8桃，与 share.js WAKU 同源）
 const frameBadge = (f) => (f == null || f === "" ? "" : `<span class="waku w${f}">${esc(f)}</span>`);
 // 马号 = 枠番 × 馬番 合并（2026-11-16）：色块底色 = 枠番色、块内只写馬番（与分享卡单色块同一手感）。
@@ -309,6 +314,8 @@ const SCOPE_CN = {
   USA: "美国", CAN: "加拿大", UAE: "阿联酋", SAF: "南非",
   GER: "德国", ITY: "意大利", SPA: "西班牙", AUS: "澳大利亚", NZ: "新西兰",
   JPN: "日本", KOR: "韩国", SIN: "新加坡", TUR: "土耳其",
+  // 南美（2026-11 接入）：组码沿用数据层 country 三字码，只做显示映射
+  ARG: "阿根廷", BRA: "巴西", CHI: "智利", URY: "乌拉圭", PER: "秘鲁",
 };
 const scopeLabel = (sc) => SCOPE_CN[sc] ?? sc;
 const isJpScope = (s) => s === "JRA" || s === "NAR";
@@ -706,7 +713,7 @@ function collectShareRaces() {
         heads: h.heads ?? rows.length, startTime: h.startTime, startTimeTz: h.startTimeTz,
         startTimeInstant: h.startTimeInstant,
         runners: rows.map((r) => ({
-          frame: r.frame, num: r.num, finish: r.finish, resultLabel: r.resultLabel, resultPop: r.resultPop, horseName: r.horseName, sex: r.sex, age: r.age,
+          frame: frameOf(r), num: r.num, finish: r.finish, resultLabel: r.resultLabel, resultPop: r.resultPop, horseName: r.horseName, sex: r.sex, age: r.age,
           color: r.color, silk: r.silk, jockey: r.jockey, weight: r.weight, trainer: r.trainer, belongs: r.belongs,
           owner: r.owner, breeder: r.breeder, sire: r.sire, sireSire: r.sireSire, dam: r.dam, bms: r.bms,
         })),
@@ -892,7 +899,7 @@ function cellHtml(r, c) {
       return `<span class="rname">${name}</span>${levelBadge(r.level)}`;
     }
     case "dist": return `${surfDot(r.surface)}${esc(distText(r))}`;
-    case "waku": return frameBadge(r.frame);
+    case "waku": return frameBadge(frameOf(r));
     // 马号 = 枠番 × 馬番 合并列：底色（枠番色）刷在 td 上而不是这里，见 rowHtml 的 wknum 判定
     case "num":  return esc(r.num ?? "");
     case "name": return horseLink(r.horseId, r.horseName);
@@ -935,7 +942,7 @@ function rowHtml(r) {
     // 马号列 = 枠番 × 馬番 合并满格色带（2026-11-16，样式参考分享卡 drawDense 的 wknum 格）：
     // 底色刷在 td 上（单元格背景一定填满整格，不受内容高度影响），字 = 馬番、色 = 枠番。
     // 无枠番（海外 RP 源 / 未確定页）不刷底、退普通居中数字 —— 灰块会被读成「字段坏了」。
-    const fr = Number(r.frame);
+    const fr = Number(frameOf(r));
     const band = c.k === "num" && fr >= 1 && fr <= 8 && r.num != null && r.num !== "";
     const cls = `${c.left ? "c-left" : "num"}${c.k === "bj" ? " bj" : ""}${host}` +
       (band ? ` wknum w${fr}` : "");
@@ -1002,7 +1009,7 @@ function mbCardHtml(r) {
   const top = [
     show("silk") ? (r.silk ? silkImgHtml(r.silk) : silkPhHtml("暂无彩衣图（未采集或马主未登记）")) : "",
     // 马号（枠番合一色块）优先；马号隐藏时才退回单列枠番徽标
-    show("num") && r.num != null ? wkNumChip(r.frame, r.num) : (show("waku") ? frameBadge(r.frame) : ""),
+    show("num") && r.num != null ? wkNumChip(frameOf(r), r.num) : (show("waku") ? frameBadge(frameOf(r)) : ""),
     `<span class="yj-mb-horse">${horseLink(r.horseId, r.horseName)}</span>`,
     `<span class="yj-mb-nums">${stat(fin, finUnit)}${stat(pop, pop ? "人気" : "")}</span>`,
   ].join("");
@@ -1088,7 +1095,30 @@ function emptyHtml() {
 }
 
 // 渲染当前视图：前端内存分页，每页最多 PG.size 条数据行；≤100 行直接 innerHTML，无需分块
-let pageRows = [];   // 当前页实际展示的行（不分组 = 切片；分组 = 各组页内区间展开），「全选本页」依据
+let pageRows = [];   // 当前页实际展示的行（不分组 = 整场打包的页；分组 = 各组页内区间展开），「全选本页」依据
+
+// 整场打包分页：按「场」为单位往页里装，装不下就把整场移到下一页；单场自身超过一页容量时
+// 独占一页（允许溢出 PG.size）—— 满足「同一场比赛的马匹禁止跨页」。
+function packByRace(rows, size) {
+  // 先按场聚合（Map 保留首次出现顺序），再整场往页里装 —— 不依赖行是否相邻：
+  // 排序键一旦把同一场的两匹马隔开（跨源同时刻、手动加行、来源时间差 1 分钟），
+  // 用「相邻性」判断就会把该场切成两页。
+  const groups = new Map();
+  for (const r of rows) {
+    const rk = rkOf(r);
+    if (!groups.has(rk)) groups.set(rk, []);
+    groups.get(rk).push(r);
+  }
+  const pages = [];
+  let cur = [];
+  for (const list of groups.values()) {
+    if (cur.length && cur.length + list.length > size) { pages.push(cur); cur = []; }
+    cur.push(...list);
+  }
+  if (cur.length) pages.push(cur);
+  return pages;
+}
+
 function render() {
   $("#skel")?.remove();   // 首帧骨架屏：首次真实渲染后移除
   PG.size ||= pgSizeDef();   // 首次惰性初始化（PC 100 / mb 20）
@@ -1103,12 +1133,13 @@ function render() {
   pageRows = [];
 
   if (!state.group) {
-    // 不分组：数据行等宽切片；同场比赛首行前插入分隔行（场R · 比赛名 · 级别）
-    pages = Math.max(1, Math.ceil(rows.length / PG.size));
+    // 不分组：按「整场打包」分页 —— 同一场比赛的马匹禁止跨页（出现了就必须整场展示完，
+    // 下一页不再续），单场超过一页容量时该页允许溢出，保证整场完整可读。
+    const packedPages = packByRace(rows, PG.size);
+    pages = Math.max(1, packedPages.length);
     PG.page = Math.min(Math.max(PG.page, 1), pages);   // 页码越界修正
-    const start = (PG.page - 1) * PG.size;
-    shown = Math.min(rows.length - start, PG.size);   // 本页数据行数（末页为余数）
-    pageRows = rows.slice(start, start + PG.size);
+    pageRows = packedPages[PG.page - 1] ?? [];
+    shown = pageRows.length;
     const parts = [];
     let lastRk = null;
     for (const r of pageRows) {
@@ -1133,17 +1164,29 @@ function render() {
     const segs = [...groups.entries()]
       .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ja"))
       .map(([k, list]) => ({ k, list }));
-    const packed = [];   // 每页 = [{k, list, a, b}]，a..b 为该组在本页包含的行区间
-    let cur = [], curN = 0;
+    // 分页单位 = 「组内的一场」（block），整块搬进页，永不切场：
+    //   · 同组同场的马一定在同页（哪怕该组本身跨页）
+    //   · 单组超页时按场边界拆到多页，续页组头标「续」
+    //   · 组顺序按行数降序，页内组顺序 = 首次出现顺序
+    const blocks = [];   // [{k, rk, rows}]
     for (const seg of segs) {
-      const L = seg.list.length;
-      if (L > PG.size) {   // 单组超页 → 独占若干页（组内截断不可避免）
-        if (cur.length) { packed.push(cur); cur = []; curN = 0; }
-        for (let i = 0; i < L; i += PG.size) packed.push([{ k: seg.k, list: seg.list, a: i, b: Math.min(L, i + PG.size) }]);
-        continue;
+      let lastRk = null;
+      for (const r of seg.list) {
+        const rk = rkOf(r);
+        if (rk !== lastRk) { blocks.push({ k: seg.k, rk, rows: [] }); lastRk = rk; }
+        blocks.at(-1).rows.push(r);
       }
-      if (curN + L > PG.size) { packed.push(cur); cur = []; curN = 0; }
-      cur.push({ k: seg.k, list: seg.list, a: 0, b: L });
+    }
+    const packed = [];   // 每页 = [{k, rows, cont}]，cont=1 表示该组头是上一页的续
+    const emitted = new Map();   // 组内已输出行数，用于判定「续」
+    let cur = [], curN = 0;
+    for (const b of blocks) {
+      const L = b.rows.length;
+      if (curN && curN + L > PG.size) { packed.push(cur); cur = []; curN = 0; }
+      const segOut = cur.at(-1);
+      if (segOut && segOut.k === b.k) segOut.rows.push(...b.rows);
+      else cur.push({ k: b.k, rows: [...b.rows], cont: (emitted.get(b.k) ?? 0) > 0 });
+      emitted.set(b.k, (emitted.get(b.k) ?? 0) + L);
       curN += L;
     }
     if (cur.length) packed.push(cur);
@@ -1152,19 +1195,19 @@ function render() {
     PG.page = Math.min(Math.max(PG.page, 1), pages);
     const parts = [];
     for (const seg of packed[PG.page - 1] ?? []) {
-      const gr = new Set(seg.list.map((r) => r.raceKey ?? r.date + r.track + r.raceNo)).size;
+      const gr = new Set(seg.rows.map(rkOf)).size;
+      const name = esc(pedKey ? displayOf(seg.k) : seg.k) + (seg.cont ? "（续）" : "");
       parts.push(isMb()
-        ? `<div class="yj-mb-sub"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</div>`
-        : `<tr class="sub"><td colspan="${colspan}"><b>${label}：${esc(pedKey ? displayOf(seg.k) : seg.k)}</b>${seg.list.length} 頭 / ${gr} R</td></tr>`);
-      const segRows = seg.list.slice(seg.a, seg.b);
+        ? `<div class="yj-mb-sub"><b>${label}：${name}</b>${seg.rows.length} 頭 / ${gr} R</div>`
+        : `<tr class="sub"><td colspan="${colspan}"><b>${label}：${name}</b>${seg.rows.length} 頭 / ${gr} R</td></tr>`);
       let lastRk = null;   // 组内同样按比赛加分隔行（比赛级列默认隐藏后，这里是场R信息的唯一来源）
-      for (const r of segRows) {
+      for (const r of seg.rows) {
         const rk = rkOf(r);
         if (rk !== lastRk) { parts.push(isMb() ? mbSepHtml(r, r.heads) : raceSepHtml(r, r.heads)); lastRk = rk; }
         parts.push(isMb() ? mbCardHtml(r) : rowHtml(r));
       }
-      pageRows.push(...segRows);
-      shown += seg.b - seg.a;
+      pageRows.push(...seg.rows);
+      shown += seg.rows.length;
     }
     flushRows(parts);
   }

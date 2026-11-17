@@ -30,6 +30,30 @@ export const SOURCES = {
     homeUrl: "https://www.tjk.org/EN/YarisSever/Info/Page/GunlukYarisProgrami",
     ...(await import("./tjk.js")),
   }),
+  sanisidro: async () => ({
+    id: "sanisidro",
+    label: "San Isidro (Argentina)",
+    homeUrl: "https://hipodromosanisidro.com/programacion/calendario",
+    ...(await import("./sanisidro.js")),
+  }),
+  laplata: async () => ({
+    id: "laplata",
+    label: "La Plata (Argentina)",
+    homeUrl: "https://www.hipodromolaplata.gba.gov.ar/h/index.php",
+    ...(await import("./laplata.js")),
+  }),
+  turfeonline: async () => ({
+    id: "turfeonline",
+    label: "TurfeOnline (Brasil)",
+    homeUrl: "https://www.turfeonline.com.br/programas",
+    ...(await import("./turfeonline.js")),
+  }),
+  teletrak: async () => ({
+    id: "teletrak",
+    label: "Teletrak (Chile)",
+    homeUrl: "https://teletrak.cl/",
+    ...(await import("./teletrak.js")),
+  }),
 };
 
 export async function getSource(id) {

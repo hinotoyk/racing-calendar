@@ -16,6 +16,9 @@ _site/
 # 请求日志（JSONL，逐条记录出站请求；本地诊断用，不入库）
 data/logs/
 .tmp-fixture/
+# 临时抓取样本（调研/调试用 HTML、PDF、JSON，不入库）
+.tmp-sa/
+.tmp-*.txt
 
 # 服务重定向日志（本地起服务时的 stdout/stderr）
 *.err

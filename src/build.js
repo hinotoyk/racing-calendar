@@ -79,6 +79,9 @@ function resultsOf(date) {
   if (!fs.existsSync(dir)) return null;
   const byKey = new Map();
   const races = [];
+  // 人气派生用：raceKey → [{ key, odds }]。部分源站（San Isidro / 智利官方 API）只发单胜赔率、
+  // 不直接给「人气」栏，而单胜人气本义就是「同场按单胜赔率由低到高排名」，故可无损派生。
+  const oddsByRace = new Map();
   for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".json")).sort()) {
     const doc = readJson(path.join(dir, f));
     if (!doc?.races) continue;
@@ -105,8 +108,29 @@ function resultsOf(date) {
           nkRaceId: race.nkRaceId ?? null,
           nkId: r.horse?.nkId ?? null,
         });
+        if (r.pop == null && r.winOdds != null && Number.isFinite(+r.winOdds) && +r.winOdds > 0) {
+          const k = `${race.raceKey}|${r.num}`;
+          if (!oddsByRace.has(race.raceKey)) oddsByRace.set(race.raceKey, []);
+          oddsByRace.get(race.raceKey).push({ key: k, odds: +r.winOdds });
+        }
       }
     }
+  }
+
+  // 人气派生（宁缺勿错）：同一场次内按单胜赔率升序排名；并列赔率并列人气。
+  // 只在赔率覆盖「本场结果行」≥ 80% 时启用 —— 覆盖不全时排名会整体前移，宁可留空。
+  for (const [raceKey, list] of oddsByRace) {
+    const raceRowCount = races.find((x) => x.raceKey === raceKey)?.runners ?? list.length;
+    if (list.length < Math.max(2, Math.ceil(raceRowCount * 0.8))) continue;
+    const sorted = [...list].sort((a, b) => a.odds - b.odds);
+    let rank = 0;
+    let prev = null;
+    sorted.forEach((x, i) => {
+      if (prev === null || x.odds !== prev) rank = i + 1;
+      prev = x.odds;
+      const hit = byKey.get(x.key);
+      if (hit && hit.resultPop == null) hit.resultPop = rank;
+    });
   }
   return { byKey, races };
 }
@@ -116,6 +140,7 @@ function resultsOf(date) {
 //       按 JST（+09:00）缺省补齐 —— 两口径（展示/场地）对 JBIS 一致。
 function rowOf(doc, race, r) {
   const [y, m, d] = doc.date.split("-");
+  const country = doc.country ?? (doc.scope === "central" || doc.scope === "local" ? "JPN" : null);
   const instant =
     race.startTimeInstant ??
     (race.startTime && /^\d{1,2}:\d{2}$/.test(race.startTime) ? `${doc.date}T${race.startTime}:00+09:00` : null);
@@ -125,7 +150,7 @@ function rowOf(doc, race, r) {
     scope: scopeOfDoc(doc),
     level: klassToLevel(race.klass),
     source: sourceOf(doc),
-    country: doc.country ?? (doc.scope === "central" || doc.scope === "local" ? "JPN" : null),
+    country,
     track: doc.track,
     venue: doc.venue,
     raceNo: race.no,
@@ -139,7 +164,9 @@ function rowOf(doc, race, r) {
     surface: race.surface,
     distance: race.distance,
     heads: race.heads,
-    frame: r.frame,
+    // 枠番只在日本赛马存在（JRA/NAR）；海外源的「mandil/马牌号」是马号不是枠，
+    // 一律输出 null —— 否则前端会把 1~8 号牌当枠色上色，读成假分组。
+    frame: country === "JPN" ? r.frame : null,
     num: r.num,
     horseId: r.horse?.id ?? null,
     horseName: r.horse?.name ?? null,
@@ -171,7 +198,9 @@ function rowOf(doc, race, r) {
           ? `${doc.sourceUrl}#${race.raceKey}`
           : String(race.raceKey ?? "").match(/^\d{8}\/\w+\/\d{2}$/)
             ? `https://www.jbis.or.jp/race/${race.raceKey}/`
-            : (doc.source ?? null),
+            : (doc.sourceUrl ?? null),
+    // 注：兜底用 doc.sourceUrl（各源官方节目页绝对 URL）——不能用 doc.source（那是源 id
+    // 字符串 "jbis"/"laplata"…，会被前端当相对路径拼成本站链接，点击变成站内 404）。
     // 前走（embed「前走」列：比赛名 · 人气 · 着顺）：比赛名/着顺来自出馬表的前 3 走，
     //   人气出馬表没有 → 由 collect-recent-pop 从馬頁競走成績补，按 raceKey 对齐后才采信
     ...lastRunOf(r),

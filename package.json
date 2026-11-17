@@ -19,6 +19,16 @@
     "audit:homonym": "node src/audit-homonym.js",
     "migrate:lookup": "node src/migrate-lookup-v2.js",
     "serve": "node src/server.js",
-    "start": "node src/collect-races.js && node src/build.js && node src/server.js"
+    "start": "node src/collect-races.js && node src/build.js && node src/server.js",
+    "backfill:bra-ped": "node src/backfill-bra-ped.js",
+    "backfill:arg-ped": "node src/backfill-arg-ped.js",
+    "enrich:jcb": "node src/enrich-jcb.js",
+    "strip:frame": "node src/strip-foreign-frame.js",
+    "backfill:bra-results": "node src/backfill-bra-results.js",
+    "collect:sa": "node src/collect-sources.js --source turfeonline && node src/collect-sources.js --source sanisidro && node src/collect-sources.js --source laplata && node src/collect-sources.js --source teletrak",
+    "collect:results:tol": "node src/collect-results-tol.js --days 2",
+    "collect:results:si": "node src/collect-results-si.js --days 2",
+    "collect:results:chs": "node src/collect-results-chs.js --days 3",
+    "rebuild:tk-card": "node src/rebuild-tk-card.js"
   }
 }

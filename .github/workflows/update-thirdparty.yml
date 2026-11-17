@@ -1,14 +1,32 @@
-name: update-data · 第三方源（TJK 土耳其 + 后续地区）
+name: update-data · 第三方源（TJK 土耳其 + 南美三国）
 
 # 第三方源档：既非 JBIS（日本）也非 Racing Post（欧美）的数据源，统一走这里。
-#   当前：tjk = 土耳其赛马会 tjk.org（适配器 src/sources/tjk.js，注册于 src/sources/registry.js）
+#   当前源（src/sources/registry.js 注册）：
+#     tjk         土耳其赛马会 tjk.org                        → 出馬表（今天+明天）
+#     sanisidro   阿根廷 San Isidro（hipodromosanisidro.com） → 出馬表
+#     laplata     阿根廷 La Plata（hipodromolaplata.gba.gov.ar）→ 出馬表
+#     turfeonline 巴西 TurfeOnline（turfeonline.com.br）      → 出馬表（Gávea / Cidade Jardim / Cristal / Tarumã）
+#     teletrak    智利 Teletrak（teletrak.cl）                → 出馬表（CHS / CHC / VSC 三种 volante PDF）
 #   新增地区：在 registry 里注册适配器（实现 id/label/homeUrl/collect/probe）→
 #             把源名加进下面的 SOURCES / workflow_dispatch 默认值即可，本档结构不用动。
 #
-# 时刻选择（UTC 02:00 = 土耳其 05:00 = 北京 10:00）：
+# ## 采集后串联的「补全链」（第 2 步，全部幂等、只填缺失值、失败不阻断发布）
+#   顺序有意义：先清伪枠番 → 再补血统/练马师 → 再补赛果
+#   strip-foreign-frame  海外场次没有「枠」制度，清掉历史遗留的伪枠番（RP 闸位号 / TOL 马牌号）
+#   backfill-bra-ped     巴西 父/母/父父/母父（ABCPCC Stud Book JSON，3~5 请求/匹，带磁盘缓存）
+#   enrich-jcb           巴西 Gávea 练马师/马主（JCB 每日「Programa com retrospecto」PDF，1 PDF/日）
+#   backfill-arg-ped     阿根廷 母父/父父 + 性别/毛色（Stud Book Argentino，2~3 请求/匹）
+#   collect-results-tol  巴西着顺（TurfeOnline /resultados 的「Ordem de Chegada」，前 5 名）
+#   collect-results-chs  智利 CHS 着顺+派彩（apiweb.clubhipico.cl 官方 JSON，全场名次；人气由赔率派生）
+#   注：智利 volante 只印种马，母系无免费来源 → 不跑智利血统（见「南美三国…方案.md」§四·5）
+#
+# ## 时刻选择（UTC 02:00 = 土耳其 05:00 / 北京 10:00）
 #   土耳其赛事多在当地 13:30 后开跑，出马表在前一天就已公布 → 凌晨抓「今天 + 明天」两日都齐。
 #   GitHub schedule 实测常漂 3–6h，最迟落到 UTC 08:00 = 土耳其 11:00，仍在首场之前；
 #   再晚（当地午后）当天已开跑，卡片会边跑边变，宁可早不可晚。
+#   南美（UTC-3）此时是前一天深夜，同样安全：只抓已发布、未开跑的卡片。
+#   巴西着顺由本档顺带补「昨天+前天」（上面那条 collect-results-tol --days 2）；
+#   更早的漏抓用 workflow_dispatch 手动指定 --days 7 回补。
 #
 # ⚠️ 合规说明：tjk.org 的 robots.txt 为 `User-agent: * → Disallow: /`，并逐条点名封禁了
 #   GPTBot / ClaudeBot / CCBot 等 AI 系爬虫（仅放行 Googlebot 与社交预览）。
@@ -19,6 +37,7 @@ name: update-data · 第三方源（TJK 土耳其 + 后续地区）
 #   替代方案（合规性更好、字段更少）：改取官方公开导出 medya-cdn.tjk.org/.../CSV/*.csv
 #   （CDN 无 robots.txt，是站方自己挂在页面上的下载链接），代价是丢失马/骑手/马主稳定 id、
 #   母父（BMS）与彩衣，骑手名退化为缩写。
+#   南美四源均为公开节目页/公开结果页，无反爬声明；采集限速同 TJK（请求间 1.2–1.5s）。
 #
 # 与其它档一致：GITHUB_TOKEN 的 push 不会触发 deploy.yml，所以本档自己 build + 发布 Pages；
 # 共用 concurrency group `pages` 串行，避免并发发布互相踩。
@@ -30,14 +49,18 @@ on:
       sources:
         description: '源（逗号分隔，须已在 registry 注册）'
         type: string
-        default: 'tjk'
+        default: 'tjk,sanisidro,laplata,turfeonline,teletrak'
       dates:
         description: '日期 YYYY-MM-DD,YYYY-MM-DD（留空=各源默认，tjk 为今天+明天）'
         type: string
         default: ''
+      tol_days:
+        description: '巴西着顺回补天数（默认 2；整周回补填 8）'
+        type: string
+        default: '2'
 
 permissions:
-  contents: write   # 提交数据（data/races、data/silks、data/pedigree）
+  contents: write   # 提交数据（data/races、data/results、data/silks、data/pedigree）
   pages: write      # 发布 Pages
   id-token: write
 
@@ -59,6 +82,18 @@ jobs:
         with:
           node-version: 22
 
+      # 智利 volante 与巴西 JCB 节目都是 PDF，靠 PyMuPDF 子进程抽文本
+      # （src/lib/pdftext.py；失败只降级，不影响其它源）
+      # Ubuntu 24.04 是 PEP 668 externally-managed 环境，普通 pip install 会被拒 → 双路径兜底
+      - name: Prepare PDF text extractor
+        continue-on-error: true
+        shell: bash
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check pymupdf \
+            || python3 -m pip install --quiet --disable-pip-version-check --break-system-packages pymupdf \
+            || echo "::warning::PyMuPDF 安装失败，智利/JCB 的 PDF 解析将降级"
+          python3 -c "import fitz; print('PyMuPDF', fitz.__doc__)" || true
+
       # 按 SOURCES 顺序逐个采集。每源独立日志与退出码：
       # 一个源失败不阻断其它源落库（地区越多，越不能让单点拖垮整档）。
       # 汇总闸门写在 collect-verdict.txt：全部源退出码 0 + 打印 manifest 收尾行才置 OK。
@@ -68,8 +103,9 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          SOURCES_IN: ${{ inputs.sources || 'tjk' }}
+          SOURCES_IN: ${{ inputs.sources || 'tjk,sanisidro,laplata,turfeonline,teletrak' }}
           DATES_IN: ${{ inputs.dates || '' }}
+          PDF_PYTHON: python3
         run: |
           set +e
           mkdir -p test-logs
@@ -93,16 +129,51 @@ jobs:
           if [ "$FAILED" -eq 0 ]; then echo "OK" > test-logs/collect-verdict.txt; fi
           exit 0
 
+      # 补全链：全部幂等（只填缺失值）+ 失败不阻断（回填失败只是字段少，不能拖垮当天卡片发布）
+      - name: Enrich (frame / pedigree / trainer)
+        id: enrich
+        timeout-minutes: 45
+        continue-on-error: true
+        shell: bash
+        env:
+          PDF_PYTHON: python3
+        run: |
+          set +e
+          echo "FAIL" > test-logs/enrich-verdict.txt
+          FAILED=0
+          run() { echo "::group::$1"; shift; "$@" 2>&1 | tee -a "test-logs/enrich.log"; rc=${PIPESTATUS[0]}; [ "$rc" -ne 0 ] && { echo "::warning::$1 退出码 $rc"; FAILED=1; }; echo "::endgroup::"; }
+          run strip-frame   node src/strip-foreign-frame.js
+          run bra-pedigree  node src/backfill-bra-ped.js
+          run jcb-trainer   node src/enrich-jcb.js
+          run arg-pedigree  node src/backfill-arg-ped.js
+          if [ "$FAILED" -eq 0 ]; then echo "OK" > test-logs/enrich-verdict.txt; fi
+          exit 0
+
+      # 南美着顺：三个源「顺手就带」，各 1 请求/赛日
+      #   巴西     TurfeOnline /resultados 的「Ordem de Chegada」（按马牌号的过线顺序，源只发前 5 名）
+      #   阿根廷   San Isidro 同一份节目 JSON：赛后 estado=RESULTADOS 时 inscripciones[].puesto 就是全场名次
+      #   智利 CHS apiweb.clubhipico.cl/resultados/{date}：全场 posicion + dividendo（人气由 build 按赔率派生）
+      #            智利场次跑到当地 21:00（= 北京次日 08:00），故用 --days 3 兜住跨日
+      - name: Collect overseas results (BRA / ARG / CHI)
+        timeout-minutes: 20
+        continue-on-error: true
+        env:
+          TOL_DAYS: ${{ inputs.tol_days || '2' }}
+        run: |
+          node src/collect-results-tol.js --days "$TOL_DAYS" 2>&1 | tee -a test-logs/enrich.log
+          node src/collect-results-si.js  --days "$TOL_DAYS" 2>&1 | tee -a test-logs/enrich.log
+          node src/collect-results-chs.js --days 3 2>&1 | tee -a test-logs/enrich.log
+
       - name: Build site
         timeout-minutes: 15
         run: node src/build.js 2>&1 | tee test-logs/build.log
 
-      # --no-jbis：本档不发 JBIS 请求；--expect-src：本档应有的源请求为 0 或全失败 → 判 FAIL
+      # --no-jbis：本档不发 JBIS 请求
+      # --expect-src：只钉 tjk（每天都应有卡片）；南美四源有赛日才产卡片，
+      #   0 请求是正常现象，禁止在这里判 FAIL，否则每周都会误报红
       - name: Diagnostics from JSONL request log
         if: always()
-        env:
-          SOURCES_IN: ${{ inputs.sources || 'tjk' }}
-        run: node src/ci-summary.js --no-jbis --expect-src "${SOURCES_IN// /}"
+        run: node src/ci-summary.js --no-jbis --expect-src tjk
 
       - name: Commit data changes
         run: |
@@ -111,9 +182,10 @@ jobs:
           # data/pedigree/：跨源共用的血统/马名/彩衣缓存包（增量复用）
           # data/silks/：按马主去重的彩衣图，必须一起入库——否则本次部署有图、下次 checkout 缺图，
           #   缓存命中不再重下 → 页面永久 404
-          git add data/races/ data/pedigree/ data/silks/
+          # data/results/：着顺（TJK CSV / 巴西 TurfeOnline），也必须入库，否则下次重建页面丢着顺
+          git add data/races/ data/results/ data/pedigree/ data/silks/
           if ! git diff --cached --quiet; then
-            git commit -m "data: auto collect third-party $(date -u +%Y-%m-%dT%H:%MZ)"
+            git commit -m "data: auto collect third-party (tjk + 南美) $(date -u +%Y-%m-%dT%H:%MZ)"
             git pull --rebase origin main || { git rebase --abort; echo "::error::远端冲突，本次数据提交放弃"; exit 1; }
             git push origin "HEAD:$GITHUB_REF_NAME"
             echo "::notice::data 已更新并推送"
@@ -145,12 +217,17 @@ jobs:
           retention-days: 30
 
       # 放最后：Deploy 已先行，FAIL 只标红报警，页面和数据照常发布
+      # 补全链（enrich）只告警不拦截：字段缺失是渐变问题，不该让当天卡片上不了线
       - name: Gate on diagnostics
         if: always()
         run: |
           v="$(cat test-logs/verdict.txt 2>/dev/null || echo FAIL)"
           c="$(cat test-logs/collect-verdict.txt 2>/dev/null || echo FAIL)"
-          echo "verdict=$v collect=$c"
+          e="$(cat test-logs/enrich-verdict.txt 2>/dev/null || echo OK)"
+          echo "verdict=$v collect=$c enrich=$e"
+          if [ "$e" = "FAIL" ]; then
+            echo "::warning::补全链有步骤失败（血统/练马师/着顺可能不全），见 artifact"
+          fi
           if [ "$v" = "FAIL" ] || [ "$c" = "FAIL" ]; then
             echo "::error::第三方源采集/构建异常，见 update-thirdparty-log artifact"
             exit 1

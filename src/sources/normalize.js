@@ -136,6 +136,25 @@ export function colourOf(code) {
   return { b: "鹿毛", br: "青鹿毛", ch: "栗毛", gr: "芦毛", bl: "青毛", wh: "白毛", ro: "駁毛", pu: "粕毛" }[code] ?? null;
 }
 
+// 西语参赛条件文本 → 赛事级性别推断（南美各源不逐马标注性别，只有条件文本可用）。
+// 规则：条件只限定单性组时才判 —— 牝组(potrancas/yeguas/hembras)、牡组(potros/potrillos/machos/
+// caballos/caballeros，含骟马无法区分，按 sexOf 的 h→牡 口径归牡)、骟马组(capones/castrados)。
+// 雄雌混编（potros y potrancas 之类）→ null；其余无关文本 → null。
+export function sexFromConditionEs(text) {
+  const t = String(text ?? "").toLowerCase();
+  if (!t) return null;
+  const has = (...ws) => ws.some((w) => t.includes(w));
+  const fem = has("potranca", "yegua", "hembra");
+  const capon = has("capones", "castrados", "capaos");
+  // "caballeros" 与 "caballo(s)" 分别判；"caballeriza"(马房) 不含这两个词，不会误伤
+  const male = has("potros", "potrillo", "potro ", " machos", "machos ", "caballos", "caballo ", "caballeros", "todo caballo");
+  if (fem && male) return null; // 雄雌混编
+  if (fem && !male && !capon) return "牝";
+  if (capon && !fem) return has("macho") ? null : "セ"; // 纯骟马组
+  if (male && !fem) return "牡";
+  return null;
+}
+
 // 场地：SL surface → 芝/ダ（英国全场地的 all-weather 按惯例归 ダート）
 export function surfaceOf(surfaceCode) {
   const s = String(surfaceCode ?? "").toUpperCase();
