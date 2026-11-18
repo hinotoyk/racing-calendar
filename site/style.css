@@ -257,8 +257,14 @@ td.name { font-weight: 600; }
 td.name a { color: var(--foreground); }
 td.name a:hover { color: var(--primary); }
 td.race .rname { max-width: 300px; display: inline-block; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
-td.race a.rlink { color: inherit; }
-td.race a.rlink:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+/* 官方节目页直达链接：淡点状下划线提示可点（悬停转主色实线下划线） */
+td.race a.rlink, .sep-name a.rlink, .yj-mb-sep a.rlink {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+  text-underline-offset: 3px;
+}
+td.race a.rlink:hover, .sep-name a.rlink:hover, .yj-mb-sep a.rlink:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
 td.ped, td.c-left.ped { color: var(--chip-fg); }
 /* 北京时间列不再强调（与正文同色） */
 td.num { font-variant-numeric: tabular-nums; }
@@ -359,9 +365,6 @@ table.yj-lib tbody tr.sep td {
 .sep-hd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 8px; }
 .sep-no { font-size: 15px; font-weight: 800; letter-spacing: .2px; color: var(--primary); white-space: nowrap; }
 .sep-name { font-size: 14px; font-weight: 700; color: var(--foreground); }
-.sep-name a.rlink { color: inherit; }
-.sep-name a.rlink:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
-/* 北京时间：2026-11-16 起从行1 右端挪到行2 行首（长冠名赛事行1 会挤到换行）。
    在浅色小字的行2 里仍然要一眼找到，故保留正文色 + 700 字重，字号只比行2 大一档。 */
 .sep-bj {
   white-space: nowrap;

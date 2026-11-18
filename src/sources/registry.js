@@ -54,6 +54,18 @@ export const SOURCES = {
     homeUrl: "https://teletrak.cl/",
     ...(await import("./teletrak.js")),
   }),
+  loveracing: async () => ({
+    id: "loveracing",
+    label: "LOVERACING.NZ (New Zealand)",
+    homeUrl: "https://loveracing.nz/raceinfo",
+    ...(await import("./loveracing.js")),
+  }),
+  racingaustralia: async () => ({
+    id: "racingaustralia",
+    label: "Racing Australia",
+    homeUrl: "https://racingaustralia.horse/",
+    ...(await import("./racingaustralia.js")),
+  }),
 };
 
 export async function getSource(id) {

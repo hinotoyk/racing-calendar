@@ -191,7 +191,8 @@ function rowOf(doc, race, r) {
     raceKey: race.raceKey,
     // 比赛页链接：RP = Sporting Life racecard（raceKey 即 race id，假 slug 可用）；
     // TJK = 当日城市节目页 + 场次锚点（#raceId）；
-    // JBIS = 比赛详情页（raceKey 即 URL 路径 20261101/108/01，比日历页直达）
+    // JBIS = 比赛详情页（raceKey 即 URL 路径 20261101/108/01，比日历页直达）；
+    // RA = Form/Acceptances 页 <a name="RaceN"> 锚点；NZ = Meeting-Overview <li id="raceN"> 锚点
     raceUrl:
       sourceOf(doc) === "racingpost" && /^\d+$/.test(String(race.raceKey))
         ? `https://www.sportinglife.com/racing/racecards/${doc.date}/x/racecard/${race.raceKey}/x`
@@ -199,7 +200,14 @@ function rowOf(doc, race, r) {
           ? `${doc.sourceUrl}#${race.raceKey}`
           : String(race.raceKey ?? "").match(/^\d{8}\/\w+\/\d{2}$/)
             ? `https://www.jbis.or.jp/race/${race.raceKey}/`
-            : (doc.sourceUrl ?? null),
+            : doc.sourceUrl
+              ? doc.sourceUrl +
+                (sourceOf(doc) === "racingaustralia"
+                  ? `#Race${race.no}`
+                  : sourceOf(doc) === "loveracing"
+                    ? `#race${race.no}`
+                    : "")
+              : null,
     // 注：兜底用 doc.sourceUrl（各源官方节目页绝对 URL）——不能用 doc.source（那是源 id
     // 字符串 "jbis"/"laplata"…，会被前端当相对路径拼成本站链接，点击变成站内 404）。
     // 前走（embed「前走」列：比赛名 · 人气 · 着顺）：比赛名/着顺来自出馬表的前 3 走，

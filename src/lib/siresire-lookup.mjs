@@ -25,6 +25,44 @@ export const KNOWN_SIRE_OF_SIRE = {
   // 来源：https://harasvacacion.com/vacacion/ejemplares-home?id_ejemplar=1004307
   //      https://asianracingreport.com/deep-impacts-boys-secure-stud-berths/
   satonoflag: { name: "Deep Impact", country: "JPN" },
+
+  // ---- 澳大利亚 / 新西兰在种（2026-11 出走数据实测有产驹，配种地点经公开来源核实）----
+
+  // トーセンスタードム / Tosen Stardom（2012, 父 Deep Impact）
+  // 在澳 2017 Toorak Hcp G1 + Mackinnon Stakes G1；Woodside Park Stud (VIC) 配种。
+  // 来源：https://www.racingandsports.com.au/news/breeding/news/2019-07-31/deep-impact-leaves-lasting-influence-in-australia/491381
+  tosenstardom: { name: "Deep Impact", country: "JPN" },
+
+  // サクソンウォリアー / Saxon Warrior（2015, 父 Deep Impact × Maybe）
+  // 2018 2000 Guineas G1 + Racing Post Trophy G1；Coolmore Australia 配种。
+  // 来源：同上 racingandsports 2019-07-31
+  saxonwarrior: { name: "Deep Impact", country: "JPN" },
+
+  // フィアスインパクト / Fierce Impact（2015, 父 Deep Impact）
+  // 在澳 G1 三胜（Cantala S. / Makybe Diva S. / Futurity S.）；Leneva Park 配种。
+  // 来源：https://lenevapark.com.au/ + Breednet stallion directory
+  fierceimpact: { name: "Deep Impact", country: "JPN" },
+
+  // サトノアラジン / Satono Aladdin（2014, 父 Deep Impact）
+  // 2017 安田記念 G1；Rich Hill Stud (NZ) 配种。
+  // 来源：同上 racingandsports 2019-07-31
+  satonoaladdin: { name: "Deep Impact", country: "JPN" },
+
+  // スタファノス / Staphanos（2013, 父 Deep Impact）
+  // 在日 G3 胜ち（2018 Autumn S. G2 等）；Novara Park (NZ) 配种。
+  // 来源：同上 racingandsports 2019-07-31
+  staphanos: { name: "Deep Impact", country: "JPN" },
+
+  // ミッキアイル / Mikki Isle（2011, 父 Deep Impact）
+  // 2016 NHK マイルカップ G1；Arrowfield Stud (NSW) 配种。
+  // 来源：同上 racingandsports 2019-07-31
+  mikkiisle: { name: "Deep Impact", country: "JPN" },
+
+  // リアルインパクト / Real Impact（2008, 父 Deep Impact）
+  // 2011 安田記念 G1 + 在澳 2017 George Ryder S. G1；2015-17 Arrowfield 在种后回日，
+  // 澳洲产驹仍在出赛中（2026-11 数据实测 1 頭）。
+  // 来源：同上 racingandsports 2019-07-31
+  realimpact: { name: "Deep Impact", country: "JPN" },
 };
 
 // 归一化：与 site/horse-name.mjs 的 normalizeHorseName 同口径（小写、去括号国别、去标点空白）
