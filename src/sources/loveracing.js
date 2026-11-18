@@ -263,11 +263,18 @@ export function parseNzModal(html) {
   if (jm) out.jockey = jm[1].trim();
   const tm = plain.match(/Trainer:\s*(.*?)\s*Training Location:/s);
   if (tm) out.trainer = tm[1].trim();
-  const hd = plain.match(/Horse Details\s*(\d+)\s*YO\s+([A-Za-z-]+)\s+([A-Za-z]+)/);
+  // Horse Details 段：年龄 + 毛色 + 性别。毛色可能双词（"Bay or Brown Gelding"），
+  // 旧正则 ([A-Za-z-]+)\s+([A-Za-z]+) 会把 "or" 当成性别（2026-11-18 Theonewekept 实测）；
+  // 改为捕获整个段（到 Owner/Breeder/Flat Rating 等下一区块关键词为止），末词=性别、其余=毛色
+  const hd = plain.match(/Horse Details\s*(\d+)\s*YO\s+(.+?)(?=\s+Owner:|\s+Breeder:|\s+Sire:|\s+Dam:|\s+Flat Rating|\s+Current Gear|\s+Trainer:|$)/i);
   if (hd) {
     out.age = Number(hd[1]);
-    out.colour = hd[2].toLowerCase();
-    out.sex = hd[3].toLowerCase();
+    const seg = hd[2].trim();
+    const sm = seg.match(/^(.*?)(?:\s+or\s+|\s+)(mare|gelding|colt|filly|entire|horse)$/i);
+    if (sm) {
+      out.colour = sm[1].trim().split(/\s+/)[0].toLowerCase(); // 双毛色取首个（"Bay or Brown"→bay）
+      out.sex = sm[2].toLowerCase();
+    }
   }
   const om = plain.match(/Owner:\s*(.*?)\s*Breeder:/s);
   if (om) out.owner = om[1].trim() || null;
@@ -420,7 +427,11 @@ export async function resolveModal(docs, { delayMs = 3500, limit = 0, log = cons
     for (const race of doc.races ?? [])
       for (const r of race.runners ?? []) {
         stat.heads++;
-        if (!r.lv?.entryUrl || r.jockey?.name) continue; // 已有骑师的（表格阶段）不用富化
+        if (!r.lv?.entryUrl) continue;
+        // 富化目标 = 缺骑师（表格阶段）或 缺性别/年龄/母系名（results 阶段表格常无这几列，
+        // 2026-11-18 SC 实测整场全缺；模态 EntryDetail 有性别/年龄/母系，按马 id 缓存去重）
+        const need = !r.jockey?.name || r.sex == null || r.age == null || !r.dam?.name;
+        if (!need) continue;
         const hid = r.horse?.id;
         targets.push({ runner: r, url: r.lv.entryUrl, hid });
       }
@@ -458,8 +469,10 @@ export async function resolveModal(docs, { delayMs = 3500, limit = 0, log = cons
     if (md.colour && !r.color) r.color = jpColour(md.colour);
     if (md.age && r.age == null) r.age = md.age;
     if (md.sex && !r.sex) r.sex = jpSex(md.sex);
-    if (md.sire && !r.sire) r.sire = nameCountry(md.sire);
-    if (md.dam && !r.dam) r.dam = { id: null, name: clean(md.dam) };
+    if (md.sire && !r.sire?.name) r.sire = nameCountry(md.sire);
+    // results 阶段表格母系列常为空单元格 → r.dam 可能是 {name:null} 空对象，
+    // 不能只判 !r.dam（2026-11-18 SC 24 頭实测全部被空对象挡住）
+    if (md.dam && !r.dam?.name) r.dam = { id: null, name: clean(md.dam) };
     if (was !== JSON.stringify([r.jockey?.name, r.trainer?.name, r.owner, r.breeder, r.color])) stat.filled++;
   }
   cache.save();
@@ -617,10 +630,9 @@ export async function collect({ dates = null, limit = 0, delayMs = 3500, pedigre
         continue;
       }
       const doc = buildDoc(mt, races);
-      // results 阶段表格已有骑练；其余阶段（fields-download 等）需要模态富化
-      const stageSet = new Set(races.map((r) => r.stage));
-      const skipModal = stageSet.size === 1 && [...stageSet][0].startsWith("results");
-      if (pedigree && !skipModal) await resolveModal([doc], { delayMs, log });
+      // results 阶段表格有骑练但没有性别/年龄/母系列 → resolveModal 现按
+      // 「缺骑师 或 缺性别/年龄/母系」定目标（内部有马 id 缓存，重复抓取为 0 请求）
+      if (pedigree) await resolveModal([doc], { delayMs, log });
       if (pedigree) await resolvePedigree([doc], { delayMs, log }); // 母父/父父（Breeding 页，缓存）
       const stages = [...new Set(races.map((r) => r.stage))].join("/");
       const heads2 = doc.races.reduce((n, r) => n + r.heads, 0);

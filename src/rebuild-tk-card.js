@@ -8,6 +8,7 @@
 // ## 用法
 //   node src/rebuild-tk-card.js --date 2026-11-16 --track chs      # PDF 走卡片里记的 sourceUrl
 //   node src/rebuild-tk-card.js --date 2026-11-16 --track chs --pdf https://…/16-11-2026.pdf
+//   node src/rebuild-tk-card.js --date 2026-11-16 --track chs --pdf .workbuddy/tmp/volante.pdf  # 本地 PDF（0 网络请求）
 //   node src/rebuild-tk-card.js --date 2026-11-16 --track chs --dry
 import fs from "node:fs";
 import path from "node:path";
@@ -52,6 +53,12 @@ function readCard() {
 }
 
 async function fetchPdf(url) {
+  // 本地路径直接读文件（离线重解 / PDF 已提前下载的场景，0 网络请求）
+  if (!/^https?:/.test(url)) {
+    if (fs.existsSync(url)) return fs.readFileSync(url);
+    console.warn(`[pdf] 本地文件不存在: ${url}`);
+    return null;
+  }
   for (let i = 0; i < 3; i++) {
     try {
       const res = await fetch(url, { headers: { "User-Agent": BROWSER_UA, Accept: "application/pdf,*/*" } });

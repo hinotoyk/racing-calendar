@@ -217,10 +217,32 @@ export function parseVolanteChunk(chunk, format) {
   const starts = [];
   const inline = new Set(); // 起始行本身即「号 + 马名」的行号
   let expect = 1; // 马号顺序计数器：块内散落的整数行（年龄/Cpos 等）不是起点
+  // 马名行形态校验 —— 过滤「上一匹的数字行 + 彩衣行」被误认成下一匹起点
+  // （2026-11-18 VSC 实测：赔率行「3」+ 彩衣行「481 33 Chino Emperador - Amar,estrells,rojo …」
+  //   → 幽灵马，真 3 号 HOOTEROAD 反被吞掉）。
+  // 注意只检查「父系段」不能含彩衣关键词/多逗号，且名字段不能以数字开头；
+  // 马名本身可能出现彩衣词（真马 LABANDAVERDE 含 banda），不能对整行检查。
+  // 另外拒绝人名缩写签名行（"N. Rojas - A. Norambuena"、"Jn.A. Campos"）——
+  // 骑师行的行首数字若恰好等于马号计数器（expect），会被内联规则误认成
+  // 「号 + 马名」起点（2026-11-18 VSC 1R 5号马 GIPSYVANNER 的骑师行「6 N. Rojas」实测踩坑）。
+  const silkRe = /banda|gorra|mangas|estrell|lunares|brazal|celest/i;
+  const nameOk = (l) => {
+    const m = String(l).match(/^(.*?)\s*[-–]\s*(.+)$/);
+    const namePart = m ? m[1] : String(l);
+    const sirePart = m ? m[2] : "";
+    if (!/^[A-ZÁÉÍÓÚÑ]/.test(namePart)) return false;
+    if (namePart.includes(":")) return false; // 赛事注记行（"MISS MARIOLY: encajonado(a)…"），非马名
+    // 人名（骑师/练马师）非马名：单字母缩写（"R. Perez"）与混写缩写（"Fdo. Moreno"、"Seb. Gonzalez"）——
+    // 混写形态若不拒，年龄行「3」+「Fdo. Moreno (-4)…」会被误认成 3 号马起点
+    // （2026-11-16 CHS 7R CINE WIKEN 实测踩坑）
+    if (/^[A-ZÁÉÍÓÚÑ]{1,3}\.\s|^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]*\.\s/.test(namePart)) return false;
+    if (silkRe.test(sirePart) || (sirePart.match(/,/g) ?? []).length >= 2) return false;
+    return true;
+  };
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
     const same = l.match(/^(\d{1,2})\s+([^\d\s].*)$/);
-    if (same && +same[1] === expect && +same[1] <= 20 && (/\s[-–]\s|\([^)]+\)/.test(same[2]) || /^[A-ZÁÉÍÓÚÑ]{2,}/.test(same[2]))) {
+    if (same && +same[1] === expect && +same[1] <= 20 && nameOk(same[2]) && (/\s[-–]\s|\([^)]+\)/.test(same[2]) || /^[A-ZÁÉÍÓÚÑ]{2,}/.test(same[2]))) {
       starts.push(i);
       inline.add(i);
       expect++;
@@ -229,7 +251,7 @@ export function parseVolanteChunk(chunk, format) {
     if (/^\d{1,2}$/.test(l) && +l === expect && +l <= 20) {
       // 起点行后的下一行必须是「马名 - 父系」形态（含 " - " 或父系括号）——
       // 排除「年龄行 + 骑师名行」这类同形态误配（CHS 实测踩坑）
-      if (i + 1 < lines.length && /\s[-–]\s|\([^)]+\)|-\s|[A-Za-z]\)/.test(lines[i + 1])) {
+      if (i + 1 < lines.length && nameOk(lines[i + 1]) && /\s[-–]\s|\([^)]+\)|-\s|[A-Za-z]\)/.test(lines[i + 1])) {
         starts.push(i);
         expect++;
       }
@@ -258,23 +280,34 @@ function parseRunner(numLine, body, format) {
   let sire = null;
   let sireCountry = null;
   let preWeight = null; // 粘连行末尾的负磅（声明顺序先于 weight）
+  let preAge = null; // 粘连行末尾的年龄（「Lookin At Lucky 56*** 3」）
   let rest = "";
   let m;
   if ((m = first.match(/^(.+?)\s*[-–]\s*(.+)$/))) {
     name = norm(m[1]);
     rest = norm(m[2]);
-    // 粘连行：「Mustaaqeem (aus)54」→ 父 Mustaaqeem / 国码 AUS / 末尾数字 = 负磅
-    const sc = rest.match(/^(.*?)\s*\(([a-z]{2,3})\)\s*(\d{2})?\s*$/i);
+    // CHS 形态B变体（2026-11-16 实测）：「Lookin At Lucky 56*** 3」负磅+获胜星号+年龄整段粘尾
+    const st = rest.match(/^(.*?)\s*(\d{2})\*+\s+(\d{1,2})$/);
+    if (st) {
+      sire = norm(st[1]);
+      preWeight = +st[2];
+      preAge = +st[3];
+    } else {
+    // 粘连行：「Mustaaqeem (aus)54」→ 父 Mustaaqeem / 国码 AUS / 末尾数字 = 负磅；
+    // VSC 形态B（2026-11-18 实测）：「IMPERIO BABILONICO - Classic Empire (usa)  58 9」
+    // —— 负磅+马号整段粘进马名行尾，只取前两位数字为负磅
+    const sc = rest.match(/^(.*?)\s*\(([a-z]{2,3})\)\s*(\d{2}(?:\s+\d{1,2})?)?\s*$/i);
     if (sc) {
       sire = norm(sc[1]);
       sireCountry = sc[2].toUpperCase();
-      if (sc[3]) preWeight = +sc[3];
+      if (sc[3]) preWeight = +String(sc[3]).split(/\s/)[0];
     } else {
-      const wm = rest.match(/^(.*?)\s*(\d{2})\s*$/);
+      const wm = rest.match(/^(.*?)\s*(\d{2})(?:\s+\d{1,2})?\s*$/);
       if (wm && !sire) {
         sire = norm(wm[1]);
         preWeight = +wm[2];
       } else sire = rest || null;
+    }
     }
   } else if ((m = first.match(/^(.+?)\s*\(([^)]+)\)\s*(\d{2})?\s*$/))) {
     // CHC「SUPER MARTINA** - Mustaaqeem (aus)54」可能整行合并 → 先按括号父系
@@ -290,7 +323,7 @@ function parseRunner(numLine, body, format) {
   // 猎取字段
   const joined = body.join("\n");
   let weight = preWeight;
-  let age = null;
+  let age = preAge;
   let jockey = null;
   let trainer = null;
   let colour = null;
@@ -300,46 +333,135 @@ function parseRunner(numLine, body, format) {
   if (format === "chs") {
     // 行序（负磅粘连进马名行时前移）：负磅 / 年龄 / 骑师 / 练马师（可能「(ap) Jn. C. Silva S.」形态）/ Ind / llegadas…
     const lines2 = body.map((l) => l.trim()).filter(Boolean);
+    const isName = (l) => /^[A-ZÁÉÍÓÚÑ](?:[a-záéíóúñ]*[A-ZÁÉÍÓÚÑ]?\.){1,2}\s/.test(l) || /^\(ap\)\s*[A-ZÁÉÍÓÚÑ]/.test(l);
+    const cleanName = (n) => norm(String(n ?? "").replace(/^\(ap\)\s*/, "").replace(/\s+\d+$/, ""));
     if (weight == null) {
       const wl = lines2.find((l) => /^\d{2}$/.test(l));
       if (wl) weight = +wl;
     }
     if (age == null) {
-      const wi = lines2.findIndex((l) => /^\d{2}$/.test(l));
-      if (wi >= 0 && /^\d{1,2}$/.test(lines2[wi + 1] ?? "")) age = +lines2[wi + 1];
+      // 年龄与骑师同行（"10 R. S. Dores"，下一行是练马师人名行）→ 拆开取出，
+      // 并把这两行从候选中移除，避免 names 重复吃（2026-11-16 CHS GRIEZMANN 实测）
+      const aj = lines2.findIndex((l, i) => /^\d{1,2}\s+[A-ZÁÉÍÓÚÑ].+$/.test(l) && isName(lines2[i + 1] ?? "") && (() => { const mm = l.match(/^(\d{1,2})\s/); return mm && +mm[1] <= 14; })());
+      if (aj >= 0) {
+        const mm = lines2[aj].match(/^(\d{1,2})\s+(.+)$/);
+        age = +mm[1];
+        jockey = norm(mm[2]);
+        trainer = isName(lines2[aj + 1] ?? "") ? cleanName(lines2[aj + 1]) : null;
+        lines2.splice(aj, 2);
+      }
+    }
+    if (age == null) {
+      // 负磅行带获胜星号且年龄粘尾（"56*** 3"）→ 负磅+年龄同行
+      const star = lines2.find((l) => /^(\d{2})\*+\s+(\d{1,2})$/.test(l));
+      if (star) {
+        const sm = star.match(/^(\d{2})\*+\s+(\d{1,2})$/);
+        if (weight == null) weight = +sm[1];
+        age = +sm[2];
+      } else {
+        const wi = lines2.findIndex((l) => /^\d{2}$/.test(l));
+        if (wi >= 0 && /^\d{1,2}$/.test(lines2[wi + 1] ?? "")) age = +lines2[wi + 1];
+        else {
+          // 负磅粘连进马名行（"(aus)54"）时没有独立负磅行 → 年龄是紧随其后的
+          // 独立 1-2 位数字行（≤14，且下一行是人名行）（2026-11-16 CHS 实测 26 頭踩坑）
+          const ai = lines2.findIndex((l, i) => /^\d{1,2}$/.test(l) && +l <= 14 && isName(lines2[i + 1] ?? ""));
+          if (ai >= 0) age = +lines2[ai];
+        }
+      }
     }
     // 骑师/练马师：按出现次序取前两个「人名行」（缩写. 开头；练马师可能带 (ap) 前缀）
-    const isName = (l) => /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]*\.\s/.test(l) || /^\(ap\)\s*[A-ZÁÉÍÓÚÑ]/.test(l);
+    // 人名签名兼容缩写连写（"L.G. Soto"）与短码（"Jn.A. Campos"）
     const names = lines2.filter((l) => isName(l) && !/°|cn\d|vn\d|cb\d/.test(l)).slice(0, 2);
-    const cleanName = (n) => norm(String(n ?? "").replace(/^\(ap\)\s*/, "").replace(/\s+\d+$/, ""));
-    jockey = names[0] ? cleanName(names[0]) : null;
-    trainer = names[1] ? cleanName(names[1]) : null;
+    jockey = jockey ?? (names[0] ? cleanName(names[0]) : null);
+    trainer = trainer ?? (names[1] ? cleanName(names[1]) : null);
+    // 骑师带让磅标注且练马师同行（"Fdo. Moreno (-4) Js. Inda De La C."）→ 在 (-N) 处拆分
+    if (!trainer) {
+      const cm = String(jockey ?? "").match(/^(.*?)\s*\(-\d+\)\s+(.+)$/);
+      if (cm) {
+        jockey = norm(cm[1].replace(/\(-\d+\)\s*$/, "").trim());
+        trainer = norm(cm[2]);
+      } else if (/\(-\d+\)/.test(jockey ?? "")) {
+        jockey = norm(String(jockey).replace(/\(-\d+\)\s*$/, "").trim());
+      }
+    }
     formRaw = (joined.match(/(\d{1,2}°(?:cn|vn|cb)\d\s*){2,}/) ?? [null])[0]?.trim() ?? null;
     // stud 行：PF 数字 + STUD - COLORES（行尾）
     const studM = joined.match(/\d{3}\s+([A-ZÁÉÍÓÚÑ][^\n|]*?)\s*-\s*[A-ZÁÉÍÓÚÑ]/);
     stud = studM ? norm(studM[1]) : null;
   } else if (format === "chc") {
-    // 行序：num / NAME (SIRE) / B(W 码) / Ed / 「kg Jockey」 / Preparador / Fecha / Llegó(4-3) / PF / Serie / Dist / Cpos / Tiempo / Div / Stud
-    colour = (body[1]?.match(/^[AZTRNCB]/)?.[0] ?? null);
-    age = /^\d{1,2}$/.test(body[2] ?? "") ? +body[2] : null;
-    const wj = body.find((l) => /^\d{2}\s+[A-ZÁÉÍÓÚÑ]/.test(l));
-    if (wj) {
-      const wm = wj.match(/^(\d{2})\s+(.+)$/);
-      weight = +wm[1];
-      jockey = norm(wm[2]);
+    // 行序（标准）：num / NAME (SIRE) / B(W 码) / Ed / 「kg Jockey」 / Preparador / Fecha / Llegó(4-3) / PF / Serie / Dist / Cpos / Tiempo / Div / Stud
+    // 毛色码行经常整行缺席（2026-11-17 实测 SONRIELE / LA RECAUDADORA / EL CATIMBA 等都没有），
+    // Ed 位置随之漂移 → 旧的固定 body[2]=Ed 全体错位（年龄缺 66%）。
+    // 改扫描式：以「kg Jockey」行为锚，向前回溯最近的纯数字行 = 年龄，再前一位单字母 = 毛色。
+    const linesC = body.map((l) => l.trim()).filter(Boolean);
+    const wi = linesC.findIndex((l) => /^\d{2}\s+[A-ZÁÉÍÓÚÑ]/.test(l));
+    if (wi >= 0) {
+      const wjm = linesC[wi].match(/^(\d{2})\s+(.+)$/);
+      if (wjm) {
+        weight = +wjm[1];
+        jockey = norm(wjm[2]);
+      }
+      for (let i = wi - 1; i >= Math.max(0, wi - 3); i--) {
+        if (/^\d{1,2}$/.test(linesC[i])) {
+          age = +linesC[i];
+          const cm = (linesC[i - 1] ?? "").match(/^([AZTRNCBW])$/);
+          if (cm && i - 1 >= 0) colour = cm[1];
+          break;
+        }
+      }
     }
-    trainer = body.find((l) => /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]*\.\s/.test(l) && !/^\d{2}\s/.test(l) && l !== jockey) ?? null;
+    // 人名行签名兼容缩写连写（"L.G. Soto"）；排除 kg 行（^\d{2}\s）与骑师重复
+    const isPerson = (l) => /^[A-ZÁÉÍÓÚÑ](?:[a-záéíóúñ]*[A-ZÁÉÍÓÚÑ]?\.){1,2}\s/.test(l);
+    trainer = body.find((l) => isPerson(l) && !/^\d{2}\s/.test(l) && l !== jockey) ?? null;
     formRaw = (joined.match(/\b(\d{1,2}-\d{1,2}(?:-\d{1,2})?|REAP\.)\b/) ?? [null])[0] ?? null;
     stud = body.filter(Boolean).at(-1) ?? null;
   } else {
-    // VSC 行序：body[0]=NAME- SIRE / body[1]=「kg num」/ body[2]=「Ed Jockey - Trainer」/ llegadas…
-    const kg = (body[1] ?? "").match(/^(\d{2})\s+\d{1,2}$/);
-    if (kg) weight = +kg[1];
-    const jt = (body[2] ?? "").match(/^(\d{1,2})\s+(.+?)\s*-\s*(.+)$/);
-    if (jt) {
-      age = +jt[1];
-      jockey = norm(jt[2]);
-      trainer = norm(jt[3]);
+    // VSC 行序（标准）：body[0]=NAME- SIRE / body[1]=「kg num」/ body[2]=「Ed Jockey - Trainer」/ llegadas…
+    // 但 PDF 抽文常把行合并（2026-11-18 实测三种形态），固定 body[1]/body[2] 一错全丢：
+    //   形态A：「kg num Ed Jockey - Trainer」压成一行（"58 10 4 R. Fournet - J. Araya"）
+    //   形态B：「kg num」粘进马名行尾（已在上面的 first 处理里剥为 preWeight）
+    //   形态C：上一匹数字行+彩衣行误认起点（parseVolanteChunk 已过滤幽灵马）
+    // → 全部改扫描式：在 body 内逐行猎取，不再依赖固定位置。
+    const linesV = body.map((l) => l.trim()).filter(Boolean);
+    // 形态D（整行全合并）：「NAME- SIRE (c) kg num Ed Jockey - Trainer」压进一行
+    // （2026-11-18 VSC 2R 实测 "VERDURITAFRESCA- Modernist (usa)   57 12 3 F. Tapia - B. Toledo"）。
+    // first 处理会把父系解析成带数字尾巴的垃圾 → 这里整体重推。
+    const d = (body[0] ?? "").match(
+      /^(.+?)\s*[-–]\s*(.+?)\s*(?:\(([a-z]{2,3})\))?\s*(\d{2})\s+(\d{1,2})\s+(\d{1,2})\s+([A-ZÁÉÍÓÚÑ].*?)\s*[-–]\s*(.+)$/i
+    );
+    if (d) {
+      name = norm(d[1]).replace(/\*+$/, "").trim() || name;
+      sire = norm(d[2]) || sire;
+      sireCountry = d[3] ? d[3].toUpperCase() : sireCountry;
+      weight = +d[4];
+      age = +d[6];
+      jockey = norm(d[7]);
+      trainer = norm(d[8]);
+    }
+    for (const l of linesV) {
+      // 形态A：kg num age jockey - trainer（age ≤ 14 防误吃）
+      const a = l.match(/^(\d{2})\s+(\d{1,2})\s+(\d{1,2})\s+(.+?)\s*[-–]\s*(.+)$/);
+      if (a && +a[3] <= 14) {
+        if (weight == null) weight = +a[1];
+        if (age == null) age = +a[3];
+        if (jockey == null) jockey = norm(a[4]);
+        if (trainer == null) trainer = norm(a[5]);
+        break;
+      }
+      // 标准：「Ed Jockey - Trainer」（Ed ≤ 14；3 位数字的彩衣行/马体重行天然不匹配）；
+      // 负磅与骑师名之间可无空格（"12D. Carvacho - R. Olivares"，PDF 抽文粘连）
+      const t = l.match(/^(\d{1,2})\s*([A-ZÁÉÍÓÚÑ].*?)\s*[-–]\s*(.+)$/);
+      if (t && +t[1] <= 14) {
+        if (age == null) age = +t[1];
+        if (jockey == null) jockey = norm(t[2]);
+        if (trainer == null) trainer = norm(t[3]);
+        break;
+      }
+    }
+    if (weight == null) {
+      // 「58 1」独立行 / 形态A行首「58 10 …」；3 位数字行（彩衣 454 7 …）天然不匹配
+      const wl = linesV.find((l) => /^(\d{2})\s+\d{1,2}(?:\s|$)/.test(l));
+      if (wl) weight = +wl.match(/^(\d{2})/)[1];
     }
     formRaw = (body.join(" ").match(/(\d{1,2}va\s+){2,}/) ?? [null])[0]?.trim() ?? null;
     stud = body.filter(Boolean).at(-1) ?? null;

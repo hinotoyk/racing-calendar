@@ -100,7 +100,9 @@ export function parseProfileDesc(desc) {
   const out = { age: Number(m[1]), foaled: `${m[5]}-${m[4].padStart(2, "0")}-${m[3].padStart(2, "0")}` };
   const words = rest.split(/\s+or\s+|-|\s+/);
   out.colour = words.filter((w) => COLOUR_WORDS.includes(w)).join(" / ") || null;
-  out.sex = words.find((w) => SEX_WORDS.includes(w)) ?? null;
+  // 性别词搜索必须排除毛色词：RA 描述常为 "bay or brown gelding"，"brown" 若先行命中
+  // 会让性别解析成毛色（SEX_JP 无 brown → null），实测占 AU 全部性别缺失的 99.8%
+  out.sex = words.find((w) => SEX_WORDS.includes(w) && !COLOUR_WORDS.includes(w)) ?? null;
   return out;
 }
 
