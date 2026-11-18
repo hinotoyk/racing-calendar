@@ -9,6 +9,8 @@
 //   node src/rebuild-tk-card.js --date 2026-11-16 --track chs      # PDF 走卡片里记的 sourceUrl
 //   node src/rebuild-tk-card.js --date 2026-11-16 --track chs --pdf https://…/16-11-2026.pdf
 //   node src/rebuild-tk-card.js --date 2026-11-16 --track chs --pdf .workbuddy/tmp/volante.pdf  # 本地 PDF（0 网络请求）
+//   …可再加 --source-url <官方节目页/PDF 地址>：本地 PDF 重建时 sourceUrl 不再被写成 tmp 路径，
+//     否则 build.js 兜底会把该相对路径带进前端 raceUrl → 点击跳到 127.0.0.1 临时文件。
 //   node src/rebuild-tk-card.js --date 2026-11-16 --track chs --dry
 import fs from "node:fs";
 import path from "node:path";
@@ -35,7 +37,7 @@ const VENUE = {
 };
 
 if (!DATE) {
-  console.error("用法: node src/rebuild-tk-card.js --date YYYY-MM-DD [--track chs] [--pdf URL] [--dry]");
+  console.error("用法: node src/rebuild-tk-card.js --date YYYY-MM-DD [--track chs] [--pdf URL] [--source-url 官方URL] [--dry]");
   process.exit(1);
 }
 
@@ -79,8 +81,12 @@ async function fetchPdf(url) {
 
 async function main() {
   const prev = readCard();
+  // sourceUrl 必须是可公开访问的官方地址（前端 raceUrl 兜底直接用它）；本地 tmp 路径
+  // 会被 build.js 原样带进前端链接 → 点击跳 127.0.0.1。--source-url 显式覆盖。
+  const sourceUrlArg = val("--source-url");
   const pdfUrl = val("--pdf") ?? prev?.doc?.sourceUrl ?? defaultPdf;
-  console.log(`[pdf] ${pdfUrl}`);
+  const sourceUrl = sourceUrlArg ?? (/^https?:/.test(pdfUrl) ? pdfUrl : prev?.doc?.sourceUrl);
+  console.log(`[pdf] ${pdfUrl}${sourceUrl && sourceUrl !== pdfUrl ? `\n[src] ${sourceUrl}` : ""}`);
   const buf = await fetchPdf(pdfUrl);
   if (!buf) process.exit(2);
   const text = await pdfToText(buf);
@@ -112,7 +118,7 @@ async function main() {
     localTimeZone: TZ,
     going: prev?.doc?.going ?? null,
     surfaceRaw: prev?.doc?.surfaceRaw ?? null,
-    sourceUrl: pdfUrl,
+    sourceUrl: sourceUrl ?? pdfUrl,
     capturedAt: prev?.doc?.capturedAt ?? new Date().toISOString(),
     rebuiltAt: new Date().toISOString(),
     races,
