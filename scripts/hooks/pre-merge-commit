@@ -5,8 +5,10 @@
 #   探索分支「全球重赏收集」独立演进，接口/数据格式随时会破坏性变更，
 #   在明确独立成项目之前不允许回流主线。
 #
-# 启用方式（本仓库已执行）：git config core.hooksPath scripts/hooks
-#                   +    git config merge.ff false
+# 启用方式（本仓库已执行）：cp scripts/hooks/pre-* .git/hooks/ && git config merge.ff false
+# ⚠ 不要用 core.hooksPath=scripts/hooks：钩子文件只被 feat 分支跟踪，
+#   切回 main 时文件随分支消失、守卫在最需要它的分支上反而失效。
+#   .git/hooks/ 在仓库外、跨分支常驻；scripts/hooks/ 只是版本化源码。
 # merge.ff=false 让默认 merge 也走「真合并」（产生 MERGE_HEAD → 本钩子必触发）；
 # 快进合并即便绕过本钩子，也由 pre-push 层兜底（main 里含本分支提交则拒绝推送）。
 # 覆盖面：git merge / git pull（merge 型）。rebase 与 squash 后的假提交
