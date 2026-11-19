@@ -1,0 +1,27 @@
+#!/bin/sh
+# 分支策略守卫 · 推送层（docs/GLOBAL-GRADED.md §分支策略）
+#
+# pre-merge-commit 只拦得住 --no-ff 真·合并；快进合并（git merge 默认可 ff）
+# 不产生 merge commit、不触发该钩子。本钩子守住最后一道门：
+# 凡 push 的 main 里含 feat/global-graded 的提交，一律拒绝 —— 本地 main
+# 被 ff 进去没关系，推不出去就不会污染远端。
+#
+# 启用方式（本仓库已执行）：git config core.hooksPath scripts/hooks
+
+GUARDED="feat/global-graded"
+guarded_sha=$(git rev-parse --verify --quiet "refs/heads/$GUARDED")
+[ -z "$guarded_sha" ] && exit 0   # 守卫分支不存在（已删）→ 不拦
+
+zero="0000000000000000000000000000000000000000"
+while read local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue                       # 远端删除，放行
+  [ "$remote_ref" != "refs/heads/main" ] && continue
+  if git merge-base --is-ancestor "$guarded_sha" "$local_sha" 2>/dev/null; then
+    echo "" >&2
+    echo "✖ 已阻止推送：refs/heads/main 中包含 $GUARDED 的提交。" >&2
+    echo "  该分支是「全球重赏收集」探索分支，禁止合并进 main（docs/GLOBAL-GRADED.md）。" >&2
+    exit 1
+  fi
+done
+
+exit 0
