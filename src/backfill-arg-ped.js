@@ -14,6 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { horseProfile, cacheDir } from "./lib/studbookar.mjs";
+import { resolveAge } from "./lib/age.mjs";
 
 const args = process.argv.slice(2);
 const has = (k) => args.includes(`--${k}`);
@@ -87,8 +88,8 @@ function patch(doc, prof) {
       set("dam", p.dam ? { id: null, name: p.dam } : null, "dam");
       set("sex", p.sex, "sex");
       set("color", p.color, "color");
-      const age = p.birth && yearOf(doc.date) ? yearOf(doc.date) - yearOf(p.birth) : null;
-      set("age", age, "age");
+      // 年龄兜底推算：直印值（r.age）优先，没有才按出生年+阿根廷转岁月(7月1日)算
+      set("age", resolveAge({ age: r.age, birth: p.birth, raceDate: doc.date, country: r.horse?.country, venueCountry: doc.country }), "age");
       if (p.id && r.horse && !r.horse.sba) {
         r.horse.sba = p.id;
         touched = true;

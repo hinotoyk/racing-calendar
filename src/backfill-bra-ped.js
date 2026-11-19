@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { horseProfile, cacheDir } from "./lib/abcpcc.mjs";
+import { resolveAge } from "./lib/age.mjs";
 
 const args = process.argv.slice(2);
 const has = (k) => args.includes(`--${k}`);
@@ -73,11 +74,6 @@ async function fetchAll(names, yearOfName) {
 
 // ---------- 打补丁 ----------
 const yearOf = (iso) => Number(String(iso ?? "").slice(0, 4)) || null;
-const ageAt = (birth, raceDate) => {
-  const b = yearOf(birth);
-  const y = yearOf(raceDate);
-  return b && y && y >= b ? y - b : null;
-};
 
 function patch(doc, prof) {
   const stat = { sex: 0, age: 0, sire: 0, dam: 0, bms: 0, sireSire: 0, owner: 0, breeder: 0, other: 0 };
@@ -96,7 +92,8 @@ function patch(doc, prof) {
         touched = true;
       };
       set("sex", p.sex, "sex");
-      set("age", ageAt(p.birth, doc.date), "age");
+      // 年龄兜底推算：直印值（r.age）优先，没有才按出生年+巴西转岁月(7月1日)算
+      set("age", resolveAge({ age: r.age, birth: p.birth, raceDate: doc.date, country: r.horse?.country, venueCountry: doc.country }), "age");
       set("sire", p.sire ? { id: null, name: p.sire } : null, "sire");
       set("dam", p.dam ? { id: null, name: p.dam } : null, "dam");
       set("bms", p.bms ? { id: null, name: p.bms } : null, "bms");

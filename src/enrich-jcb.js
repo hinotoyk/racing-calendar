@@ -14,6 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { programText, parsePrograma, byHorse } from "./lib/jcbpdf.mjs";
+import { resolveAge } from "./lib/age.mjs";
 
 const args = process.argv.slice(2);
 const has = (k) => args.includes(`--${k}`);
@@ -53,8 +54,6 @@ function gaveaDocs() {
   }
   return out;
 }
-
-const yearOf = (iso) => Number(String(iso ?? "").slice(0, 4)) || null;
 
 /** 海外场次没有「枠」制度：清掉适配器/旧版遗留的 mandil 号，避免被前端当枠色渲染 */
 function stripFrame(doc) {
@@ -97,8 +96,8 @@ function patch(doc, map) {
       set("color", e.color, "color");
       set("owner", e.owner ? { id: null, name: e.owner } : null, "owner");
       set("breeder", e.breeder ? { id: null, name: e.breeder } : null, "breeder");
-      const age = e.birth && yearOf(doc.date) ? yearOf(doc.date) - yearOf(e.birth) : null;
-      set("age", age, "age");
+      // 年龄兜底推算：直印值（r.age）优先，没有才按出生年+巴西转岁月(7月1日)算
+      set("age", resolveAge({ age: r.age, birth: e.birth, raceDate: doc.date, country: r.horse?.country, venueCountry: doc.country }), "age");
       if (touched) {
         // 来源留痕：便于回溯「这条练马师来自 JCB PDF」
         const jcb = (r.jcb ??= {});
