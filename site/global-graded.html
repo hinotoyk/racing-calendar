@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全球重赏收集（探索版）</title>
+<link rel="icon" href="/favicon.svg">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1c2430; --muted: #6b7684;
+    --line: #e3e7ee; --accent: #0f6f5c; --accent-soft: #e6f3f0;
+    --g1: #c62828; --g2: #ef6c00; --g3: #2e7d32;
+    --jg: #4527a0; --jpn: #00838f;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.55 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; }
+  header { padding: 18px 22px 10px; }
+  h1 { margin: 0 0 2px; font-size: 20px; }
+  .sub { color: var(--muted); font-size: 12px; }
+  .bar { padding: 0 22px 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button, .chip { cursor: pointer; border: 1px solid var(--line); background: var(--card);
+         border-radius: 999px; padding: 5px 14px; font-size: 13px; color: var(--ink); }
+  button:hover, .chip:hover { border-color: var(--accent); }
+  .chip small { color: var(--muted); margin-left: 4px; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip.on small { color: #d6ece7; }
+  #btn-collect { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  #btn-collect:disabled { opacity: .55; cursor: default; }
+  .tabs button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .ped button.on { background: var(--g1); border-color: var(--g1); color: #fff; }
+  .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+  #status { font-size: 12px; color: var(--muted); white-space: pre-wrap; max-width: 480px; }
+  .stats { padding: 0 22px 8px; color: var(--muted); font-size: 12px; }
+  .wrap { padding: 0 22px 40px; overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; background: var(--card);
+          border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left;
+           white-space: nowrap; font-size: 13px; }
+  th { background: #eef1f5; font-weight: 600; position: sticky; top: 0; }
+  tr:hover td { background: var(--accent-soft); }
+  .g { display: inline-block; min-width: 34px; text-align: center; border-radius: 6px;
+       color: #fff; font-weight: 700; font-size: 12px; padding: 1px 6px; }
+  .G1 { background: var(--g1); } .G2 { background: var(--g2); } .G3 { background: var(--g3); }
+  .JG1, .JG2, .JG3 { background: var(--jg); } .Jpn1, .Jpn2, .Jpn3 { background: var(--jpn); }
+  .rg { color: var(--muted); font-size: 12px; }
+  .rg.JRA::before, .rg.NAR::before { content: "🇯🇵 "; }
+  .di { color: var(--g1); font-weight: 700; font-size: 11px; margin-left: 4px; }
+  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+  .vt { max-width: 260px; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: bottom; }
+  .note { padding: 6px 22px 0; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🌍 全球重赏收集 <span style="font-size:12px;color:var(--muted)">探索版 · G1/G2/G3 · JG1-3 · Jpn1-3</span></h1>
+  <div class="sub">日本（JRA / NAR）+ 海外 13 国 · Deep Impact 血统检索 · 分支 feat/global-graded</div>
+</header>
+
+<div class="bar">
+  <button id="btn-collect">↻ 重新检索全部比赛</button>
+  <div class="sep"></div>
+  <span class="tabs" id="tabs-region"></span>
+  <div class="sep"></div>
+  <span class="ped" id="tabs-ped"></span>
+  <div class="sep"></div>
+  <input id="q" type="search" placeholder="筛马名…" style="border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-size:13px;width:150px">
+</div>
+<div class="bar" id="chips-country"></div>
+<div class="bar" id="chips-grade"></div>
+<div id="status"></div>
+<div class="stats" id="stats"></div>
+<div class="wrap">
+  <table id="tbl">
+    <thead><tr>
+      <th>日期</th><th>地区</th><th>级别</th><th>比赛名</th><th>马场</th><th>头数</th>
+      <th>马名</th><th>骑手</th><th>调教师</th>
+      <th>父</th><th>父父</th><th>母父</th><th>比赛视频</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="note" id="cut"></div>
+</div>
+
+<script src="/global-graded.js"></script>
+</body>
+</html>

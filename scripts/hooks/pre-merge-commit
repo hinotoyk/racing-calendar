@@ -1,0 +1,28 @@
+#!/bin/sh
+# 分支策略守卫（docs/GLOBAL-GRADED.md §分支策略）
+#
+# 禁止把 feat/global-graded 合并进 main：
+#   探索分支「全球重赏收集」独立演进，接口/数据格式随时会破坏性变更，
+#   在明确独立成项目之前不允许回流主线。
+#
+# 启用方式（本仓库已执行）：git config core.hooksPath scripts/hooks
+# 覆盖面：git merge / git pull（merge 型）。rebase 与 squash 后的假提交
+# 无法在钩子层识别，靠 review 把关 —— 见文档「分支策略」一节。
+
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+incoming=""
+git_dir=$(git rev-parse --git-dir 2>/dev/null)
+if [ -f "$git_dir/MERGE_HEAD" ]; then
+  incoming=$(git name-rev --name-only --refs=refs/heads/* "$(cat "$git_dir/MERGE_HEAD")" 2>/dev/null)
+fi
+
+if [ "$branch" = "main" ] && [ "$incoming" = "feat/global-graded" ]; then
+  echo "" >&2
+  echo "✖ 已阻止：feat/global-graded 不允许合并进 main。" >&2
+  echo "  该分支是「全球重赏收集」探索分支，独立演进；如确需回流，" >&2
+  echo "  先在 docs/GLOBAL-GRADED.md 记录决策并临时移除本守卫。" >&2
+  exit 1
+fi
+
+exit 0
