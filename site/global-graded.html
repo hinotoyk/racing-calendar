@@ -46,6 +46,11 @@
   .rg { color: var(--muted); font-size: 12px; }
   .rg.JRA::before, .rg.NAR::before { content: "🇯🇵 "; }
   .di { color: var(--g1); font-weight: 700; font-size: 11px; margin-left: 4px; }
+  tr.win td { background: #fdf3d7; }
+  tr.win td:nth-child(7) { font-weight: 700; }
+  .rk1 { color: var(--g1); font-weight: 800; }
+  .rk2, .rk3 { font-weight: 700; }
+  .rkr { color: var(--muted); font-size: 11px; }
   a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
   .vt { max-width: 260px; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: bottom; }
   .note { padding: 6px 22px 0; color: var(--muted); font-size: 12px; }
@@ -59,13 +64,18 @@
 
 <div class="bar">
   <button id="btn-collect">↻ 重新检索全部比赛</button>
+  <button id="btn-backfill-jp" title="JBIS 赛历定位重赏日，只采有重赏的赛场（约 1-2 小时）">⏳ 回填日本全年</button>
+  <button id="btn-backfill-ov" title="SL 7 国逐日结果页 + 土耳其/阿根廷重赏日探针（约 1-2 小时）">🌍 回填海外全年</button>
   <div class="sep"></div>
   <span class="tabs" id="tabs-region"></span>
   <div class="sep"></div>
   <span class="ped" id="tabs-ped"></span>
   <div class="sep"></div>
+  <span class="tabs" id="tabs-rank"></span>
+  <div class="sep"></div>
   <input id="q" type="search" placeholder="筛马名…" style="border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-size:13px;width:150px">
 </div>
+<div class="bar" id="chips-year"></div>
 <div class="bar" id="chips-country"></div>
 <div class="bar" id="chips-grade"></div>
 <div id="status"></div>
@@ -73,7 +83,7 @@
 <div class="wrap">
   <table id="tbl">
     <thead><tr>
-      <th>日期</th><th>地区</th><th>级别</th><th>比赛名</th><th>马场</th><th>头数</th>
+      <th>日期</th><th>地区</th><th>级别</th><th>比赛名</th><th>马场</th><th>名次</th>
       <th>马名</th><th>骑手</th><th>调教师</th>
       <th>父</th><th>父父</th><th>母父</th><th>比赛视频</th>
     </tr></thead>

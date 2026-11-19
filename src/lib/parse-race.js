@@ -189,6 +189,48 @@ export function parseEntryPage(html) {
   return { header: hdr, runners };
 }
 
+// ---------- JBIS 结果页（过往赛日回填用） ----------
+// 模板 data-6-11：着順/枠番/馬番/馬名(父・母)/性齢/騎手斤量/タイム/…/調教師/馬主生産。
+// 与出馬表(data-6-27)的区别：自带着順与父母链接（騎手列同一模板）。
+// 返回 runner 形状与 parseEntryPage 一致，另加 finish（整数着順）| finishRaw（中/除/失/取…）。
+export function parseResultPage(html) {
+  const at = html.indexOf('<div class="data-6-11');
+  if (at < 0) return null;
+  const block = topLevelDivs(html.slice(at))[0];
+  if (!block) return null;
+  const parts = cellsOf(block);
+  if (parts.length < 2) return null;
+
+  const hdr = cellsOf(parts[0]).map(txt);
+  const idx = {};
+  hdr.forEach((t, i) => {
+    if (/着順/.test(t)) idx.rank = i;
+    else if (/枠/.test(t)) idx.frame = i;
+    else if (/馬番/.test(t)) idx.num = i;
+    else if (/馬名/.test(t)) idx.horse = i;
+    else if (/性齢/.test(t)) idx.sex = i;
+    else if (/騎手/.test(t)) idx.jockey = i;
+    else if (/指数/.test(t)) idx.speed = i;
+    else if (/調教師/.test(t)) idx.conn = i;
+  });
+
+  const runners = [];
+  for (const row of parts.slice(1)) {
+    const cells = cellsOf(row);
+    if (cells.length < 4) continue;
+    const r = parseRunner(cells, idx);
+    if (!r) continue;
+    // 着順列：整数 = 完走；「中/除/失/取/降/落/止」等 = 异常态
+    const rankCell = idx.rank != null ? cells[idx.rank] ?? "" : "";
+    const rankTxt = txt(rankCell);
+    const numRank = rankTxt.match(/(\d+)/);
+    r.finish = numRank ? parseInt(numRank[1], 10) : null;
+    r.finishRaw = r.finish != null ? String(r.finish) : (rankTxt.match(/(中|除|失|取|降|落|止|抹)/)?.[1] ?? (rankTxt || null));
+    runners.push(r);
+  }
+  return { header: hdr, runners };
+}
+
 function parseRunner(cells, idx) {
   const get = (k, fallback) => cells[idx[k] ?? fallback] ?? "";
 
@@ -249,8 +291,7 @@ function parseRunner(cells, idx) {
 }
 
 // 前走块：着順 span + 日期/场 + 赛名链接 + 明细行
-function parseRecent(cell) {
-  if (!cell) return null;
+function parseRecent(cell) {  if (!cell) return null;
   const rank = cell.match(/<span class="number-\d+"><b>([\s\S]*?)<\/b><\/span>/);
   const dateM = cell.match(/(\d{4}\.\d{2}\.\d{2})\s+([^\s<]+)/);
   const race = cell.match(/href="\/race\/result\/(\d{8})\/(\d{3})\/(\d{2})\/"[^>]*>([\s\S]*?)<\/a>/);

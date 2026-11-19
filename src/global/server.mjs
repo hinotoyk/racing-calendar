@@ -39,10 +39,14 @@ function readJson(fp) {
   try { return JSON.parse(fs.readFileSync(fp, "utf8")); } catch { return null; }
 }
 
-function startCollect() {
+function startCollect(scriptArgs) {
   if (job.running) return { ok: false, error: "采集已在进行中" };
   job = { running: true, startedAt: new Date().toISOString(), finishedAt: null, ok: null, log: "" };
-  const child = spawn(process.execPath, [path.join(ROOT, "src", "global", "collect.mjs"), "--fetch"], {
+  const [script, args] = scriptArgs ?? [
+    path.join(ROOT, "src", "global", "collect.mjs"),
+    ["--fetch"],
+  ];
+  const child = spawn(process.execPath, [script, ...args], {
     cwd: ROOT, windowsHide: true,
   });
   const append = (chunk) => {
@@ -75,6 +79,19 @@ async function handle(req, res) {
 
   if (req.method === "POST" && u.pathname === "/api/collect") {
     return send(200, startCollect());
+  }
+
+  // 全年回填：POST /api/backfill?year=2026&region=japan|overseas|all（分钟~小时级，走同一任务槽）
+  if (req.method === "POST" && u.pathname === "/api/backfill") {
+    const year = parseInt(u.searchParams.get("year") ?? "", 10);
+    const region = u.searchParams.get("region") ?? "japan";
+    if (!/^(20\d{2})$/.test(String(year))) return send(400, { error: "year 须为 20xx" });
+    if (!["japan", "overseas", "all"].includes(region)) return send(400, { error: "region 取值 japan|overseas|all" });
+    const r = startCollect([
+      path.join(ROOT, "src", "global", "backfill.mjs"),
+      ["--year", String(year), "--region", region],
+    ]);
+    return send(200, r);
   }
 
   if (u.pathname === "/api/status") {

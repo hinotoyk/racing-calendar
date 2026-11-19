@@ -72,7 +72,61 @@ function regionOf(doc) {
   return { region: "overseas", org: null, country: null }; // 未知国家：收录但标「海外」
 }
 
-function runnerRow(runner) {
+// ---------- 结果（着顺）join ----------
+// data/results/<day>/ 的结果文档（*.race.result/v1）runners[].finish = 整数名次
+// 或 非完走标记（取/除/中/降…）。结果文件名前缀 = 卡片源前缀（卡面 source → 前缀）：
+// racingpost→rp、sanisidro→si、turfeonline→tol、teletrak→chs；tjk/日本（纯场码）同名。
+const RESULT_PREFIX = {
+  racingpost: "rp", tjk: "tjk", sanisidro: "si", turfeonline: "tol", teletrak: "chs",
+};
+
+// 索引：`${day}|${trackKey}` → Map(no → Map(num → finish 原值))
+function buildResultsIndex() {
+  const idx = new Map();
+  const rdir = path.join(ROOT, "data", "results");
+  if (!fs.existsSync(rdir)) return idx;
+  for (const day of fs.readdirSync(rdir)) {
+    const p = path.join(rdir, day);
+    if (!fs.statSync(p).isDirectory()) continue;
+    for (const f of fs.readdirSync(p)) {
+      if (!/\.json(\.gz)?$/.test(f)) continue;
+      let doc;
+      try { doc = readDoc(p + path.sep + f); } catch { continue; }
+      if (!doc || !Array.isArray(doc.races)) continue;
+      const trackKey = doc.track ?? f.replace(/\.json(\.gz)?$/, "");
+      for (const r of doc.races) {
+        if (!r || typeof r.no !== "number") continue;
+        const byNum = new Map();
+        for (const u of r.runners ?? []) {
+          if (u?.num == null) continue;
+          byNum.set(u.num, u.finish ?? null);
+        }
+        const k = `${day}|${trackKey}|${r.no}`;
+        idx.set(k, byNum);
+        if (r.raceKey != null) idx.set(`rk|${r.raceKey}`, byNum);
+      }
+    }
+  }
+  return idx;
+}
+
+// 卡片 → 结果索引：优先 raceKey（rp/tjk 与结果同源同 id），回退 day|trackKey|no。
+// 返回 Map(num → finish 原值) | null
+function finishMapOf(cardDoc, race, day, idx) {
+  if (race.raceKey != null) {
+    const byKey = idx.get(`rk|${race.raceKey}`);
+    if (byKey) return byKey;
+  }
+  const trackKey = cardDoc.source
+    ? `${RESULT_PREFIX[cardDoc.source] ?? cardDoc.source}-${cardDoc.trackId ?? ""}`
+    : String(cardDoc.track ?? "");
+  return idx.get(`${day}|${trackKey}|${race.no}`) ?? null;
+}
+
+function runnerRow(runner, byNum = null) {
+  const raw = byNum?.get(runner.num) ?? null;
+  // 结果文档缺失时回退卡片自带 finish（JBIS 过往赛日结果页直印）
+  const finish = raw ?? (runner.finish != null ? runner.finish : null);
   return {
     num: runner.num ?? null,
     frame: runner.frame ?? null,
@@ -85,13 +139,77 @@ function runnerRow(runner) {
     sire: runner.sire?.name ?? null,
     sireSire: runner.sireSire?.name ?? null,
     bms: runner.bms?.name ?? null,
+    rank: typeof finish === "number" ? finish : null,
+    finishRaw: finish != null ? String(finish) : null,
     di: diFlags(runner),
   };
 }
 
+// ---------- SL 海外回填文档（global.sl.day/v1）合并 ----------
+// overseas-backfill.mjs 产出 data/global-graded/sl/<date>.json；
+// 与 data/races 的 rp 卡片可能重叠（同一 raceId）→ 按 raceId 去重，卡片行优先。
+function slRunnerRow(u) {
+  return {
+    num: u.num ?? null,
+    frame: u.draw ?? null,
+    horse: u.horse ?? null,
+    horseEn: null,
+    sex: null,
+    age: null,
+    jockey: u.jockey ?? null,
+    trainer: u.trainer ?? null,
+    sire: u.sire ?? null,
+    sireSire: null, // SL 相对马 id 数据缺陷，父父不可链查（宁缺勿错）
+    bms: u.bms ?? null,
+    rank: u.finish ?? null,
+    finishRaw: u.status ?? (u.finish != null ? String(u.finish) : null),
+    di: u.di ?? { line: false, broodmare: false, lineVia: null },
+  };
+}
+
+function scanSlDays(races, seenRaceKeys) {
+  const dir = path.join(ROOT, "data", "global-graded", "sl");
+  if (!fs.existsSync(dir)) return;
+  for (const f of fs.readdirSync(dir).sort()) {
+    if (!f.endsWith(".json")) continue;
+    let doc;
+    try { doc = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch { continue; }
+    if (doc.schema !== "global.sl.day/v1") continue;
+    for (const race of doc.races ?? []) {
+      if (seenRaceKeys.has(race.raceId)) continue; // 卡片数据已覆盖
+      // 级别扫描时重算（grade.mjs 单一事实源；Domestic Group 等在源头即被排除）
+      const grade = gradeOf({ name: race.name, raceClass: null }, {});
+      if (!grade) continue;
+      const c = countryOf(race.country) ?? countryOf(String(race.country ?? "").toUpperCase());
+      const runners = (race.runners ?? []).map(slRunnerRow);
+      races.push({
+        id: `${doc.date}:sl:${race.raceId}`,
+        date: doc.date,
+        year: doc.date.slice(0, 4),
+        region: "overseas", org: null, country: c?.code ?? null,
+        countryLabel: c?.label ?? "海外",
+        venue: race.course ?? null,
+        no: null,
+        time: race.offTime ?? null,
+        name: race.name ?? "",
+        grade,
+        surface: race.surface ?? null,
+        distance: race.distance ?? null,
+        heads: runners.length,
+        status: race.stage ?? null,
+        source: "sportinglife",
+        sourceUrl: `${SL_DAY}/${doc.date}`,
+        runners,
+      });
+    }
+  }
+}
+const SL_DAY = "https://www.sportinglife.com/racing/results";
+
 // ---------- 扫描 ----------
-function scan() {
+function scan(idx) {
   const races = [];
+  const seenRaceKeys = new Set();
   const days = fs.readdirSync(RACES_DIR)
     .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
     .sort();
@@ -112,10 +230,13 @@ function scan() {
       for (const race of doc.races ?? []) {
         const grade = gradeOf(race, doc);
         if (!grade) continue;
-        const runners = (race.runners ?? []).map(runnerRow);
+        if (race.raceKey != null) seenRaceKeys.add(String(race.raceKey));
+        const byNum = finishMapOf(doc, race, day, idx);
+        const runners = (race.runners ?? []).map((u) => runnerRow(u, byNum));
         races.push({
           id: `${day}:${doc.track}:${race.no}`,
           date: day,
+          year: day.slice(0, 4),
           region, org, country, countryLabel: cLabel,
           venue: doc.venue ?? doc.track,
           no: race.no ?? null,
@@ -134,6 +255,8 @@ function scan() {
       }
     }
   }
+  // SL 海外全年回填文档合并（去重：卡片 raceKey 已覆盖的跳过）
+  scanSlDays(races, seenRaceKeys);
   races.sort((a, b) =>
     b.date.localeCompare(a.date) || gradeRank(a.grade) - gradeRank(b.grade)
     || (a.venue ?? "").localeCompare(b.venue ?? "") || (a.no ?? 0) - (b.no ?? 0));
@@ -160,7 +283,8 @@ async function main() {
   }
 
   const t0 = Date.now();
-  const races = scan();
+  const idx = buildResultsIndex();
+  const races = scan(idx);
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   // 国家 chips 计数（比赛数）
@@ -169,6 +293,14 @@ async function main() {
     const k = r.country ?? "??";
     countries[k] = (countries[k] ?? 0) + 1;
   }
+  // 自然年 chips 计数 + 名次覆盖率
+  const years = {};
+  for (const r of races) {
+    const y = r.date.slice(0, 4);
+    years[y] = (years[y] ?? 0) + 1;
+  }
+  const allRunners = races.reduce((n, r) => n + r.runners.length, 0);
+  const rankKnown = races.reduce((n, r) => n + r.runners.filter((x) => x.rank != null || x.finishRaw).length, 0);
 
   const out = {
     schema: "global.graded/v1",
@@ -176,12 +308,14 @@ async function main() {
     dayRange: [races.at(-1)?.date ?? null, races[0]?.date ?? null],
     counts: {
       races: races.length,
-      runners: races.reduce((n, r) => n + r.runners.length, 0),
+      runners: allRunners,
+      rankKnown,
       diLine: races.reduce((n, r) => n + r.runners.filter((x) => x.di.line).length, 0),
       diBms: races.reduce((n, r) => n + r.runners.filter((x) => x.di.broodmare).length, 0),
     },
     countries,
     countryMeta: Object.fromEntries(COUNTRIES.map((c) => [c.code, c.label])),
+    years,
     races,
   };
   fs.writeFileSync(OUT_FILE, JSON.stringify(out));

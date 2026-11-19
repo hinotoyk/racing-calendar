@@ -7,7 +7,7 @@ import { fetchHtml, fetchHtmlSoft } from "./lib/fetch.js";
 import { readGz, writeGz } from "./lib/bundle.js";
 import { guardOverwrite, manifestEntry } from "./lib/guard.js";
 import { pedCache } from "./lib/ped-cache.js";
-import { parseCalendar, parseDayPage, parseEntryPage, parsePedigree } from "./lib/parse-race.js";
+import { parseCalendar, parseDayPage, parseEntryPage, parsePedigree, parseResultPage } from "./lib/parse-race.js";
 import { enrichSilks, saveSilkCaches, silkStats } from "./lib/silks.js";
 import { attachJbisNames, saveJbisNames, jbisNameStats } from "./lib/jbis-name.js";
 import { venueName, scopeOf } from "./race-config.js";
@@ -30,6 +30,8 @@ const DATE_ARG = argOf("--dates");
 const TRACK_ARG = argOf("--tracks");
 // 马名权威化：出馬表名 → JBIS 马页登录名（日文名/英文名/国籍/生日），缓存 data/pedigree/jbis-name.json
 const NO_NAMES = argv.includes("--no-names");
+// 彩衣跳过：全年重赏回填（global/backfill.mjs）用——彩衣与重赏收集无关，逐马抓图太慢
+const NO_SILKS = argv.includes("--no-silks");
 const NAME_CONC = parseInt(argOf("--name-conc") ?? "1", 10);
 const NAME_DELAY = parseInt(argOf("--name-delay") ?? "1200", 10);
 
@@ -205,8 +207,8 @@ async function collectTrack(date, track, dayHtml, existing) {
             log: (m) => console.log(m),
           });
         }
-        // ② 彩衣：netkeiba 优先（马名+生年唯一性）→ winfinal 兜底
-        await enrichSilks(date, track, rec);
+        // ② 彩衣：netkeiba 优先（马名+生年唯一性）→ winfinal 兜底；--no-silks 时跳过（回填场景）
+        if (!NO_SILKS) await enrichSilks(date, track, rec);
       } else if (prev?.runners?.length) {
         // 两条路径都取不到（404 / 403 限流 / 模板改版）：沿用旧骨架，不写空壳。
         // 番号的增量补采由 backfill-waku.js（12:00 档）负责，这里只保证不丢已有数据。
@@ -216,6 +218,26 @@ async function collectTrack(date, track, dayHtml, existing) {
       } else {
         rec.status = "pending";
       }
+    } else if (race.status === "result" && date < jstToday() && !keepPrev) {
+      // 过往赛日回填：JBIS 结果页（data-6-11 模板）自带着順 + 父母链接（parseResultPage），
+      // 马名即 /horse/ id 直印 → 不需要 attachJbisNames / 彩衣。
+      const rr = String(race.no).padStart(2, "0");
+      let html = await fetchHtmlSoft(`https://www.jbis.or.jp/race/result/${ymd(date)}/${track}/${rr}/`);
+      await sleep(DELAY_MS);
+      let parsed = html ? parseResultPage(html) : null;
+      if (!parsed) {
+        html = await fetchHtmlSoft(`https://www.jbis.or.jp/race/${ymd(date)}/${track}/${rr}/`);
+        await sleep(DELAY_MS);
+        parsed = html ? parseEntryPage(html) : null;
+      }
+      if (parsed?.runners?.length) {
+        rec.runners = parsed.runners;
+        rec.heads = parsed.runners.length || race.heads;
+      } else {
+        rec.status = "pending";
+      }
+    } else {
+      rec.status = "pending";
     }
     out.races.push(rec);
   }

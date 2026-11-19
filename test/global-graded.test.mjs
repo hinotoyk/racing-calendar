@@ -62,4 +62,52 @@ assert.equal(filterByDi(rows, "bms").length, 1);
 assert.equal(filterByDi(rows, "any").length, 2);
 assert.equal(filterByDi(rows, "all").length, 3);
 
+// ---- gradeOf：SL 赛名形态补充（真实回填数据抽样） ----
+assert.equal(gradeOf({ name: "Qatar Racing Champion Stakes (Group 1) (Str)" }, {}), "G1");
+assert.equal(gradeOf({ name: "Prix Orcada Chase - Grade 3", raceClass: "1" }, {}), "G3");
+
+// ---- parseResultPage：JBIS 结果页模板（过往赛日回填路径） ----
+import { parseResultPage } from "../src/lib/parse-race.js";
+const FIXTURE = `<div class="data-6-11 sort-1">
+<div><div>着順</div><div>枠番</div><div>馬番</div><div>馬名</div><div>性齢</div><div>騎手斤量</div><div>タイム</div><div>調教師</div></div>
+<div>
+ <div><div><span class="number-1">1</span></div></div>
+ <div><div><span class="frameNumber-7">7</span></div></div>
+ <div class="jc-right">11番</div>
+ <div class="jc-left"><div><a href="/horse/0001361718/" class="txt-link">カラマティアノス</a>
+   <div class="data-6__small"><p class="txt-overflow">父：<a href="/horse/0001189721/" class="txt-link">レイデオロ</a></p></div></div></div>
+ <div><span class="txt-male">牡4</span></div>
+ <div class="data-6__lyt-1"><a href="/race/jockey/J01092/" class="txt-link txt-overflow">津村 明秀</a><span class="ta-right">55.0</span></div>
+ <div class="jc-right">2:00.3</div>
+ <div class="jc-left"><span class="txt-overflow"><a href="/race/trainer/J01145/" class="txt-link txt-overflow">奥村 武</a>(美 浦)</span></div>
+</div>
+<div>
+ <div><div>中</div></div>
+ <div><div><span class="frameNumber-2">2</span></div></div>
+ <div class="jc-right">3番</div>
+ <div class="jc-left"><div><a href="/horse/0001340873/" class="txt-link">テストベイ</a></div></div>
+ <div><span class="txt-male">牝5</span></div>
+ <div class="data-6__lyt-1"><a href="/race/jockey/J99999/" class="txt-link">ダミー</a><span class="ta-right">54.0</span></div>
+ <div class="jc-right">-</div>
+ <div class="jc-left"><span class="txt-overflow"><a href="/race/trainer/J99998/" class="txt-link">ダミー 師</a>(美 浦)</span></div>
+</div>
+</div>`;
+{
+  const p = parseResultPage(FIXTURE);
+  assert.equal(p.runners.length, 2);
+  const [w, dnf] = p.runners;
+  assert.equal(w.finish, 1);
+  assert.equal(w.finishRaw, "1");
+  assert.equal(w.num, 11);
+  assert.equal(w.frame, 7);
+  assert.equal(w.horse.name, "カラマティアノス");
+  assert.equal(w.sire.name, "レイデオロ");
+  assert.equal(w.jockey.name, "津村 明秀");
+  assert.equal(w.weight, 55);
+  assert.equal(w.trainer.name, "奥村 武");
+  assert.equal(dnf.finish, null);
+  assert.equal(dnf.finishRaw, "中");
+  assert.equal(dnf.num, 3);
+}
+
 console.log("test/global-graded.test.mjs: all passed");

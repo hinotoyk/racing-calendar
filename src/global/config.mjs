@@ -29,7 +29,7 @@ export const COUNTRIES = [
   { code: "JP",  label: "日本",     match: ["JPN"] },
   { code: "AR",  label: "阿根廷",   match: ["ARG"] },
   { code: "AU",  label: "澳大利亚", match: ["AUS"] },
-  { code: "BR",  label: "巴西",     match: ["BRA"] },
+  { code: "BR",  label: "巴西",     match: ["BRA", "BR"] },
   { code: "CL",  label: "智利",     match: ["CHI"] },
   { code: "FR",  label: "法国",     match: ["FR"] },
   { code: "GB",  label: "英国",     match: ["GB", "ENG", "Wale", "SCO", "Scot"] },

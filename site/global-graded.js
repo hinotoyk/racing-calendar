@@ -4,10 +4,12 @@
 
 const state = {
   data: null,            // graded.json 内容
+  year: "all",           // all | 2025 | 2026 …（自然年 1/1-12/31）
   region: "all",         // all | jra | nar | overseas
   country: "all",        // all | JP | GB | ...
   grades: new Set(),     // 空集 = 全部级别
   ped: "all",            // all | line | bms
+  rank: "all",           // all | win(1着) | top3(1-3着)
   q: "",
   video: {},             // raceId -> resolved entry
 };
@@ -25,8 +27,9 @@ async function loadData() {
 
 // ---------- 筛选 ----------
 function filteredRaces() {
-  const { data, region, country, grades, q } = state;
+  const { data, year, region, country, grades, q } = state;
   return (data?.races ?? []).filter((r) => {
+    if (year !== "all" && r.year !== year) return false;
     if (region === "overseas" && r.region !== "overseas") return false;
     if (region === "jra" && r.org !== "JRA") return false;
     if (region === "nar" && r.org !== "NAR") return false;
@@ -43,6 +46,8 @@ function visibleRows(races) {
     for (const u of r.runners) {
       if (state.ped === "line" && !u.di.line) continue;
       if (state.ped === "bms" && !u.di.broodmare) continue;
+      if (state.rank === "win" && u.rank !== 1) continue;
+      if (state.rank === "top3" && !(u.rank >= 1 && u.rank <= 3)) continue;
       if (q && !(`${u.horse ?? ""}${u.horseEn ?? ""}`.toLowerCase().includes(q))) continue;
       rows.push({ race: r, u });
     }
@@ -52,6 +57,14 @@ function visibleRows(races) {
 
 // ---------- 渲染 ----------
 function renderChips() {
+  // 自然年 chips（1/1-12/31，含计数）
+  const years = Object.entries(state.data?.years ?? {}).sort((a, b) => b[0] - a[0]);
+  $("#chips-year").innerHTML =
+    `<button class="chip ${state.year === "all" ? "on" : ""}" data-y="all">全部年份</button>` +
+    years.map(([y, n]) => `<button class="chip ${state.year === y ? "on" : ""}" data-y="${y}">${y}年 <small>${n}</small></button>`).join("");
+  $("#chips-year").querySelectorAll("[data-y]").forEach((b) =>
+    b.onclick = () => { state.year = b.dataset.y; renderChips(); renderTable(); });
+
   const counts = state.data?.countries ?? {};
   const order = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   const html = [`<button class="chip ${state.country === "all" ? "on" : ""}" data-c="all">全部国家</button>`]
@@ -95,14 +108,17 @@ function renderTable() {
     const diTag = u.di.line
       ? `<span class="di" title="${u.di.lineVia === "sire" ? "父 = Deep Impact" : "父父 = Deep Impact"}">直系</span>`
       : u.di.broodmare ? `<span class="di" title="母父 = Deep Impact">母父</span>` : "";
-    return `<tr>
+    const rankCell = u.rank != null
+      ? `<span class="rk${u.rank <= 3 ? u.rank : ""}">${u.rank}</span>`
+      : (u.finishRaw ? `<span class="rkr" title="非完走">${esc(u.finishRaw)}</span>` : `<span class="rkr">—</span>`);
+    return `<tr${u.rank === 1 ? ` class="win"` : ""}>
       <td>${r.date}</td>
       <td><span class="rg ${esc(r.org ?? "")}">${esc(r.countryLabel)}${r.org ? "·" + r.org : ""}</span></td>
       <td><span class="g ${esc(r.grade)}">${esc(r.grade)}</span></td>
       <td><b>${esc(r.name)}</b></td>
       <td>${esc(r.venue)}${r.time ? ` <span class="rg">${esc(r.time)}</span>` : ""}</td>
-      <td>${r.heads}</td>
-      <td>${esc(u.horseEn || u.horse)}${diTag}</td>
+      <td>${rankCell}</td>
+      <td>${u.rank === 1 ? "🥇 " : ""}${esc(u.horseEn || u.horse)}${diTag}</td>
       <td>${esc(u.jockey)}</td>
       <td>${esc(u.trainer)}</td>
       <td>${esc(u.sire)}</td>
@@ -143,7 +159,8 @@ function pollStatus() {
       ? `⏳ 检索中…（${st.startedAt?.slice(11, 19) ?? ""} 起）\n${tail(st.log, 3)}`
       : (st.startedAt ? (st.ok ? "✅ 检索完成" : "⚠️ 检索结束（有报错，看服务台日志）") : "");
     if (!st.running) {
-      $("#btn-collect").disabled = false;
+      for (const id of ["btn-collect", "btn-backfill-jp", "btn-backfill-ov"]) $("#" + id).disabled = false;
+      jobBusy = false;
       clearInterval(pollTimer);
       if (st.startedAt) { await loadData(); renderAll(); }
     }
@@ -152,7 +169,9 @@ function pollStatus() {
 const tail = (s, n) => String(s ?? "").trimEnd().split("\n").slice(-n).join("\n");
 
 async function startCollect() {
+  if (jobBusy) return;
   $("#btn-collect").disabled = true;
+  jobBusy = true;
   try {
     const res = await fetch("/api/collect", { method: "POST" });
     const j = await res.json();
@@ -174,6 +193,12 @@ function renderTabs() {
     `<button data-p="${k}" class="${state.ped === k ? "on" : ""}">${l}</button>`).join("");
   $("#tabs-ped").querySelectorAll("[data-p]").forEach((b) =>
     b.onclick = () => { state.ped = b.dataset.p; renderTabs(); renderTable(); });
+
+  const ranks = [["all", "全部名次"], ["win", "1着"], ["top3", "1-3着"]];
+  $("#tabs-rank").innerHTML = ranks.map(([k, l]) =>
+    `<button data-k="${k}" class="${state.rank === k ? "on" : ""}">${l}</button>`).join("");
+  $("#tabs-rank").querySelectorAll("[data-k]").forEach((b) =>
+    b.onclick = () => { state.rank = b.dataset.k; renderTabs(); renderTable(); });
 }
 
 function renderAll() {
@@ -186,6 +211,23 @@ function renderAll() {
 
 $("#btn-collect").onclick = startCollect;
 $("#q").oninput = (e) => { state.q = e.target.value; renderTable(); };
+
+// 全年回填按钮：POST /api/backfill?year=&region=（与采集共用任务槽，轮询同一 /api/status）
+async function startBackfill(region) {
+  if (jobBusy) return;
+  const year = state.year !== "all" ? state.year : (Object.keys(state.data?.years ?? {}).sort().pop() ?? new Date().getFullYear());
+  for (const id of ["btn-collect", "btn-backfill-jp", "btn-backfill-ov"]) $("#" + id).disabled = true;
+  jobBusy = true;
+  try {
+    const res = await fetch(`/api/backfill?year=${year}&region=${region}`, { method: "POST" });
+    const j = await res.json();
+    if (!j.ok) { $("#status").textContent = "⚠️ " + (j.error ?? "启动失败"); return; }
+  } catch { /* 纯静态打开时不可用 */ }
+  pollStatus();
+}
+let jobBusy = false;
+$("#btn-backfill-jp").onclick = () => startBackfill("japan");
+$("#btn-backfill-ov").onclick = () => startBackfill("overseas");
 
 loadData().then(renderAll).catch((e) => {
   $("#status").textContent = "❌ " + e.message;

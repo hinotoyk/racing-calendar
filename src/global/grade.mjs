@@ -19,6 +19,8 @@ export function gradeOf(race, doc = {}) {
   if (scope === "central" || scope === "local") return null; // 日本但非重赏
 
   const text = `${race.name ?? ""} ${race.raceClass ?? ""}`;
+  // SL 的「Domestic Group N」= 巴林等国的国内限定级，非国际 pattern → 排除（宁缺勿错）
+  if (/\bdomestic\s+group\b/i.test(text)) return null;
   const m = text.match(OVERSEAS_GRADE_RE);
   if (!m) return null;
   return `G${m[1] || m[2]}`;
