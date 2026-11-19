@@ -34,7 +34,7 @@ export const COUNTRIES = [
   { code: "FR",  label: "法国",     match: ["FR"] },
   { code: "GB",  label: "英国",     match: ["GB", "ENG", "Wale", "SCO", "Scot"] },
   { code: "HK",  label: "中国香港", match: ["HK"] },
-  { code: "IE",  label: "爱尔兰",   match: ["IRE", "Eire"] },
+  { code: "IE",  label: "爱尔兰",   match: ["IRE", "Eire", "Nort"] }, // Nort = SL 对 Northern Ireland 的 short_name
   { code: "NZ",  label: "新西兰",   match: ["NZ"] },
   { code: "SA",  label: "南非",     match: ["SA", "SAF"] },
   { code: "TR",  label: "土耳其",   match: ["TR", "TUR"] },

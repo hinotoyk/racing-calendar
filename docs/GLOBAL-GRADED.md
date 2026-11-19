@@ -87,7 +87,10 @@ npm run graded:serve     # 起 9094 API+静态服务 → http://127.0.0.1:9094/g
    父父无法二跳链查 —— 海外 SL 侧直系只判「父=DI」，孙子判定仅日本（JBIS 卡片带父父）可靠。
 2. **AU/NZ/CL/BR 历史回填**：racingaustralia 每页 5s 延迟、teletrak 是 PDF、
    turfeonline 索引可分页全扫（代价 1 请求/赛马日）、loveracing 历史走月历页 ——
-   下一阶段补进 country-probe.mjs。BR 近期数据已由 turfeonline 采集器覆盖。
+   下一阶段补进 country-probe.mjs。BR 近期数据已由 turfeonline 采集器覆盖；
+   SL 顺带收录了巴西 Gávea 的重赏（country=BR 直映）。
+2b. **拉普拉塔（AR）无着顺**：verTelas 是纯节目页，结果无结构化字段；
+   主要 AR 源圣伊西德罗已有名次（节目页 estado=RESULTADOS 自带 puesto → runner.finish）。
 3. **法国速步（trot）**：Vincennes 的 Attele Group 赛按赛名命中收录，血统过滤天然排掉 DI。
 4. **曾孙代**：需三级父链（父父父=DI），留 enrich 阶段接 netkeiba 血统页。
 5. 视频解析依赖 YouTube 搜索页结构，风控/改版时 UI 自动退化为检索跳转。

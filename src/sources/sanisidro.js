@@ -125,6 +125,8 @@ export function parseReunion(reunion, dateIso) {
         weight: weight,
         weightRaw: ins.jockey_kilos != null ? String(ins.jockey_kilos) : null,
         weightOver: null,
+        // estado=RESULTADOS 时节目页自带着順（puesto 整数；缺省=未出结果/未完赛）
+        finish: Number.isInteger(ins.puesto) && ins.puesto > 0 ? ins.puesto : null,
         trainer: { id: null, name: clean(ins.cuidador) },
         owner: null, // 阿根廷节目只给马房（caballeriza），马主在赛果页才有 → 不冒填
         breeder: null,

@@ -62,26 +62,27 @@ function loadProbe(src) {
   return JSON.parse(fs.readFileSync(probeFile(src), "utf8"));
 }
 
-// ---------- 土耳其 TJK：日索引(1) + 每城市节目 CSV(n≈2) ----------
+// ---------- 土耳其 TJK：日索引(1) + 每城市节目 HTML(n≈2) ----------
+// 级别在 raceClass（"G 2/ULS"）里，与 collect.mjs 的 gradeOf 同一判定
 async function probeTjk(dates, log = console.log) {
-  const { parseIndexCities, fetchProgramCsv, klassOfTJK } = await import("../sources/tjk.js");
+  const { parseIndexCities, parseProgramHtml } = await import("../sources/tjk.js");
   const days = [];
   for (const date of dates) {
     const [y, m, d] = date.split("-");
     const trDate = `${d}%2F${m}%2F${y}`;
-    const url = `https://www.tjk.org/EN/YarisSever/Info/Page/GunlukYarisProgrami?QueryParameter_Tarih=${trDate}`;
     const races = [];
     try {
-      const idx = await fetchHtmlSoft(url, { src: "tjk-idx", ua: BROWSER_UA, retries: 1 });
+      const idx = await fetchHtmlSoft(`https://www.tjk.org/EN/YarisSever/Info/Page/GunlukYarisProgrami?QueryParameter_Tarih=${trDate}`, { src: "tjk-idx", ua: BROWSER_UA, retries: 1 });
       const cities = parseIndexCities(idx).filter((c) => !c.foreign && !c.karma);
       await sleep(DELAY);
       for (const c of cities) {
-        const { races: rows } = await fetchProgramCsv(date, c.name);
+        const html = await fetchHtmlSoft(`https://www.tjk.org/EN/YarisSever/Info/Sehir/GunlukYarisProgrami?SehirId=${c.id}&QueryParameter_Tarih=${trDate}&SehirAdi=${encodeURIComponent(c.name)}`, { src: "tjk-probe", ua: BROWSER_UA, retries: 1 }).catch(() => null);
         await sleep(DELAY);
-        if (!rows) continue;
-        for (const r of rows) {
-          const k = klassOfTJK(r.klassCode, r.ageBreed);
-          if (["G1", "G2", "G3"].includes(k.gradeTag)) races.push({ name: `${c.name} ${r.no}R`, grade: k.gradeTag });
+        if (!html) continue;
+        const doc = parseProgramHtml(html, { dateIso: date, sehirId: c.id, cityName: c.name });
+        for (const r of doc.races) {
+          const g = gradeOf({ name: r.name, raceClass: r.raceClass }, { scope: "overseas" });
+          if (g) races.push({ name: r.name ?? "", grade: g });
         }
       }
     } catch (e) {

@@ -49,7 +49,7 @@ function summarize(doc) {
 // 幂等指纹（与 JBIS 采集器同规则）：赛事数 / 头数 / 马ID:番号 一致则跳过
 function fingerprint(doc) {
   return JSON.stringify(
-    (doc.races ?? []).map((r) => [r.no, r.heads, (r.runners ?? []).map((x) => `${x.horse?.id}:${x.num}`)])
+    (doc.races ?? []).map((r) => [r.no, r.heads, (r.runners ?? []).map((x) => `${x.horse?.id}:${x.num}:${x.finish ?? ""}`)])
   );
 }
 
