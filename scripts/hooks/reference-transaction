@@ -1,0 +1,33 @@
+#!/bin/sh
+# 分支策略守卫 · 引用更新层（docs/GLOBAL-GRADED.md §分支策略）
+#
+# 禁止把 feat/global-graded 并入 main —— 拦截点选在 reference-transaction：
+# main 的引用一有更新（merge / 快进 merge / pull / reset --hard 到含守卫提交的
+# 位置……），就检查新指向是否包含 feat/global-graded 的提交，包含即拒绝。
+# 这是唯一能同时覆盖快进合并和真合并的单点 —— pre-merge-commit 在 git 2.55
+# 触发时 MERGE_HEAD 尚未写入，拿不到合并来源，不可依赖（2026-11-19 实测）。
+#
+# 启用方式：cp 本文件到 .git/hooks/reference-transaction 并 chmod +x。
+# 覆盖不到的口子：squash merge / cherry-pick（产出新 sha，祖先关系不成立），
+# 靠 review + 远端分支保护兜底。
+#
+# stdin 每行：<old-value> <new-value> <ref-name>
+
+GUARDED_REF="refs/heads/feat/global-graded"
+guarded=$(git rev-parse --verify --quiet "$GUARDED_REF")
+[ -z "$guarded" ] && exit 0   # 守卫分支不存在（已删除）→ 不拦
+
+zero="0000000000000000000000000000000000000000"
+while read -r old new ref; do
+  [ "$ref" = "refs/heads/main" ] || continue   # 只看本地 main（不动 origin/main / 其他分支）
+  [ "$new" = "$zero" ] && continue             # 引用删除，放行
+  if git merge-base --is-ancestor "$guarded" "$new" 2>/dev/null; then
+    echo "" >&2
+    echo "✖ 已阻止：main 的新指向包含 $GUARDED_REF 的提交。" >&2
+    echo "  该分支是「全球重赏收集」探索分支，禁止合并进 main（docs/GLOBAL-GRADED.md §分支策略）。" >&2
+    echo "  如确需回流，先在文档记录决策并临时移除 .git/hooks/reference-transaction。" >&2
+    exit 1
+  fi
+done
+
+exit 0
