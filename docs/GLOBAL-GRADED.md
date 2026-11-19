@@ -7,13 +7,15 @@
 
 - 分支 `feat/global-graded` 独立演进，**禁止合并到 main**。
 - 守卫（本机已启用）：
-  - `cp scripts/hooks/pre-* .git/hooks/` —— 钩子装在 `.git/hooks/`（仓库外、跨分支常驻；
-    **不要**用 `core.hooksPath=scripts/hooks`，那会让钩子文件随 feat 分支消失、切回 main 即失守）。
-  - `git config merge.ff false` —— 默认 merge 不再快进，`pre-merge-commit` 必触发。
-  - `pre-merge-commit`：main 上合并 feat/global-graded → 拒绝；
-    `pre-push`：push 的 main 里含该分支提交 → 拒绝（兜底快进合并/历史污染）。
-- 覆盖不到的口子：squash merge、cherry-pick 到 main 无法在钩子层识别，靠 review 把关；
-  独立建仓后应开 GitHub 分支保护规则（branch protection）双保险。
+  - `cp scripts/hooks/reference-transaction scripts/hooks/pre-push .git/hooks/ && chmod +x .git/hooks/*`
+    —— 钩子装在 `.git/hooks/`（仓库外、跨分支常驻；**不要**用 `core.hooksPath=scripts/hooks`，
+    那会让钩子文件随 feat 分支消失、切回 main 即失守）。
+  - `reference-transaction`：main 引用更新时检查新指向是否含 feat/global-graded 提交，
+    含则拒绝 —— 单点覆盖快进合并、真合并、pull（git 2.55 实测 pre-merge-commit
+    触发时 MERGE_HEAD 尚未写入，拿不到合并来源，不可依赖）。
+  - `pre-push`：push 的 main 里含该分支提交 → 拒绝（推送层兜底）。
+- 覆盖不到的口子：squash merge、cherry-pick 到 main 产出新 sha、祖先关系不成立，
+  钩子层无法识别，靠 review 把关；独立建仓后应开 GitHub 分支保护规则双保险。
 - 版本管理沿用 git；依赖管理沿用根 package.json（本分支新增能力全部零依赖，node ≥ 18）。
 
 ## 范围
