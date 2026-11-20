@@ -48,7 +48,8 @@ export async function fetchHtml(url, { retries = 3, timeoutMs = 30000, src = "jb
 }
 
 // 允许 404：出馬表在开赛前 1-2 日才生成，未公开时返回 404 / 空页
-export async function fetchHtmlSoft(url, { retries = 2, timeoutMs = 30000, src = "jbis", ua = UA, headers = {} } = {}) {
+// timeoutMs 20s：正常响应中位 <1s；30s 曾被 JBIS 挂起请求反复耗满，单 URL 最坏 3×20=60s（2026-11-20 CI 撞 80min 超时）
+export async function fetchHtmlSoft(url, { retries = 2, timeoutMs = 20000, src = "jbis", ua = UA, headers = {} } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const ctrl = new AbortController();

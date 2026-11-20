@@ -28,7 +28,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 150  # JBIS 80 + build 15 + 提交/发布/诊断余量（平台上限 360min）
+    timeout-minutes: 150  # JBIS 105 + build 15 + 提交/发布/诊断余量（平台上限 360min）
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -40,7 +40,9 @@ jobs:
           node-version: 22
 
       - name: Collect JBIS racecards
-        timeout-minutes: 80
+        # 80min 曾被 JBIS 服务器挂起（请求 30s 超时 × 75 次）耗尽后强杀（2026-11-20），
+        # 上调到 105 吸收"服务器慢夜"；job 总预算 150 仍有余量
+        timeout-minutes: 105
         run: |
           mkdir -p test-logs
           node src/collect-races.js 2>&1 | tee test-logs/jbis.log

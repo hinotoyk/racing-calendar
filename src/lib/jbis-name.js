@@ -66,6 +66,7 @@ export async function resolveJbisName(id, { delayMs = 0 } = {}) {
         src: "jbis-horse",
         ua: HORSE_UA,
         headers: HORSE_HEADERS,
+        retries: 1, // 失败不写缓存、下轮自动重试；收紧重试避免挂起夜烧穿 CI 预算
       });
     } catch (e) {
       err = e;
