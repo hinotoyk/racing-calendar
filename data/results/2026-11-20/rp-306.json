@@ -1,0 +1,2221 @@
+{
+  "schema": "rp.race.result/v1",
+  "date": "2026-11-20",
+  "track": "rp-306",
+  "trackId": "306",
+  "venue": "Chepstow",
+  "country": "Wale",
+  "source": "sportinglife",
+  "updatedAt": "2026-11-21T05:30:36.602Z",
+  "races": [
+    {
+      "no": 1,
+      "raceKey": "949972",
+      "status": "result",
+      "heads": 12,
+      "resultHeads": 12,
+      "joined": 12,
+      "linked": 12,
+      "hasOdds": true,
+      "favouriteCloth": 2,
+      "stage": "WEIGHEDIN",
+      "winningTime": "5m 15.80s",
+      "nonRunners": [],
+      "completeness": {
+        "heads": 12,
+        "rows": 12,
+        "numeric": 8,
+        "abnormal": 4,
+        "maxRank": 8,
+        "missingRanks": [],
+        "popCovered": 8,
+        "popTotal": 8,
+        "popRatio": 1,
+        "finishRatio": 0.667
+      },
+      "startTime": "11:20",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-20/chepstow/949972/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1215530",
+            "name": "All About Trev"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "6/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, pushed along after 3 out, kept on flat, went second towards finish, no chance with winner"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1206824",
+            "name": "Bande Organisee"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "1/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Jumped right, led, not fluent 5th, headed after 7th, led again before 3 out, headed before last, no chance with winner flat, lost second towards finish"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1242223",
+            "name": "Delilah's Boy"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=UnseatedRider",
+          "pop": 11,
+          "winOdds": "250/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Always towards rear, well behind before 3 out, unseated rider after"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1244446",
+            "name": "Exciting Ride"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "11/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leader until 3rd, stayed in touch, lost place before 2 out"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1208465",
+            "name": "Jpr Two"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "125/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in touch, struggling to hold place after 7th, well behind before 3 out"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1210322",
+            "name": "Moments In Time"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "6/1",
+          "time": "5m 15.80s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up towards rear, closed from 5th, led going well before last, easily went clear flat, eased towards finish"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245697",
+            "name": "Mybluesuedeshoes"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "17/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, went second from 3rd, challenged 6th, led after next, headed before 3 out, lost place before last"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245954",
+            "name": "Noble Charge"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 7,
+          "winOdds": "18/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In rear, slow 1st, slightly hampered 2nd, not fluent 4th, headway after 7th, lost place before 3 out, soon well beaten, pulled up after"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1215625",
+            "name": "Rine Yeats"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Soon towards rear and pushed along, well behind before 3 out"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245951",
+            "name": "Back To Bratton"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 11,
+          "winOdds": "250/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in mid-division, mistake 6th, well behind after next, pulled up after"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1216349",
+            "name": "Music Song"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=Fell",
+          "pop": 9,
+          "winOdds": "80/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Towards rear, fell 2nd"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243611",
+            "name": "Kimai"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "11/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In touch in mid-division, headway 4th, pushed along 2 out, fourth and no extra last"
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "raceKey": "949399",
+      "status": "result",
+      "heads": 14,
+      "resultHeads": 14,
+      "joined": 14,
+      "linked": 14,
+      "hasOdds": true,
+      "favouriteCloth": 13,
+      "stage": "WEIGHEDIN",
+      "winningTime": "4m 21.10s",
+      "nonRunners": [],
+      "completeness": {
+        "heads": 14,
+        "rows": 14,
+        "numeric": 12,
+        "abnormal": 2,
+        "maxRank": 12,
+        "missingRanks": [],
+        "popCovered": 12,
+        "popTotal": 12,
+        "popRatio": 1,
+        "finishRatio": 0.857
+      },
+      "startTime": "11:50",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-20/chepstow/949399/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1162736",
+            "name": "What's Your Game"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 6,
+          "winOdds": "18/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, in touch in mid-division, jumped left 2nd, weakened before 3 out, pulled up after"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1176107",
+            "name": "Barrow Hill Lad"
+          },
+          "finish": 12,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "80/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, headed 5th, weakened before 3 out"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1219392",
+            "name": "Beau Merle"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 13,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in rear, headway before 3 out, no impression and weakening when mistake 2 out"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243933",
+            "name": "Clonagoose"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in mid-division, not fluent 2nd, struggling after 5th"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245957",
+            "name": "Commander King"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 11,
+          "winOdds": "125/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Always towards rear"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1242791",
+            "name": "Common Sense"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "9/4",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in touch, led 5th, ridden before last, headed flat, held towards finish"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1244309",
+            "name": "Debrave Soldier"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "80/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Always towards rear"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1241387",
+            "name": "Herbies Sock"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "6/1",
+          "time": "4m 21.10s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, went second before 3 out, ridden before 2 out, led flat, stayed on well"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1212318",
+            "name": "Lingering Glance"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 11,
+          "winOdds": "125/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in rear, went modest seventh 3 out, well held when mistake 2 out"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1215616",
+            "name": "Littlebobbydazzler"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leader, outpaced before 2 out, soon no impression"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243612",
+            "name": "Passage Guenot"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "15/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in mid-division, headway before 3 out, shaken up 2 out, lost place before last"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1182345",
+            "name": "Sears Crossing"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up towards rear after mistake 1st, remote eight 3 out, no impression"
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1202408",
+            "name": "Sea The Day"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "6/5",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Held up towards rear, headway before 3 out, switched left and went went third after 2 out, soon shaken up, held final 110 yards, kept on"
+        },
+        {
+          "num": 14,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243609",
+            "name": "The Sky At Night"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 13,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Always in rear, well behind before 3 out, soon pulled up"
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "raceKey": "949400",
+      "status": "result",
+      "heads": 13,
+      "resultHeads": 14,
+      "joined": 13,
+      "linked": 13,
+      "hasOdds": true,
+      "favouriteCloth": 8,
+      "stage": "WEIGHEDIN",
+      "winningTime": "4m 21.50s",
+      "nonRunners": [
+        {
+          "num": 13,
+          "name": "Auburn Avenue"
+        }
+      ],
+      "completeness": {
+        "heads": 13,
+        "rows": 13,
+        "numeric": 11,
+        "abnormal": 2,
+        "maxRank": 11,
+        "missingRanks": [],
+        "popCovered": 11,
+        "popTotal": 11,
+        "popRatio": 1,
+        "finishRatio": 0.846
+      },
+      "startTime": "12:22",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-20/chepstow/949400/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1182249",
+            "name": "Hidden Mountain"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "11/8",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, prominent, challenged 2 out, no impression on winner and lost second last, weakened flat, lost third towards finish"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1205575",
+            "name": "Berkshire Woody"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Always towards rear"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245956",
+            "name": "Blazing Force"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 11,
+          "winOdds": "250/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, always towards rear"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245363",
+            "name": "Irishcoffee Has"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up rear of mid-division, well beaten before 3 out"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245953",
+            "name": "Justoneglance"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=Fell",
+          "pop": 4,
+          "winOdds": "11/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, tracked leaders, led 2nd, headed 3 out, lost place before 2 out, fell before last"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1211808",
+            "name": "Mistral des Bordes"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "150/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, seventh 3 out, no impression"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1244320",
+            "name": "Moltezuma"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "5/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In touch, third and shaken up 2 out, went second last, no impression on winner, kept on"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1204223",
+            "name": "Old Habits"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "6/5",
+          "time": "4m 21.50s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Tracked leaders, challenged going well 3 out, led before 2 out, clear last, easily"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1161381",
+            "name": "Requiem"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "200/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Took keen hold, always towards rear"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243608",
+            "name": "Riseandcall"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 11,
+          "winOdds": "250/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up rear of mid-division, some headway from 3 out, went fifth latter stages, well held by leaders"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243065",
+            "name": "Soviet Sailor"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in mid-division, headway from 4th, fourth 2 out, kept on flat, went third towards finish"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1024290",
+            "name": "Victoria Line"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 11,
+          "winOdds": "250/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, well beaten after 5th, pulled up after"
+        },
+        {
+          "num": 14,
+          "frame": null,
+          "horse": {
+            "id": "rp:1208471",
+            "name": "Topsham Tide"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led until 2nd, prominent, led again 3 out, headed before 2 out, soon weakened"
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "raceKey": "949401",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 11,
+      "joined": 11,
+      "linked": 11,
+      "hasOdds": true,
+      "favouriteCloth": 2,
+      "stage": "WEIGHEDIN",
+      "winningTime": "5m 10.70s",
+      "nonRunners": [],
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 11,
+        "abnormal": 0,
+        "maxRank": 11,
+        "missingRanks": [],
+        "popCovered": 11,
+        "popTotal": 11,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "12:57",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-20/chepstow/949401/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1131372",
+            "name": "Authentic Legacy"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up towards rear, slow 3rd, headway after 11th, not fluent 5 out, no impression after"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1131039",
+            "name": "Ben Solo"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "3/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Led until 9th, led 5 out, headed 2 out, no impression on winner flat"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1205592",
+            "name": "Sogna In Grande"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "11/1",
+          "time": "5m 10.70s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, not fluent 3rd, went second from 5 out, challenging before 3 out, led 2 out, jumped right last, clear flat, comfortably"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1176241",
+            "name": "Wilstar"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "7/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Some slow jumps early, always towards rear"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1184164",
+            "name": "Quay Item"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "7/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in touch, went third from 4 out, no impression in leading pair from next"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:973096",
+            "name": "Hardy Du Seuil"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent, led 9th, headed 5 out, lost place 3 out, no impression after"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1011028",
+            "name": "Opening Bid"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent, not fluent 7th, soon pushed along, weakened before 5 out"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1120097",
+            "name": "Minella Missile"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "9/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, headway after 11th, lost some ground before 5 out, plugged on and went foruth from last"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1178739",
+            "name": "Plains Drifter"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "22/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division on outside, not fluent 9th, not fluent and lost place 11th, well beaten before 5 out"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1214344",
+            "name": "Largy Go"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "7/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Always towards rear"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1050175",
+            "name": "Pepe Le Moko"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, not much room 7th, headway 9th, lost place before 3 out"
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "raceKey": "949402",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 12,
+      "joined": 11,
+      "linked": 11,
+      "hasOdds": true,
+      "favouriteCloth": 5,
+      "stage": "WEIGHEDIN",
+      "winningTime": "5m 20.80s",
+      "nonRunners": [
+        {
+          "num": 10,
+          "name": "Can You Hear Me"
+        }
+      ],
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 8,
+        "abnormal": 3,
+        "maxRank": 8,
+        "missingRanks": [],
+        "popCovered": 8,
+        "popTotal": 8,
+        "popRatio": 1,
+        "finishRatio": 0.727
+      },
+      "startTime": "13:32",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-20/chepstow/949402/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1082497",
+            "name": "Lets Go To Vegas"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders on outside, lost some ground before 4th, weakened before 2 out"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1065460",
+            "name": "Fils De Roi"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 6,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, headed before 3 out, weakened before next, pulled up before last"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1175463",
+            "name": "King Sacre"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 11,
+          "winOdds": "40/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Behind, reminder after 2nd and 3rd, some headway after 7th, weakened before 3 out, pulled up before 2 out"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1138066",
+            "name": "Mulinas"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, driven after 2 out, no extra and lost third inside final 110 yards"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1137996",
+            "name": "Lejo Du Seuil"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "9/4",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Held up towards rear, headway after 6th, held from last, went third inside final 110 yards"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1208459",
+            "name": "Majeur Allen"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "4/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Jumped left, held up in rear, steady headway 7th, fifth and no extra from 2 out"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1171831",
+            "name": "Lipstick"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 9,
+          "winOdds": "28/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in mid-division on inside, struggling after 7th, pulled up before 3 out"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1206375",
+            "name": "Lully Du Houx"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "9/2",
+          "time": "5m 20.80s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, closed after 2nd, went second before 3 out, led and edged left flat, stayed on well, won going away"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1181252",
+            "name": "Laurier Des Obeaux"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up towards rear, headway 7th, weakened before 2 out"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1123205",
+            "name": "King Of The Road"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Not always fluent, prominent, led before 3 out, headed flat, no impression on winner towards finishn"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1204313",
+            "name": "Crystal Orchard"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "7/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, dropped to in touch in mid-division before 4th, weakened before 2 out"
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "raceKey": "949403",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 13,
+      "joined": 11,
+      "linked": 11,
+      "hasOdds": true,
+      "favouriteCloth": 10,
+      "stage": "WEIGHEDIN",
+      "winningTime": "6m 30.40s",
+      "nonRunners": [
+        {
+          "num": 12,
+          "name": "Annie Express"
+        },
+        {
+          "num": 3,
+          "name": "Arctic Conditions"
+        }
+      ],
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 9,
+        "abnormal": 2,
+        "maxRank": 9,
+        "missingRanks": [],
+        "popCovered": 9,
+        "popTotal": 9,
+        "popRatio": 1,
+        "finishRatio": 0.818
+      },
+      "startTime": "14:07",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-20/chepstow/949403/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1056406",
+            "name": "No Tackle"
+          },
+          "finish": "落",
+          "abnormal": "落",
+          "abnormalReason": "casualty.reason=UnseatedRider",
+          "pop": 6,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Hampered and unseated rider 1st"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1141685",
+            "name": "The Long Point"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 8,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent when hampered 1st, in touch in mid-division after, lost place 8th, mistake 11th, well beaten before 5 out, pulled up after"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1209342",
+            "name": "Vanderflier"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "22/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Prominent to 5th, chased leaders, weakened after 5 out, tailed off"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1160858",
+            "name": "Better Off Alone"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "3/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Jumped right at times, led 1st, headed before 13th, not fluent, bumped and lost second 2 out, no extra flat"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1208732",
+            "name": "Jukebox King"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, slowed into 1st, jumped left and headed, prominent after, led again after 13th, headed before 5 out, weakened before 3 out"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1102024",
+            "name": "Jongleur D'etoiles"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "9/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Never better than mid-division, well beaten before 5 out, tailed off"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:987275",
+            "name": "Gold Clermont"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 11,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Hampered 1st, towards rear, no chance before 5 out, tailed off"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1025567",
+            "name": "Esperti"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "25/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Jumped right in rear, went sixth 4 out, never any chance, tailed off"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1055077",
+            "name": "Gingerbred"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "9/4",
+          "time": "6m 30.40s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Tracked leaders, went second after 13th, led before 5 out but pressed, not fluent 2 out, rider dropped rein briefly flat, stayed on"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1135513",
+            "name": "Patriotik"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up towards rear, hampered 1st, headway 11th, went third before 5 out, bumped and went second 2 out, pressed winner flat, kept on but always just held"
+        },
+        {
+          "num": 13,
+          "frame": null,
+          "horse": {
+            "id": "rp:1135525",
+            "name": "Tommys Charm"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 7,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "In touch in mid-division, weakened before 5 out, tailed off"
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "raceKey": "949404",
+      "status": "result",
+      "heads": 10,
+      "resultHeads": 12,
+      "joined": 10,
+      "linked": 10,
+      "hasOdds": true,
+      "favouriteCloth": 7,
+      "stage": "WEIGHEDIN",
+      "winningTime": "4m 30.10s",
+      "nonRunners": [
+        {
+          "num": 8,
+          "name": "Zambezi Fix"
+        },
+        {
+          "num": 3,
+          "name": "Mistral St Georges"
+        }
+      ],
+      "completeness": {
+        "heads": 10,
+        "rows": 10,
+        "numeric": 8,
+        "abnormal": 2,
+        "maxRank": 8,
+        "missingRanks": [],
+        "popCovered": 8,
+        "popTotal": 8,
+        "popRatio": 1,
+        "finishRatio": 0.8
+      },
+      "startTime": "14:42",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-20/chepstow/949404/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1047340",
+            "name": "Activist"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, pushed along and towards rear before 2nd, switched left and headway 3 out, no impression from 2 out, pressing for fourth briefly last"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1167983",
+            "name": "In Limbo"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "14/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, challenged 5th, not fluent 3 out, outpaced and no impression from 2 out"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1209210",
+            "name": "Golden Wings"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "100/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up towards rear, not always fluent, closed before 2nd, weakened before 2 out"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1165572",
+            "name": "Red N Yellow"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led after 1st, not fluent 2 out, ridden before last, headed flat, stayed on, just held"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1179091",
+            "name": "Jollie Dame"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 2,
+          "winOdds": "9/2",
+          "time": "4m 30.10s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, not fluent 3rd, headway before 3 out, went second before 2 out, led flat, stayed on"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1162887",
+            "name": "Northwest Passage"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "11/10",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": true,
+          "comment": "Held up in rear, not fluent 1st, not much room briefly 3rd, headway before 3 out, disputing second 2 out, ridden before last, no extra flat"
+        },
+        {
+          "num": 9,
+          "frame": null,
+          "horse": {
+            "id": "rp:1124081",
+            "name": "Mount Washington"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, pushed along after 3 out, no extra 2 out"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1210444",
+            "name": "Best Trump"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "13/2",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Always towards rear"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1186402",
+            "name": "Both Of Us"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 7,
+          "winOdds": "16/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, headed after 1st, stayed handy, weakened before 3 out, pulled up before 2 out"
+        },
+        {
+          "num": 12,
+          "frame": null,
+          "horse": {
+            "id": "rp:1176242",
+            "name": "Bouquet De Paris"
+          },
+          "finish": "中",
+          "abnormal": "中",
+          "abnormalReason": "casualty.reason=PulledUp",
+          "pop": 4,
+          "winOdds": "9/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, weakened before 2 out, pulled up after"
+        }
+      ]
+    },
+    {
+      "no": 8,
+      "raceKey": "949405",
+      "status": "result",
+      "heads": 10,
+      "resultHeads": 12,
+      "joined": 10,
+      "linked": 10,
+      "hasOdds": true,
+      "favouriteCloth": null,
+      "stage": "WEIGHEDIN",
+      "winningTime": "4m 19.80s",
+      "nonRunners": [
+        {
+          "num": 12,
+          "name": "Snowy Hill"
+        },
+        {
+          "num": 9,
+          "name": "Top Magneto"
+        }
+      ],
+      "completeness": {
+        "heads": 10,
+        "rows": 10,
+        "numeric": 10,
+        "abnormal": 0,
+        "maxRank": 10,
+        "missingRanks": [],
+        "popCovered": 10,
+        "popTotal": 10,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "startTime": "15:17",
+      "sourceUrl": "https://www.sportinglife.com/racing/results/2026-11-20/chepstow/949405/x",
+      "runners": [
+        {
+          "num": 1,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245959",
+            "name": "Ceebeegeebee"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 4,
+          "winOdds": "12/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up towards rear, headway over 4f out, pushed along 3f out, chased winner over 1f out, no impression final furlong"
+        },
+        {
+          "num": 2,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245960",
+            "name": "Eddie The Gray"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 5,
+          "winOdds": "18/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Mid-division, lost place over 6f out, well beaten final 4f"
+        },
+        {
+          "num": 3,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245964",
+            "name": "Hurricane Mick"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "6/4",
+          "time": "4m 19.80s",
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Rear of mid-division, headway over 4f out, challenged 3f out, led over 2f out, clear 1f out, easily"
+        },
+        {
+          "num": 4,
+          "frame": null,
+          "horse": {
+            "id": "rp:1243358",
+            "name": "Intense Appeal"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 8,
+          "winOdds": "33/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Led, headed 4f out, weakened over 1f out"
+        },
+        {
+          "num": 5,
+          "frame": null,
+          "horse": {
+            "id": "rp:1183151",
+            "name": "Killygowan"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 3,
+          "winOdds": "10/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, led 3f out, headed over 2f out, weakened inside final furlng"
+        },
+        {
+          "num": 6,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245966",
+            "name": "Lord Max"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 1,
+          "winOdds": "6/4",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in touch, lost place over 4f out, soon well held"
+        },
+        {
+          "num": 7,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245968",
+            "name": "Moonlight Maverick"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 10,
+          "winOdds": "66/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leaders, outpaced 4f out, no impression after but plugged on and went fourth inside final furlong"
+        },
+        {
+          "num": 8,
+          "frame": null,
+          "horse": {
+            "id": "rp:1242798",
+            "name": "Noble Calling"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up in rear, took keen hold, closed from 6f out, ridden over 2f out, soon weakened"
+        },
+        {
+          "num": 10,
+          "frame": null,
+          "horse": {
+            "id": "rp:1245958",
+            "name": "Cappanapeasta"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 9,
+          "winOdds": "50/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Held up towards rear, outpaced and no impression final 4f"
+        },
+        {
+          "num": 11,
+          "frame": null,
+          "horse": {
+            "id": "rp:1210774",
+            "name": "Hotter Than Dubai"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "abnormalReason": null,
+          "pop": 6,
+          "winOdds": "20/1",
+          "time": null,
+          "margin": null,
+          "passing": null,
+          "last3f": null,
+          "bodyWeight": null,
+          "bodyDelta": null,
+          "favourite": false,
+          "comment": "Chased leader, led 4f out, headed 3f out, third and no impression on winner final furlong, kept on"
+        }
+      ]
+    }
+  ]
+}
