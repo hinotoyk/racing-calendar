@@ -138,7 +138,12 @@ if (logErrors.length) { say("采集日志异常行:"); for (const l of logErrors
 const warnings = [];
 const fatals = [];
 if (req.total === 0) fatals.push("无任何出站请求（采集脚本未启动或日志被关闭）");
-if (req.total >= 20 && req.err / req.total > 0.6) fatals.push(`请求失败率 ${pct(req.err, req.total)} > 60%`);
+// 失败率分两级：403/429 是上游封锁/限流（2026-11-21 起 ABCPCC 对 runner IP 整段 403，曾致 85% 失败率误报 FAIL），
+// 单列 WARN；只有「非限流失败」超阈值才升 FAIL（那才是采集脚本/网络真挂了）。
+const fatalErr = req.err - n403;
+const fatalTotal = req.total - n403;
+if (fatalTotal >= 20 && fatalErr / fatalTotal > 0.6) fatals.push(`非限流请求失败率 ${pct(fatalErr, fatalTotal)} > 60%（限流 403/429 ${n403} 次单列）`);
+else if (req.total >= 20 && req.err / req.total > 0.6) warnings.push(`总请求失败率 ${pct(req.err, req.total)} 偏高，但均为 403/429 限流（上游封锁，非流水线故障）`);
 if (cov.docsWithRunners === 0) fatals.push("没有任何含出走马的快照文档");
 if (!buildOk) fatals.push("build 未产出 [build] dates/rows 标志");
 // 分级闸门：只有「确定没采到欧美卡」才升 FAIL；偶发/部分失败留 WARN（仅全量档检查）

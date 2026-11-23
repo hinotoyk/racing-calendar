@@ -149,7 +149,12 @@ async function main() {
   const prof = await fetchAll(new Set(names.keys()), names);
 
   let hit = 0;
+  let blockedN = 0;
   for (const [n, p] of prof) if (p && !p.missing) hit++;
+  for (const [, p] of prof) if (p?.blocked) blockedN++;
+  if (blockedN) {
+    console.log(`::warning::ABCPCC 被站方封锁（HTTP 403/429），${blockedN}/${names.size} 匹血统本轮跳过（熔断 6h，下次运行自动重试）`);
+  }
   const totals = { files: 0, changed: 0, sex: 0, age: 0, sire: 0, dam: 0, bms: 0, sireSire: 0, owner: 0, breeder: 0 };
   const missed = [];
   for (const [n, p] of prof) if (!p || p.missing) missed.push(n);

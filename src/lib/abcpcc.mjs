@@ -55,8 +55,22 @@ async function req(url, { redirect = "manual", src = "abcpcc" } = {}) {
   }
 }
 
-/** 返回 { ok, data }：ok=false 表示网络/限流失败（不可当作「查无此马」缓存） */
+/** 返回 { ok, data }：ok=false 表示网络/限流失败（不可当作「查无此马」缓存）
+ *
+ * 403/429 处理（2026-11-21 起 CI 实测：站方对 GitHub runner IP 段整段封锁，240×403 + 332×429）：
+ *   不再退避重试——重试只会把单日请求量放大 4 倍（143 马 × 4 = 572 次，零产出），
+ *   也不会误缓存成「查无此马」。改为记录 blockedUntil（进程级 6h 熔断）：
+ *   熔断窗口内后续马名直接短路返回 failed，等下次运行再探测封锁是否解除。
+ */
+const BLOCK_TTL_MS = 6 * 3600 * 1000;
+let blockedUntil = 0;
+
+export function isBlocked() {
+  return Date.now() < blockedUntil;
+}
+
 async function getJson(url, { retries = 3 } = {}) {
+  if (isBlocked()) return { ok: false, data: null, why: "blocked" };
   for (let i = 0; i <= retries; i++) {
     const r = await req(url);
     if (r.status === 200) {
@@ -67,7 +81,13 @@ async function getJson(url, { retries = 3 } = {}) {
       }
     }
     if (r.status === 404) return { ok: true, data: null, why: "404" };
-    // 429/5xx/0：限流或抖动，退避重试
+    if (r.status === 403 || r.status === 429) {
+      // 站方封锁/限流：熔断 6h，本进程内不再发请求
+      blockedUntil = Date.now() + BLOCK_TTL_MS;
+      console.log(`[abcpcc] HTTP ${r.status}（疑似站方封锁 runner IP），熔断 ${BLOCK_TTL_MS / 3600000}h，本次运行剩余马名跳过`);
+      return { ok: false, data: null, why: "blocked" };
+    }
+    // 5xx/0：抖动，退避重试
     await sleep(1200 * (i + 1));
   }
   return { ok: false, data: null, why: "http" };
@@ -183,9 +203,10 @@ export async function horseProfile(name, { force = false, offline = false, yearH
     if (hitCache) return hitCache;
   }
   if (offline) return null;
+  if (isBlocked()) return { slug, nome: name, missing: false, failed: true, blocked: true, fetchedAt: new Date().toISOString() };
 
   const sr = await searchName(name);
-  if (!sr.ok) return { slug, nome: name, missing: false, failed: true, fetchedAt: new Date().toISOString() };
+  if (!sr.ok) return { slug, nome: name, missing: false, failed: true, blocked: sr.why === "blocked", fetchedAt: new Date().toISOString() };
   const cands = sr.list.filter((c) => normName(c.nome) === normName(name));
   if (!cands.length) {
     // 真·查无此马：负缓存 3 天（站方补充登记后可重试），抓取失败不进缓存
