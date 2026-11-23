@@ -96,7 +96,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/results/
+          git add data/races/ data/results/   # races 由 Guard 修复时也会改到
           if ! git diff --cached --quiet; then
             git commit -m "data: intraday results (third-party) $(date -u +%Y-%m-%dT%H:%MZ)"
             git pull --rebase origin main || { git rebase --abort; echo "::error::远端冲突，本次数据提交放弃"; exit 1; }

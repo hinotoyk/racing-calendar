@@ -74,27 +74,33 @@ jobs:
       # 判据见 src/lib/merge-safe.mjs；审计白名单：海外 frame（本来就没有枠）与 data/clears.json
       # 登记过的人为纠正。修复结果会随本档的 data 提交一起落库。
       - name: Guard no-downgrade
+        id: guard
         if: always()
         run: |
           mkdir -p test-logs
           node src/audit-downgrade.js --restore 2>&1 | tee -a test-logs/downgrade.log
-          if grep -qE "发现降级点 [1-9]" test-logs/downgrade.log; then
+          # 修复过就放行发布链：否则 changed=0 会让 Build/Commit 整段跳过，补回的数据又留在 runner 上
+          repaired=0
+          if grep -qE "已自动修复 [1-9]" test-logs/downgrade.log; then
+            repaired=1
             echo "::warning::检测到「无值覆盖有值」，已自动补回，详见 downgrade.log"
           fi
+          if [ -n "$(git status --porcelain data/ 2>/dev/null)" ]; then repaired=1; fi
+          echo "repaired=${repaired}" >> "$GITHUB_OUTPUT"
 
       - name: Build site
-        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' || steps.guard.outputs.repaired == '1' }}
         timeout-minutes: 15
         run: node src/build.js 2>&1 | tee test-logs/build.log
 
       # 逐条请求 JSONL（data/logs/，gitignore 不入库）聚合成可读摘要：
       # 直接打印在 Actions step 日志里，无需下载 artifact 就能判断请求量/403/归一结果。
       - name: Diagnostics from JSONL request log
-        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' || steps.guard.outputs.repaired == '1' }}
         run: node src/ci-summary.js
 
       - name: Commit data changes
-        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' || steps.guard.outputs.repaired == '1' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -114,18 +120,18 @@ jobs:
 
       # 更新完必须重新部署静态页面：由本 workflow 直接发布（不依赖 push 触发 deploy.yml）
       - name: Configure Pages
-        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' || steps.guard.outputs.repaired == '1' }}
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' || steps.guard.outputs.repaired == '1' }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
       - name: Deploy to Pages
         id: deployment
-        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' || steps.guard.outputs.repaired == '1' }}
         uses: actions/deploy-pages@v4
 
       # 运行日志（always 上传，便于排查「为什么今天是 0 请求」）
@@ -144,7 +150,7 @@ jobs:
       # 摘要判 FAIL 时让 job 显式失败（放最后，保证上面的 artifact 已经上传）
       # 只在真正走了采集+构建链时判定；0 变化是正常收尾，不看 verdict
       - name: Gate on diagnostics
-        if: ${{ (steps.waku.outputs.changed || '0') != '0' }}
+        if: ${{ (steps.waku.outputs.changed || '0') != '0' || steps.guard.outputs.repaired == '1' }}
         run: |
           v="$(cat test-logs/verdict.txt 2>/dev/null || echo FAIL)"
           echo "verdict=$v"
