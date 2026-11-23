@@ -19,7 +19,7 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment3.outputs.page_url || steps.deployment2.outputs.page_url || steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,6 +46,31 @@ jobs:
         with:
           path: _site
 
+      # deploy-pages 偶发「Fetching artifact metadata failed / No artifacts named
+      # github-pages found」——工件上传明明成功，是 Actions API 拉取元数据的瞬时故障
+      # （2026-11-23 yunji/kzn/rc 同款：构建/上传全绿、Deploy 0 秒失败）。
+      # 兜底：continue-on-error 让本步失败不终结 job，同 job 内等 15s 后重试，最多 3 次。
+      # （不能用独立 job 重试：实测同 run 第二个声明 github-pages environment 的 job
+      #  调度即失败，runner 未分配 —— Pages 环境瞬态锁定所致。yunji 已实战验证。）
       - name: Deploy
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+
+      - name: Wait before retry (attempt 2)
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 15
+
+      - name: Deploy (retry attempt 2)
+        id: deployment2
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+
+      - name: Wait before retry (attempt 3)
+        if: failure() && steps.deployment2.outcome == 'failure'
+        run: sleep 15
+
+      - name: Deploy (retry attempt 3)
+        id: deployment3
+        if: failure() && steps.deployment2.outcome == 'failure'
         uses: actions/deploy-pages@v4
