@@ -13,6 +13,12 @@ import zlib from "node:zlib";
 const DRY = process.argv.includes("--dry");
 const RACES = path.resolve("data", "races");
 
+// 日本判定必须与 build.js 同口径：JBIS 卡片**没有 country 字段**（实测 undefined），
+// 只靠 scope=central/local 兜底成 JPN。旧版只看 doc.country === "JPN" → 日本卡片全被
+// 误判为海外，把 backfill-waku 补好的枠番整库清空（2026-11-23 查明的「枠番补采跑了却没枠番」根因）。
+const countryOf = (doc) => doc.country ?? (doc.scope === "central" || doc.scope === "local" ? "JPN" : null);
+const isJapan = (doc) => countryOf(doc) === "JPN" || /^jbis\.race\.card/.test(String(doc.schema ?? ""));
+
 let files = 0;
 let rows = 0;
 for (const day of fs.readdirSync(RACES).sort()) {
@@ -22,7 +28,7 @@ for (const day of fs.readdirSync(RACES).sort()) {
     if (!f.endsWith(".json.gz")) continue;
     const file = path.join(dir, f);
     const doc = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString("utf8"));
-    if (doc.country === "JPN") continue; // 日本以外没有枠
+    if (isJapan(doc)) continue; // 日本以外没有枠
     let n = 0;
     for (const race of doc.races ?? []) {
       for (const r of race.runners ?? []) {

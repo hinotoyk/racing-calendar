@@ -190,7 +190,7 @@ export async function enrichSireSire(docs, { lookup, log, overwrite = false, hom
 }
 
 // ---------- ride → canonical runner ----------
-function runnerOf(ride, ped) {
+export function runnerOf(ride, ped) {
   const horse = ride.horse ?? {};
   const horseId = horse.horse_reference?.id;
   return {
