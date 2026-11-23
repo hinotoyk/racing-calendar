@@ -11,6 +11,7 @@ import { parseCalendar, parseDayPage, parseEntryPage, parsePedigree } from "./li
 import { enrichSilks, saveSilkCaches, silkStats } from "./lib/silks.js";
 import { attachJbisNames, saveJbisNames, jbisNameStats } from "./lib/jbis-name.js";
 import { venueName, scopeOf } from "./race-config.js";
+import { inheritFrame } from "./lib/frame-inherit.mjs";
 
 const DATA_DIR = path.resolve("data", "races");
 const PED_DIR = path.resolve("data", "pedigree");
@@ -221,6 +222,9 @@ async function collectTrack(date, track, dayHtml, existing) {
   }
   // 彩衣继承：重采重建 runner 时不要把 backfill-silks 回填的彩衣丢掉（原先定义未接线）
   inheritSilk(existing, out);
+  // 枠番继承：同上，守住 backfill-waku 补好的枠順（凌晨档重采时源站尚无枠值）
+  const keptFrames = inheritFrame(existing, out);
+  if (keptFrames) console.log(`[frame] ${date} ${track} 继承已补枠番 ${keptFrames} 頭`);
   return out;
 }
 

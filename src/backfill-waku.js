@@ -221,6 +221,7 @@ async function fetchEntry(date, track, no) {
 const stats = {
   requests: 0,
   changedRaces: 0,
+  localChanged: 0, // 本地补号（results/推导）改动的场次——必须计入 changed，否则 CI 判「无变化」不提交
   horses: 0,
   seats: 0,
   errors: 0,
@@ -275,6 +276,7 @@ for (const date of DATES) {
     const need = [];
     for (const race of doc.races ?? []) {
       if (race.status !== "entries") continue;
+      const localBefore = stats.fromResults + stats.derived;
 
       if (race.runners?.length) {
         if (res) {
@@ -299,6 +301,9 @@ for (const date of DATES) {
           touched = true;
         }
       }
+      // 本地补号也算「改动场次」：CI 以 changed 决定 build/commit/deploy，
+      // 不计入会导致「补好了但没提交」的静默丢失（2026-11-23 查明的第二个隐患）。
+      if (stats.fromResults + stats.derived > localBefore) stats.localChanged++;
 
       const missing = !race.runners?.length || race.runners.some((x) => x.num == null || x.frame == null);
       if (!missing) {
@@ -397,7 +402,7 @@ if (manifestDirty && manifest) {
 
 const sec = Math.round((Date.now() - t0) / 1000);
 console.log(
-  `waku -> changed=${stats.changedRaces} requests=${stats.requests} horses=${stats.horses} seats=${stats.seats} ` +
+  `waku -> changed=${stats.changedRaces + stats.localChanged} requests=${stats.requests} horses=${stats.horses} seats=${stats.seats} ` +
     `errors=${stats.errors} ${sec}s${DRY ? " (dry)" : ""}` +
     ` | tables=${stats.tables} from results=${stats.fromResults} derived=${stats.derived} already-complete=${stats.skipped}` +
     (stats.touched.length ? ` | ${stats.touched.join(", ")}` : "")

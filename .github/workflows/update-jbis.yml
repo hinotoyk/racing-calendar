@@ -55,10 +55,17 @@ jobs:
           # 否则补采全量失败也会被判成功（changed=0 → 静默跳过发布链）
           set +e
           mkdir -p test-logs
-          node src/backfill-waku.js --days 2 2>&1 | tee test-logs/waku.log
+          # 兜底扫昨天（JST）：窗口本来是「今天+明天」，某天补采失败就永久缺口（2026-11-23 复盘盲点）。
+          # 已完赛场次的号从本地 data/results 取，0 请求；失败不影响主档。
+          node src/backfill-waku.js --dates "$(TZ=Asia/Tokyo date -d yesterday +%F)" 2>&1 | tee test-logs/waku.log
+          node src/backfill-waku.js --days 2 2>&1 | tee -a test-logs/waku.log
           rc=${PIPESTATUS[0]}
           # 末行形如：waku -> changed=12 requests=12 horses=127 seats=254 errors=0 14s | tables=12 from results=284 derived=139 ...
           n=$(sed -n 's/^waku -> changed=\([0-9][0-9]*\).*/\1/p' test-logs/waku.log | tail -1)
+          # 双保险（2026-11-23）：changed 计数器只统计「联网补表」，本地补号（results/推导）
+          # 曾经不计入 → 补好了却判无变化、不提交不部署，数据在 runner 上直接丢弃。
+          # 这里再以 data/ 的实际改动为准：只要工作区脏了就放行发布链。
+          if [ -n "$(git status --porcelain data/ 2>/dev/null)" ]; then n=1; fi
           echo "changed=${n:-0}" >> "$GITHUB_OUTPUT"
           exit "$rc"
 

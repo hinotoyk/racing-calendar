@@ -67,6 +67,14 @@ jobs:
           fi
           exit "$rc"
 
+      # 美国夜场卡片常在 SL 首次采集时还没放出馬表（races 有、runners 空）→ 事后用历史单场
+      # 结果页 rides 回填（racecards 对历史日期 307，无法重采）。只处理 pending 文档；
+      # 已补好则 0 请求、0 改动，不产生提交。教训见 2026-11-23：278 场空壳无人补。
+      - name: Backfill pending RP racecards
+        timeout-minutes: 60
+        continue-on-error: true
+        run: node src/backfill-rp-pending.js --delay 900 2>&1 | tee -a test-logs/rp.log
+
       # 构建：数据归一 + _site 产出（_site 本身不入库）
       - name: Build site
         timeout-minutes: 15

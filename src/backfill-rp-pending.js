@@ -46,6 +46,7 @@ function readDoc(date, file) {
 
 const manifest = JSON.parse(fs.readFileSync(MANIFEST, "utf8"));
 const stats = { docs: 0, races: 0, filled: 0, runners: 0, skip404: 0, skipEmpty: 0 };
+let manifestDirty = false; // 无实际改动不写 manifest（接进每日档后避免空提交）
 
 for (const [date, tracks] of Object.entries(manifest.dates)) {
   if (DATES.length && !DATES.includes(date)) continue;
@@ -62,7 +63,7 @@ for (const [date, tracks] of Object.entries(manifest.dates)) {
     const todo = doc.races.filter((r) => !(r.runners?.length ?? 0) && /^\d+$/.test(String(r.raceKey ?? "")));
     if (!todo.length) {
       // 空壳但无有效 raceKey（或早已补全）：manifest 状态修正为 ok/重建汇总
-      syncManifest(manifest.dates[date][key], doc);
+      if (syncManifest(manifest.dates[date][key], doc)) manifestDirty = true;
       continue;
     }
     stats.docs++;
@@ -99,19 +100,24 @@ for (const [date, tracks] of Object.entries(manifest.dates)) {
       writeGz(base, JSON.stringify(doc));
       if (fs.existsSync(base)) fs.unlinkSync(base); // 旧明文迁移（若有）
     }
-    syncManifest(manifest.dates[date][key], doc);
+    if (syncManifest(manifest.dates[date][key], doc)) manifestDirty = true;
   }
 }
 
 function syncManifest(rec, doc) {
   const runners = doc.races.reduce((n, r) => n + (r.runners?.length ?? 0), 0);
-  rec.races = doc.races.length;
-  rec.decoded = doc.races.filter((r) => r.status === "entries").length;
-  rec.runners = runners;
-  rec.status = runners > 0 ? "ok" : "pending";
+  const next = {
+    races: doc.races.length,
+    decoded: doc.races.filter((r) => r.status === "entries").length,
+    runners,
+    status: runners > 0 ? "ok" : "pending",
+  };
+  const dirty = Object.keys(next).some((k) => rec[k] !== next[k]);
+  Object.assign(rec, next);
+  return dirty;
 }
 
-if (!DRY) {
+if (!DRY && manifestDirty) {
   manifest.updatedAt = new Date().toISOString();
   fs.writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2));
   console.log(`manifest -> ${MANIFEST}`);
