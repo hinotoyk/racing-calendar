@@ -15,6 +15,7 @@ import { readGz, writeGz } from "./lib/bundle.js";
 import { loadHomonym } from "./lib/homonym.js";
 import { answerOf, sexInvalidAsSire, sireAnswerOf } from "./lib/horse-lookup.js";
 import { normalizeHorseName } from "./lib/horse-name.mjs";
+import { recordClears } from "./lib/clears.js";
 
 const argv = process.argv.slice(2);
 const FIX = argv.includes("--fix");
@@ -195,8 +196,17 @@ for (const [file, list] of byFile) {
     if (!r || r.horse?.name !== w.runner.horse?.name || r.sire?.name !== w.sire) continue;
     if (!r.sireSire) continue;
     r.sireSire = null;
+    // 登记「故意清空」：审计恢复逻辑不会把这条错绑再填回来
+    const race = doc.races?.[w.ri];
+    recordClears([
+      {
+        key: `${file}|rk:${race?.raceKey ?? race?.no}|h:${r.horse?.id ?? r.num}`,
+        field: "sireSire",
+        reason: w.reason,
+      },
+    ]);
     fixed++;
   }
   writeGz(file.replace(/\.gz$/, ""), JSON.stringify(doc));
 }
-console.log(`\n[fix] 清除 ${fixed} 行的错误祖父绑定（涉及 ${byFile.size} 份文档）`);
+console.log(`\n[fix] 清除 ${fixed} 行的错误祖父绑定（涉及 ${byFile.size} 份文档），已记入 data/clears.json`);

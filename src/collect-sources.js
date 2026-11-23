@@ -4,8 +4,9 @@
 // 落盘：data/races/{date}/{源前缀}-{trackId}.json.gz（gzip 压缩）+ manifest.dates[date][sourceKey]
 import fs from "node:fs";
 import path from "node:path";
-import { readGz, writeGz } from "./lib/bundle.js";
+import { readGz } from "./lib/bundle.js";
 import { guardOverwrite } from "./lib/guard.js";
+import { writeDocSafe } from "./lib/write-safe.js";
 import { getSource } from "./sources/registry.js";
 
 const argv = process.argv.slice(2);
@@ -84,6 +85,7 @@ for (const { date, file, doc } of units) {
 
   const key = doc.sourceKey;
   manifest.dates[date] = manifest.dates[date] || {};
+  let writtenDoc = doc;
   if (same) {
     skipped++;
     if (keepExisting) {
@@ -95,14 +97,16 @@ for (const { date, file, doc } of units) {
     }
   } else {
     fs.mkdirSync(path.dirname(file2), { recursive: true });
-    writeGz(base, JSON.stringify(doc));
+    // 字段级「不降级」写盘：本次拿不到的字段（枠番/血统/彩衣/年龄…）一律保留已存值
+    const res = writeDocSafe(base, doc, { label: `${date}/${file} ${doc.venue}` });
+    writtenDoc = res.doc;
     if (fs.existsSync(base)) fs.unlinkSync(base);        // 旧明文迁移
     written++;
-    const s = summarize(doc);
+    const s = summarize(writtenDoc);
     console.log(`[ok]   ${date} ${file} ${doc.venue}(${doc.country}): ${s.races} R / ${s.decoded} R 出表 / ${s.runners} 頭`);
   }
-  // manifest 记录必须反映「实际落盘的内容」：保留旧文档时按 existing 写，否则会记成空壳
-  const saved = same ? existing ?? doc : doc;
+  // manifest 记录必须反映「实际落盘的内容」：保留旧文档时按 existing 写，否则按合并后写
+  const saved = same ? existing ?? doc : writtenDoc;
   manifest.dates[date][key] = {
     source: doc.source,
     venue: doc.venue,

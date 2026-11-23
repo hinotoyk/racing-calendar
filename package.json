@@ -15,7 +15,7 @@
     "collect:results:rp": "node src/collect-results-rp.js",
     "collect:results:tjk": "node src/collect-results-tjk.js",
     "build": "node src/build.js",
-    "test": "node test/guard.test.mjs && node test/tjk-result.test.mjs && node test/tjk-sire.test.mjs && node test/age.test.mjs && node test/frame-inherit.test.mjs",
+    "test": "node test/guard.test.mjs && node test/tjk-result.test.mjs && node test/tjk-sire.test.mjs && node test/age.test.mjs && node test/frame-inherit.test.mjs && node test/merge-safe.test.mjs",
     "audit:homonym": "node src/audit-homonym.js",
     "migrate:lookup": "node src/migrate-lookup-v2.js",
     "serve": "node src/server.js",
@@ -29,6 +29,8 @@
     "collect:results:tol": "node src/collect-results-tol.js --days 2",
     "collect:results:si": "node src/collect-results-si.js --days 2",
     "collect:results:chs": "node src/collect-results-chs.js --days 3",
-    "rebuild:tk-card": "node src/rebuild-tk-card.js"
+    "rebuild:tk-card": "node src/rebuild-tk-card.js",
+    "audit:downgrade": "node src/audit-downgrade.js",
+    "audit:downgrade:fix": "node src/audit-downgrade.js --restore"
   }
 }

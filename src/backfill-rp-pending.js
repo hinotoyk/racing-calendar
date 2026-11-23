@@ -17,7 +17,8 @@
 // 回填后需 npm run build 重建 derived。
 import fs from "node:fs";
 import path from "node:path";
-import { readGz, writeGz } from "./lib/bundle.js";
+import { readGz } from "./lib/bundle.js";
+import { writeDocSafe } from "./lib/write-safe.js";
 import { get, nextData } from "./sources/http.js";
 import { resultUrl } from "./lib/sl-result.mjs";
 import { runnerOf } from "./sources/racingpost.js";
@@ -55,7 +56,7 @@ for (const [date, tracks] of Object.entries(manifest.dates)) {
     if (rec.status !== "pending") continue;
     if (TRACKS.length && !TRACKS.includes(key.slice(3))) continue;
     const file = fs.readdirSync(path.join(DATA_DIR, date)).find((f) => f.startsWith(`rp-${key.slice(3)}.`) ) ;
-    const doc = file ? readDoc(date, file) : null;
+    let doc = file ? readDoc(date, file) : null;
     if (!doc?.races?.length) {
       console.log(`[skip] ${date} ${key} 文档读取失败`);
       continue;
@@ -97,7 +98,9 @@ for (const [date, tracks] of Object.entries(manifest.dates)) {
     }
     if (changed && !DRY) {
       const base = path.join(DATA_DIR, date, file.replace(/\.gz$/, ""));
-      writeGz(base, JSON.stringify(doc));
+      // 安全写盘：只填空场次，绝不覆盖已有出马表 / 已有字段
+      const res = writeDocSafe(base, doc, { label: `${date}/${file}`, log: false });
+      doc = res.doc;
       if (fs.existsSync(base)) fs.unlinkSync(base); // 旧明文迁移（若有）
     }
     if (syncManifest(manifest.dates[date][key], doc)) manifestDirty = true;

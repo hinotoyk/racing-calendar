@@ -15,7 +15,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { SITE } from "./config.js";
 import { fetchHtmlSoft } from "./lib/fetch.js";
-import { readGz, writeGz } from "./lib/bundle.js";
+import { readGz } from "./lib/bundle.js";
+import { writeDocSafe } from "./lib/write-safe.js";
 import { parseEntryPage } from "./lib/parse-race.js";
 import { applyHorseName, jbisNameOf } from "./lib/jbis-name.js";
 import { cachedOwnerSilk } from "./lib/silks.js";
@@ -373,7 +374,8 @@ for (const date of DATES) {
     doc.wakuAt = at(TODAY);
     if (wholeTable) doc.capturedAt = at(TODAY);
     if (!DRY) {
-      writeGz(file, JSON.stringify(doc));
+      // 安全写盘：只补号，绝不因为本次某字段为空而清掉已存值
+      writeDocSafe(file, doc, { label: `${date}/${track}`, log: false });
       stats.touched.push(`${date}/${track}`);
       if (manifest?.dates?.[date]) {
         const runners = (doc.races ?? []).reduce((n, r) => n + (r.runners?.length ?? 0), 0);

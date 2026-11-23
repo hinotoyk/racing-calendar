@@ -4,7 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { SITE } from "./config.js";
 import { fetchHtml, fetchHtmlSoft } from "./lib/fetch.js";
-import { readGz, writeGz } from "./lib/bundle.js";
+import { readGz } from "./lib/bundle.js";
+import { writeDocSafe } from "./lib/write-safe.js";
 import { guardOverwrite, manifestEntry } from "./lib/guard.js";
 import { pedCache } from "./lib/ped-cache.js";
 import { parseCalendar, parseDayPage, parseEntryPage, parsePedigree } from "./lib/parse-race.js";
@@ -287,6 +288,7 @@ for (const date of DATES) {
       const doc = await collectTrack(date, e.track, dayHtml, existing);
       await enrichPedigree(doc);
 
+      let writtenDoc = doc;
       // 幂等：赛事数、头数、枠番/馬番/性齢/彩衣/登录名一致则跳过（任一变化触发重写）
       const fp = (d) =>
         JSON.stringify(
@@ -314,14 +316,16 @@ for (const date of DATES) {
         }
       } else {
         ensureDir(path.dirname(file));
-        writeGz(file, JSON.stringify(doc));
+        // 字段级「不降级」写盘：本次没抓到的字段（枠番/血统/彩衣/马名 id…）保留已存值
+        const res = writeDocSafe(file, doc, { label: `${date}/${e.track} ${doc.venue}` });
+        writtenDoc = res.doc;
         if (fs.existsSync(legacy)) fs.unlinkSync(legacy);   // 旧明文迁移
-        const s = summarize(doc);
+        const s = summarize(writtenDoc);
         console.log(`[ok]   ${date} ${e.track} ${doc.venue}: ${s.races} R / ${s.decoded} R 已出表 / ${s.runners} 頭`);
       }
 
-      // manifest 记录必须反映「实际落盘的内容」：保留旧文档时按 existing 写，否则会记成空壳
-      const saved = same || keepExisting ? existing ?? doc : doc;
+      // manifest 记录必须反映「实际落盘的内容」：保留旧文档时按 existing 写，否则按合并后写
+      const saved = same || keepExisting ? existing ?? doc : writtenDoc;
       manifest.dates[date] = manifest.dates[date] || {};
       manifest.dates[date][e.track] = manifestEntry({
         venue: venueName(e.track),
