@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execSync } from "node:child_process";
 import { buildXlsx } from "./lib/xlsx.js";
 import { readGz } from "./lib/bundle.js";
 import { assertRoundTrip, packRows, unpackRows } from "./lib/rows-codec.mjs";
@@ -625,5 +626,14 @@ index.weeks = weeks;
 fs.writeFileSync(path.join(DERIVED, "index.json"), JSON.stringify(index));
 // GitHub Pages 项目站：禁用 Jekyll 处理（防下划线/特殊文件被吞），且全站均为相对路径，任意 base path 可用
 fs.writeFileSync(path.join(OUT_DIR, ".nojekyll"), "");
+// 部署版本指纹（2026-11-23 定稿，配 site/yj-version.js 探测模块）：任何更新都走 push main →
+// 部署，v 必变；浏览器侧比对 version.json 感知新版 → 清缓存 + 刷新。git 不可用 → 时间戳兜底。
+fs.writeFileSync(path.join(OUT_DIR, "version.json"), JSON.stringify({
+  v: (() => {
+    try { return execSync("git rev-parse --short HEAD").toString().trim(); }
+    catch { return "dev-" + Date.now(); }
+  })(),
+  ts: Date.now(),
+}));
 console.log(`[build] dates=${index.dates.length} rows=${index.dates.reduce((n, d) => n + d.runners, 0)} -> ${OUT_DIR}`);
 if (popHit || popMiss) console.log(`[recent-pop] 前走人气命中 ${popHit} 行 / 未命中 ${popMiss} 行（缓存 ${Object.keys(POP_CACHE.horses ?? {}).length} 匹）`);

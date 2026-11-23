@@ -536,3 +536,11 @@ npm run migrate:lookup           # 缓存 v1 → v2（幂等）
 - **产驹对账不做**：JBIS 产驹页（`/horse/{id}/sire/progeny/`）标题是「産駒一覧（**現役馬**）」，只覆盖中央/地方在册现役马，
   海外产驹天然不在名单 → 「不在名单」不能证伪，只能当正例加分项，不值得为它加请求。
 - **`birth == null` 的年龄校验仍然放行**：全库收紧会让 3,636 行（日系 3,265 / 海外 371）变空，代价远大于收益，只对裁决名字生效。
+
+## 13. 部署版本指纹探测（2026-11-23）
+
+解决「线上更新后，老访客浏览器还拿旧数据」（浏览器 HTTP 缓存 + Cloudflare 边缘缓存叠加）。机制四兄弟站统一（yunji/kzn 走 Vite 注入，本仓纯 Node 构建）：
+
+- **构建期**：`src/build.js` 末尾写 `<OUT_DIR>/version.json = { v: <git 短 SHA>, ts }`（本仓所有 workflow 都各自构建发布，统一挂在 build.js 里才能全覆盖）。任何更新都走 push main → 部署，v 必变，无人工维护点。
+- **浏览器侧**：`site/yj-version.js` 在页面加载 / 切回标签页 / 每 5 分钟用 `no-store + ?t=时间戳` 探测 version.json（约 60 字节，`?t` 变化绕过 CF 与 HTTP 缓存）；v 变化 → 写回新 v（防 reload 循环）→ `location.reload()`。`window.YJ_VERSION_SITE = "rc"` 隔离 localStorage 键名。
+- **探测脚本引入**：site/index.html 与 site/global-graded.html 各一行（`defer`）。`?embed=1` 内嵌宿主站的 iframe 也参与探测并刷新自身 → 跨站 embed 同样获得更新感知。
