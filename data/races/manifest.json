@@ -1,6 +1,6 @@
 {
   "schema": "jbis.race.manifest/v1",
-  "updatedAt": "2026-11-24T02:10:00.965Z",
+  "updatedAt": "2026-11-24T00:00:00+09:00",
   "dates": {
     "2026-10-22": {
       "218": {
@@ -7047,7 +7047,8 @@
         "decoded": 12,
         "runners": 122,
         "status": "ok",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-23T00:00:00+09:00",
+        "lastError": "2026-11-24T00:00:00+09:00 This operation was aborted"
       },
       "218": {
         "venue": "浦和",
@@ -7056,7 +7057,8 @@
         "decoded": 12,
         "runners": 132,
         "status": "ok",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-23T00:00:00+09:00",
+        "lastError": "2026-11-24T00:00:00+09:00 This operation was aborted"
       },
       "224": {
         "venue": "名古屋",
@@ -7065,7 +7067,8 @@
         "decoded": 12,
         "runners": 144,
         "status": "ok",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-23T00:00:00+09:00",
+        "lastError": "2026-11-24T00:00:00+09:00 This operation was aborted"
       },
       "tjk:1": {
         "source": "tjk",
@@ -7271,7 +7274,7 @@
         "decoded": 12,
         "runners": 145,
         "status": "ok",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-24T00:00:00+09:00"
       },
       "224": {
         "venue": "名古屋",
@@ -7280,7 +7283,7 @@
         "decoded": 12,
         "runners": 143,
         "status": "ok",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-24T00:00:00+09:00"
       },
       "227": {
         "venue": "園田",
@@ -7289,7 +7292,7 @@
         "decoded": 12,
         "runners": 127,
         "status": "ok",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-24T00:00:00+09:00"
       },
       "rp:913": {
         "source": "racingpost",
@@ -7313,7 +7316,8 @@
         "decoded": 0,
         "runners": 0,
         "status": "pending",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-23T00:00:00+09:00",
+        "lastError": "2026-11-24T00:00:00+09:00 This operation was aborted"
       },
       "222": {
         "venue": "金沢",
@@ -7322,7 +7326,8 @@
         "decoded": 0,
         "runners": 0,
         "status": "pending",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-23T00:00:00+09:00",
+        "lastError": "2026-11-24T00:00:00+09:00 This operation was aborted"
       },
       "224": {
         "venue": "名古屋",
@@ -7331,7 +7336,8 @@
         "decoded": 0,
         "runners": 0,
         "status": "pending",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-23T00:00:00+09:00",
+        "lastError": "2026-11-24T00:00:00+09:00 This operation was aborted"
       },
       "227": {
         "venue": "園田",
@@ -7340,7 +7346,37 @@
         "decoded": 12,
         "runners": 132,
         "status": "ok",
-        "capturedAt": "2026-11-23T00:00:00+09:00"
+        "capturedAt": "2026-11-23T00:00:00+09:00",
+        "lastError": "2026-11-24T00:00:00+09:00 This operation was aborted"
+      }
+    },
+    "2026-11-27": {
+      "218": {
+        "venue": "浦和",
+        "scope": "local",
+        "races": 0,
+        "decoded": 0,
+        "runners": 0,
+        "status": "pending",
+        "capturedAt": "2026-11-24T00:00:00+09:00"
+      },
+      "224": {
+        "venue": "名古屋",
+        "scope": "local",
+        "races": 0,
+        "decoded": 0,
+        "runners": 0,
+        "status": "pending",
+        "capturedAt": "2026-11-24T00:00:00+09:00"
+      },
+      "227": {
+        "venue": "園田",
+        "scope": "local",
+        "races": 12,
+        "decoded": 12,
+        "runners": 128,
+        "status": "ok",
+        "capturedAt": "2026-11-24T00:00:00+09:00"
       }
     }
   }
