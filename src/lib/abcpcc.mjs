@@ -12,7 +12,15 @@
 //        毛色 / 出生年 / 生涯战绩），字段：{pai:{id,nome,pelagem,ano,ganhos,campanha,pai,mae}, mae:{…}}
 //
 // 于是「一匹马 → 父/母/父父/母父/母母/父母」只需 3~4 个请求，可缓存、可 CI 跑。
-// 站方无 robots 限制详情页，仍按 1 请求 / 300ms 节流，礼貌抓取。
+//
+// ## 2026-11-26 复测：站方加了两道门，都不是封 IP
+//   1) Referer 防盗链：缺 Referer 或 Referer 非本域 → 403「Acesso negado」（Laravel 自己吐的，
+//      不是 Cloudflare 拦截页）。带任意同源 Referer（如 https://abcpcc.com.br/）即 200。
+//      → 之前 2026-11-21 判定为「封锁 GitHub runner IP 段」是误判，本机同样 403。
+//   2) 限流 30 次 / 60 秒（响应头 x-ratelimit-limit: 30，实测第 31 次即 429，62s 后额度复原）。
+//      并发抓（4 worker × 150ms ≈ 26 req/s）必然打爆，这也是日志里 403 与 429 混杂的另一半原因。
+//      → 所有出站请求收敛到一个全局节拍器，任意两次间隔 ≥ 2100ms（≈28.5 次/分）。
+// 站方无 robots 限制详情页，按上述节拍礼貌抓取。
 import fs from "node:fs";
 import path from "node:path";
 import { logRequest } from "./reqlog.js";
@@ -20,8 +28,23 @@ import { logRequest } from "./reqlog.js";
 export const BASE = "https://abcpcc.com.br";
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+// 站方的 Referer 防盗链只认本域来源；用站点根路径最稳（不依赖具体页面路由）。
+const REFERER = `${BASE}/`;
+// 限流 30 次 / 60s，留 5% 余量 → 2100ms 一拍（≈28.5 次/分）。
+const MIN_INTERVAL_MS = 2100;
 const CACHE_DIR = path.resolve("data", "pedigree", "abcpcc");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ---------- 全局节拍器 ----------
+// 调用方（backfill-bra-ped.js）是多并发 worker，而站方限流按 IP 算，
+// 所以在最底层串行排队：不管多少并发进来，出站请求一律拉平到 MIN_INTERVAL_MS 间隔。
+let nextSlotAt = 0;
+async function acquireSlot() {
+  const now = Date.now();
+  const at = Math.max(now, nextSlotAt);
+  nextSlotAt = at + MIN_INTERVAL_MS;
+  if (at > now) await sleep(at - now);
+}
 
 // ---------- 名称归一 ----------
 /** 去重音 / 去国别后缀 / 压空白 / 大写：「Poderoso Chefão (BRZ)」→「PODEROSO CHEFAO」 */
@@ -39,11 +62,18 @@ export const slugOf = (s) => normName(s).toLowerCase().replace(/\s+/g, "-");
 
 // ---------- HTTP ----------
 async function req(url, { redirect = "manual", src = "abcpcc" } = {}) {
+  await acquireSlot(); // 排到全局节拍器的下一个空位，再开始计时
   const t0 = Date.now();
   try {
     const res = await fetch(url, {
       redirect,
-      headers: { "User-Agent": BROWSER_UA, Accept: "application/json, text/html;q=0.9,*/*;q=0.8" },
+      headers: {
+        "User-Agent": BROWSER_UA,
+        Accept: "application/json, text/html;q=0.9,*/*;q=0.8",
+        // 缺这一行就是 403「Acesso negado」——站方的防盗链校验
+        Referer: REFERER,
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+      },
       signal: AbortSignal.timeout(25000),
     });
     const text = await res.text();
@@ -57,12 +87,15 @@ async function req(url, { redirect = "manual", src = "abcpcc" } = {}) {
 
 /** 返回 { ok, data }：ok=false 表示网络/限流失败（不可当作「查无此马」缓存）
  *
- * 403/429 处理（2026-11-21 起 CI 实测：站方对 GitHub runner IP 段整段封锁，240×403 + 332×429）：
- *   不再退避重试——重试只会把单日请求量放大 4 倍（143 马 × 4 = 572 次，零产出），
- *   也不会误缓存成「查无此马」。改为记录 blockedUntil（进程级 6h 熔断）：
- *   熔断窗口内后续马名直接短路返回 failed，等下次运行再探测封锁是否解除。
+ * 403 与 429 要分开处理（2026-11-26 实测结论，原「整段封锁 runner IP」判断已作废）：
+ *   · 429 = 撞了 30 次/60s 的限流 → 等一个完整窗口再来，不算封禁，更不该熔断 6h
+ *     （旧逻辑一遇 429 就熔断，等于把自己饿死一整轮）。
+ *   · 403 = 带了 Referer 仍被拒 → 防盗链规则又变了 / 站点改版，这才是真·拒绝服务，
+ *     熔断 6h 停止无谓请求，等下次运行再探测。
+ *   · 两者都不写缓存，避免把「抓取失败」误记成「查无此马」。
  */
 const BLOCK_TTL_MS = 6 * 3600 * 1000;
+const RATE_WINDOW_MS = 65 * 1000; // 限流窗口 60s，多留 5s 让额度确实复原
 let blockedUntil = 0;
 
 export function isBlocked() {
@@ -71,6 +104,7 @@ export function isBlocked() {
 
 async function getJson(url, { retries = 3 } = {}) {
   if (isBlocked()) return { ok: false, data: null, why: "blocked" };
+  let rateWaits = 0;
   for (let i = 0; i <= retries; i++) {
     const r = await req(url);
     if (r.status === 200) {
@@ -81,10 +115,21 @@ async function getJson(url, { retries = 3 } = {}) {
       }
     }
     if (r.status === 404) return { ok: true, data: null, why: "404" };
-    if (r.status === 403 || r.status === 429) {
-      // 站方封锁/限流：熔断 6h，本进程内不再发请求
+    if (r.status === 429) {
+      // 正常节拍（≥2100ms）下不该出现；出现说明有旁路并发，等窗口后重来
+      if (rateWaits >= 2) return { ok: false, data: null, why: "ratelimited" };
+      rateWaits++;
+      console.log(`[abcpcc] HTTP 429 限流，等待 ${RATE_WINDOW_MS / 1000}s 后重试（第 ${rateWaits} 次）`);
+      await sleep(RATE_WINDOW_MS);
+      i--; // 限流等待不占用重试次数
+      continue;
+    }
+    if (r.status === 403) {
+      // 已带同源 Referer 仍被拒 → 防盗链规则变更，熔断停止浪费
       blockedUntil = Date.now() + BLOCK_TTL_MS;
-      console.log(`[abcpcc] HTTP ${r.status}（疑似站方封锁 runner IP），熔断 ${BLOCK_TTL_MS / 3600000}h，本次运行剩余马名跳过`);
+      console.log(
+        `[abcpcc] HTTP 403（带 Referer 仍被拒，疑似防盗链规则变更），熔断 ${BLOCK_TTL_MS / 3600000}h，本次运行剩余马名跳过`
+      );
       return { ok: false, data: null, why: "blocked" };
     }
     // 5xx/0：抖动，退避重试

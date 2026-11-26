@@ -129,10 +129,11 @@ jobs:
         with:
           path: _site
 
+      # 统一封装：等工件索引落盘 + 同 job 内重试，规避 deploy-pages 的 0 秒瞬时失败
       - name: Deploy to Pages
         id: deployment
         if: ${{ (steps.waku.outputs.changed || '0') != '0' || steps.guard.outputs.repaired == '1' }}
-        uses: actions/deploy-pages@v4
+        uses: ./.github/actions/deploy-pages-safe
 
       # 运行日志（always 上传，便于排查「为什么今天是 0 请求」）
       # data/logs/requests-*.jsonl = 逐条出站请求（src/url/status/ok/ms/bytes/err）

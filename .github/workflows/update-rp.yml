@@ -125,9 +125,10 @@ jobs:
         with:
           path: _site
 
+      # 统一封装：等工件索引落盘 + 同 job 内重试，规避 deploy-pages 的 0 秒瞬时失败
       - name: Deploy to Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: ./.github/actions/deploy-pages-safe
 
       # 运行日志（always 上传，便于排查采集失败/为空）
       - name: Upload run logs

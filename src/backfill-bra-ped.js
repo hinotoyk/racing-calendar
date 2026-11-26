@@ -65,7 +65,9 @@ async function fetchAll(names, yearOfName) {
       done++;
       if (!rec || rec.missing) miss++;
       if (done % 10 === 0 || done === names.size) console.log(`  ... ${done}/${names.size}（未命中 ${miss}）`);
-      await new Promise((r) => setTimeout(r, 150)); // 礼貌节流（并发 4 × 150ms ≈ 26 req/s 上限）
+      // 真正的限速在 src/lib/abcpcc.mjs 的全局节拍器里（站方限流 30 次/60s，按 IP 算，
+      // 与这里的并发数无关）；此处只留一小段让位，避免 worker 之间空转抢队列。
+      await new Promise((r) => setTimeout(r, 150));
     }
   };
   await Promise.all(Array.from({ length: Math.min(CONC, list.length || 1) }, worker));
@@ -153,7 +155,7 @@ async function main() {
   for (const [n, p] of prof) if (p && !p.missing) hit++;
   for (const [, p] of prof) if (p?.blocked) blockedN++;
   if (blockedN) {
-    console.log(`::warning::ABCPCC 被站方封锁（HTTP 403/429），${blockedN}/${names.size} 匹血统本轮跳过（熔断 6h，下次运行自动重试）`);
+    console.log(`::warning::ABCPCC 返回 403（防盗链/站点规则变更），${blockedN}/${names.size} 匹血统本轮跳过（熔断 6h，下次运行自动重试）`);
   }
   const totals = { files: 0, changed: 0, sex: 0, age: 0, sire: 0, dam: 0, bms: 0, sireSire: 0, owner: 0, breeder: 0 };
   const missed = [];
