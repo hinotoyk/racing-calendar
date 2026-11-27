@@ -5,7 +5,7 @@
   "venue": "園田",
   "scope": "local",
   "source": "netkeiba",
-  "updatedAt": "2026-11-27T05:47:32.892Z",
+  "updatedAt": "2026-11-27T15:49:34.289Z",
   "races": [
     {
       "no": 1,
@@ -1829,6 +1829,985 @@
           "winOdds": null,
           "bodyWeight": null,
           "bodyDelta": null
+        }
+      ]
+    },
+    {
+      "no": 9,
+      "raceKey": "20261127/227/09",
+      "nkRaceId": "202650112709",
+      "idVia": "built",
+      "status": "result",
+      "heads": 10,
+      "resultHeads": 10,
+      "joined": 10,
+      "linked": 10,
+      "byNumHit": 10,
+      "byNameHit": 0,
+      "shutubaNames": 20,
+      "startTime": "15:00",
+      "sourceUrl": "https://nar.netkeiba.com/race/result.html?race_id=202650112709",
+      "template": "All_Result_Table",
+      "completeness": {
+        "heads": 10,
+        "rows": 10,
+        "numeric": 10,
+        "abnormal": 0,
+        "maxRank": 10,
+        "missingRanks": [],
+        "popCovered": 10,
+        "popTotal": 10,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "runners": [
+        {
+          "num": 1,
+          "frame": 1,
+          "horse": {
+            "id": "0001367383",
+            "name": "コテツハマー",
+            "nkId": "2023102077"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "time": "1:32.6",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 40.2,
+          "pop": 1,
+          "winOdds": 1.9,
+          "bodyWeight": 505,
+          "bodyDelta": -6
+        },
+        {
+          "num": 2,
+          "frame": 2,
+          "horse": {
+            "id": "0001358020",
+            "name": "ホウオウヌーヴォー",
+            "nkId": "2022103531"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "time": "1:33.6",
+          "margin": "1.3/4",
+          "passing": null,
+          "last3f": 40.9,
+          "pop": 9,
+          "winOdds": 119.5,
+          "bodyWeight": 493,
+          "bodyDelta": 1
+        },
+        {
+          "num": 3,
+          "frame": 3,
+          "horse": {
+            "id": "0001326390",
+            "name": "サンウイング",
+            "nkId": "2020105437"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "time": "1:33.3",
+          "margin": "ハナ",
+          "passing": null,
+          "last3f": 39.6,
+          "pop": 10,
+          "winOdds": 604.4,
+          "bodyWeight": 477,
+          "bodyDelta": -1
+        },
+        {
+          "num": 4,
+          "frame": 4,
+          "horse": {
+            "id": "0001359406",
+            "name": "ヤマノインパクト",
+            "nkId": "2022104559"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "time": "1:33.3",
+          "margin": "クビ",
+          "passing": null,
+          "last3f": 40.5,
+          "pop": 3,
+          "winOdds": 7.4,
+          "bodyWeight": 464,
+          "bodyDelta": 6
+        },
+        {
+          "num": 5,
+          "frame": 5,
+          "horse": {
+            "id": "0001317876",
+            "name": "ハイレジリエンス(GB)",
+            "nkId": "2018110103"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "time": "1:34.2",
+          "margin": "3.1/2",
+          "passing": null,
+          "last3f": 41.4,
+          "pop": 8,
+          "winOdds": 91.1,
+          "bodyWeight": 493,
+          "bodyDelta": 10
+        },
+        {
+          "num": 6,
+          "frame": 6,
+          "horse": {
+            "id": "0001321305",
+            "name": "レヴィアタン",
+            "nkId": "2020100619"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "time": "1:32.7",
+          "margin": "クビ",
+          "passing": null,
+          "last3f": 39.6,
+          "pop": 5,
+          "winOdds": 11.4,
+          "bodyWeight": 513,
+          "bodyDelta": 5
+        },
+        {
+          "num": 7,
+          "frame": 7,
+          "horse": {
+            "id": "0001309426",
+            "name": "ムーンガーデン",
+            "nkId": "2019101038"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "time": "1:34.7",
+          "margin": "3",
+          "passing": null,
+          "last3f": 41.3,
+          "pop": 7,
+          "winOdds": 61.3,
+          "bodyWeight": 486,
+          "bodyDelta": 3
+        },
+        {
+          "num": 8,
+          "frame": 7,
+          "horse": {
+            "id": "0001355199",
+            "name": "キーベスト",
+            "nkId": "2022106512"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "time": "1:32.5",
+          "margin": null,
+          "passing": null,
+          "last3f": 40,
+          "pop": 4,
+          "winOdds": 11.1,
+          "bodyWeight": 520,
+          "bodyDelta": 1
+        },
+        {
+          "num": 9,
+          "frame": 8,
+          "horse": {
+            "id": "0001322008",
+            "name": "インジェクション",
+            "nkId": "2020102417"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "time": "1:33.3",
+          "margin": "3.1/2",
+          "passing": null,
+          "last3f": 40.5,
+          "pop": 6,
+          "winOdds": 26.3,
+          "bodyWeight": 488,
+          "bodyDelta": 6
+        },
+        {
+          "num": 10,
+          "frame": 8,
+          "horse": {
+            "id": "0001359089",
+            "name": "ウインソラネル",
+            "nkId": "2022101105"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "time": "1:32.7",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 40.1,
+          "pop": 2,
+          "winOdds": 2.8,
+          "bodyWeight": 488,
+          "bodyDelta": 3
+        }
+      ]
+    },
+    {
+      "no": 10,
+      "raceKey": "20261127/227/10",
+      "nkRaceId": "202650112710",
+      "idVia": "built",
+      "status": "result",
+      "heads": 11,
+      "resultHeads": 11,
+      "joined": 11,
+      "linked": 11,
+      "byNumHit": 11,
+      "byNameHit": 0,
+      "shutubaNames": 22,
+      "startTime": "15:35",
+      "sourceUrl": "https://nar.netkeiba.com/race/result.html?race_id=202650112710",
+      "template": "All_Result_Table",
+      "completeness": {
+        "heads": 11,
+        "rows": 11,
+        "numeric": 11,
+        "abnormal": 0,
+        "maxRank": 11,
+        "missingRanks": [],
+        "popCovered": 11,
+        "popTotal": 11,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "runners": [
+        {
+          "num": 1,
+          "frame": 1,
+          "horse": {
+            "id": "0001376537",
+            "name": "ハギノギフテッド",
+            "nkId": "2023104403"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "time": "1:21.2",
+          "margin": "1",
+          "passing": null,
+          "last3f": 40.1,
+          "pop": 2,
+          "winOdds": 5.8,
+          "bodyWeight": 484,
+          "bodyDelta": -3
+        },
+        {
+          "num": 2,
+          "frame": 2,
+          "horse": {
+            "id": "0001367516",
+            "name": "マイネルゼーロス",
+            "nkId": "2023106474"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "time": "1:20.4",
+          "margin": "2.1/2",
+          "passing": null,
+          "last3f": 39.5,
+          "pop": 3,
+          "winOdds": 7.1,
+          "bodyWeight": 489,
+          "bodyDelta": 8
+        },
+        {
+          "num": 3,
+          "frame": 3,
+          "horse": {
+            "id": "0001334055",
+            "name": "エイシンホユプ",
+            "nkId": "2021100330"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "time": "1:22.0",
+          "margin": "2",
+          "passing": null,
+          "last3f": 41.3,
+          "pop": 7,
+          "winOdds": 22.4,
+          "bodyWeight": 480,
+          "bodyDelta": 9
+        },
+        {
+          "num": 4,
+          "frame": 4,
+          "horse": {
+            "id": "0001324705",
+            "name": "リヨン",
+            "nkId": "2020101239"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "time": "1:22.4",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 40.3,
+          "pop": 10,
+          "winOdds": 341.2,
+          "bodyWeight": 486,
+          "bodyDelta": 9
+        },
+        {
+          "num": 5,
+          "frame": 5,
+          "horse": {
+            "id": "0001353346",
+            "name": "コッコラーレ",
+            "nkId": "2022107411"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "time": "1:23.1",
+          "margin": "4",
+          "passing": null,
+          "last3f": 41.7,
+          "pop": 11,
+          "winOdds": 904.4,
+          "bodyWeight": 493,
+          "bodyDelta": 2
+        },
+        {
+          "num": 6,
+          "frame": 6,
+          "horse": {
+            "id": "0001356883",
+            "name": "ヴァラドン",
+            "nkId": "2022106909"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "time": "1:21.0",
+          "margin": "2",
+          "passing": null,
+          "last3f": 40.2,
+          "pop": 6,
+          "winOdds": 11.3,
+          "bodyWeight": 504,
+          "bodyDelta": 4
+        },
+        {
+          "num": 7,
+          "frame": 6,
+          "horse": {
+            "id": "0001359770",
+            "name": "テーオーヴァルナイ",
+            "nkId": "2022102210"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "time": "1:21.7",
+          "margin": "3",
+          "passing": null,
+          "last3f": 40.7,
+          "pop": 1,
+          "winOdds": 1.7,
+          "bodyWeight": 456,
+          "bodyDelta": 2
+        },
+        {
+          "num": 8,
+          "frame": 7,
+          "horse": {
+            "id": "0001378323",
+            "name": "ナムラパピ",
+            "nkId": "2023106241"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "time": "1:20.6",
+          "margin": "1.1/4",
+          "passing": null,
+          "last3f": 39.5,
+          "pop": 9,
+          "winOdds": 94.4,
+          "bodyWeight": 419,
+          "bodyDelta": -6
+        },
+        {
+          "num": 9,
+          "frame": 7,
+          "horse": {
+            "id": "0001338992",
+            "name": "スービーズ",
+            "nkId": "2021100932"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "time": "1:22.3",
+          "margin": "1.1/2",
+          "passing": null,
+          "last3f": 41.6,
+          "pop": 8,
+          "winOdds": 78.8,
+          "bodyWeight": 469,
+          "bodyDelta": 2
+        },
+        {
+          "num": 10,
+          "frame": 8,
+          "horse": {
+            "id": "0001370808",
+            "name": "コースタルロード",
+            "nkId": "2023100973"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "time": "1:20.0",
+          "margin": null,
+          "passing": null,
+          "last3f": 39.5,
+          "pop": 4,
+          "winOdds": 7.9,
+          "bodyWeight": 408,
+          "bodyDelta": -10
+        },
+        {
+          "num": 11,
+          "frame": 8,
+          "horse": {
+            "id": "0001332708",
+            "name": "エナフクキタル",
+            "nkId": "2021107075"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "time": "1:20.7",
+          "margin": "クビ",
+          "passing": null,
+          "last3f": 40.1,
+          "pop": 5,
+          "winOdds": 10.8,
+          "bodyWeight": 490,
+          "bodyDelta": 4
+        }
+      ]
+    },
+    {
+      "no": 11,
+      "raceKey": "20261127/227/11",
+      "nkRaceId": "202650112711",
+      "idVia": "built",
+      "status": "result",
+      "heads": 12,
+      "resultHeads": 12,
+      "joined": 12,
+      "linked": 12,
+      "byNumHit": 12,
+      "byNameHit": 0,
+      "shutubaNames": 24,
+      "startTime": "16:10",
+      "sourceUrl": "https://nar.netkeiba.com/race/result.html?race_id=202650112711",
+      "template": "All_Result_Table",
+      "completeness": {
+        "heads": 12,
+        "rows": 12,
+        "numeric": 12,
+        "abnormal": 0,
+        "maxRank": 12,
+        "missingRanks": [],
+        "popCovered": 12,
+        "popTotal": 12,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "runners": [
+        {
+          "num": 1,
+          "frame": 1,
+          "horse": {
+            "id": "0001338222",
+            "name": "エナアニマル",
+            "nkId": "2021109073"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "time": "1:32.3",
+          "margin": "3/4",
+          "passing": null,
+          "last3f": 40.3,
+          "pop": 6,
+          "winOdds": 37.1,
+          "bodyWeight": 502,
+          "bodyDelta": 5
+        },
+        {
+          "num": 2,
+          "frame": 2,
+          "horse": {
+            "id": "0001362155",
+            "name": "エイシンアニーモ",
+            "nkId": "2022103367"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "time": "1:30.6",
+          "margin": null,
+          "passing": null,
+          "last3f": 39.6,
+          "pop": 3,
+          "winOdds": 3.5,
+          "bodyWeight": 493,
+          "bodyDelta": -4
+        },
+        {
+          "num": 3,
+          "frame": 3,
+          "horse": {
+            "id": "0001232097",
+            "name": "スナークダヴィンチ",
+            "nkId": "2017106438"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "time": "1:32.4",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 40.5,
+          "pop": 11,
+          "winOdds": 287.8,
+          "bodyWeight": 498,
+          "bodyDelta": 6
+        },
+        {
+          "num": 4,
+          "frame": 4,
+          "horse": {
+            "id": "0001324047",
+            "name": "ナムラテディー",
+            "nkId": "2020101950"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "time": "1:32.0",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 40.7,
+          "pop": 8,
+          "winOdds": 169.7,
+          "bodyWeight": 495,
+          "bodyDelta": -4
+        },
+        {
+          "num": 5,
+          "frame": 5,
+          "horse": {
+            "id": "0001319851",
+            "name": "ブチエー",
+            "nkId": "2020105407"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "time": "1:32.2",
+          "margin": "3/4",
+          "passing": null,
+          "last3f": 40.6,
+          "pop": 7,
+          "winOdds": 91.2,
+          "bodyWeight": 473,
+          "bodyDelta": 4
+        },
+        {
+          "num": 6,
+          "frame": 5,
+          "horse": {
+            "id": "0001322807",
+            "name": "ブエラフェルテ",
+            "nkId": "2020101513"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "time": "1:31.9",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 40.3,
+          "pop": 4,
+          "winOdds": 10.5,
+          "bodyWeight": 453,
+          "bodyDelta": 4
+        },
+        {
+          "num": 7,
+          "frame": 6,
+          "horse": {
+            "id": "0001335298",
+            "name": "マミエミモモタロー",
+            "nkId": "2021104289"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "time": "1:31.6",
+          "margin": "6",
+          "passing": null,
+          "last3f": 40.8,
+          "pop": 2,
+          "winOdds": 2.8,
+          "bodyWeight": 501,
+          "bodyDelta": -3
+        },
+        {
+          "num": 8,
+          "frame": 6,
+          "horse": {
+            "id": "0001320513",
+            "name": "アグネスシュウ",
+            "nkId": "2020100706"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "time": "1:33.0",
+          "margin": "2.1/2",
+          "passing": null,
+          "last3f": 41.5,
+          "pop": 5,
+          "winOdds": 11.3,
+          "bodyWeight": 533,
+          "bodyDelta": 4
+        },
+        {
+          "num": 9,
+          "frame": 7,
+          "horse": {
+            "id": "0001354246",
+            "name": "メイショウウメゴチ",
+            "nkId": "2022102768"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "time": "1:31.8",
+          "margin": "1",
+          "passing": null,
+          "last3f": 40.9,
+          "pop": 1,
+          "winOdds": 2.6,
+          "bodyWeight": 434,
+          "bodyDelta": 3
+        },
+        {
+          "num": 10,
+          "frame": 7,
+          "horse": {
+            "id": "0001320922",
+            "name": "アイヤナ",
+            "nkId": "2020101925"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "time": "1:32.6",
+          "margin": "3/4",
+          "passing": null,
+          "last3f": 40.8,
+          "pop": 10,
+          "winOdds": 253.8,
+          "bodyWeight": 467,
+          "bodyDelta": -2
+        },
+        {
+          "num": 11,
+          "frame": 8,
+          "horse": {
+            "id": "0001335740",
+            "name": "カレンマウラー",
+            "nkId": "2021101577"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "time": "1:33.8",
+          "margin": "5",
+          "passing": null,
+          "last3f": 42.8,
+          "pop": 12,
+          "winOdds": 569.8,
+          "bodyWeight": 487,
+          "bodyDelta": 4
+        },
+        {
+          "num": 12,
+          "frame": 8,
+          "horse": {
+            "id": "0001334516",
+            "name": "シークレットイスラ",
+            "nkId": "2021106118"
+          },
+          "finish": 12,
+          "abnormal": null,
+          "time": "1:34.3",
+          "margin": "3",
+          "passing": null,
+          "last3f": 42.8,
+          "pop": 9,
+          "winOdds": 231.7,
+          "bodyWeight": 470,
+          "bodyDelta": -7
+        }
+      ]
+    },
+    {
+      "no": 12,
+      "raceKey": "20261127/227/12",
+      "nkRaceId": "202650112712",
+      "idVia": "built",
+      "status": "result",
+      "heads": 12,
+      "resultHeads": 12,
+      "joined": 12,
+      "linked": 12,
+      "byNumHit": 12,
+      "byNameHit": 0,
+      "shutubaNames": 24,
+      "startTime": "16:45",
+      "sourceUrl": "https://nar.netkeiba.com/race/result.html?race_id=202650112712",
+      "template": "All_Result_Table",
+      "completeness": {
+        "heads": 12,
+        "rows": 12,
+        "numeric": 12,
+        "abnormal": 0,
+        "maxRank": 12,
+        "missingRanks": [],
+        "popCovered": 12,
+        "popTotal": 12,
+        "popRatio": 1,
+        "finishRatio": 1
+      },
+      "runners": [
+        {
+          "num": 1,
+          "frame": 1,
+          "horse": {
+            "id": "0001367554",
+            "name": "タイシン",
+            "nkId": "2023107473"
+          },
+          "finish": 4,
+          "abnormal": null,
+          "time": "1:31.2",
+          "margin": "ハナ",
+          "passing": null,
+          "last3f": 40.2,
+          "pop": 5,
+          "winOdds": 15.8,
+          "bodyWeight": 482,
+          "bodyDelta": 4
+        },
+        {
+          "num": 2,
+          "frame": 2,
+          "horse": {
+            "id": "0001369235",
+            "name": "キミガスキダ",
+            "nkId": "2023100605"
+          },
+          "finish": 2,
+          "abnormal": null,
+          "time": "1:30.8",
+          "margin": "ハナ",
+          "passing": null,
+          "last3f": 39.6,
+          "pop": 3,
+          "winOdds": 5.3,
+          "bodyWeight": 445,
+          "bodyDelta": -1
+        },
+        {
+          "num": 3,
+          "frame": 3,
+          "horse": {
+            "id": "0001336851",
+            "name": "ボールザマホーニー",
+            "nkId": "2021109115"
+          },
+          "finish": 11,
+          "abnormal": null,
+          "time": "1:33.8",
+          "margin": "4",
+          "passing": null,
+          "last3f": 41.3,
+          "pop": 11,
+          "winOdds": 169.1,
+          "bodyWeight": 471,
+          "bodyDelta": -9
+        },
+        {
+          "num": 4,
+          "frame": 4,
+          "horse": {
+            "id": "0001269484",
+            "name": "ララモンドール",
+            "nkId": "2018103315"
+          },
+          "finish": 6,
+          "abnormal": null,
+          "time": "1:32.1",
+          "margin": "1.1/4",
+          "passing": null,
+          "last3f": 40,
+          "pop": 9,
+          "winOdds": 124.8,
+          "bodyWeight": 456,
+          "bodyDelta": 6
+        },
+        {
+          "num": 5,
+          "frame": 5,
+          "horse": {
+            "id": "0001333712",
+            "name": "ウルティモ",
+            "nkId": "2021101209"
+          },
+          "finish": 10,
+          "abnormal": null,
+          "time": "1:33.1",
+          "margin": "クビ",
+          "passing": null,
+          "last3f": 40.7,
+          "pop": 10,
+          "winOdds": 144.7,
+          "bodyWeight": 485,
+          "bodyDelta": 2
+        },
+        {
+          "num": 6,
+          "frame": 5,
+          "horse": {
+            "id": "0001368982",
+            "name": "プラチナムディスク",
+            "nkId": "2023102383"
+          },
+          "finish": 5,
+          "abnormal": null,
+          "time": "1:31.9",
+          "margin": "4",
+          "passing": null,
+          "last3f": 40.4,
+          "pop": 4,
+          "winOdds": 5.9,
+          "bodyWeight": 428,
+          "bodyDelta": -1
+        },
+        {
+          "num": 7,
+          "frame": 6,
+          "horse": {
+            "id": "0001369822",
+            "name": "タガノアキレア",
+            "nkId": "2023104312"
+          },
+          "finish": 1,
+          "abnormal": null,
+          "time": "1:30.8",
+          "margin": null,
+          "passing": null,
+          "last3f": 39.6,
+          "pop": 2,
+          "winOdds": 3.7,
+          "bodyWeight": 498,
+          "bodyDelta": 2
+        },
+        {
+          "num": 8,
+          "frame": 6,
+          "horse": {
+            "id": "0001375144",
+            "name": "ハバタクジユウニ",
+            "nkId": "2023105065"
+          },
+          "finish": 3,
+          "abnormal": null,
+          "time": "1:31.2",
+          "margin": "2.1/2",
+          "passing": null,
+          "last3f": 39.6,
+          "pop": 1,
+          "winOdds": 2.1,
+          "bodyWeight": 456,
+          "bodyDelta": -8
+        },
+        {
+          "num": 9,
+          "frame": 7,
+          "horse": {
+            "id": "0001373013",
+            "name": "スターアイセーラ",
+            "nkId": "2023100834"
+          },
+          "finish": 8,
+          "abnormal": null,
+          "time": "1:32.9",
+          "margin": "1",
+          "passing": null,
+          "last3f": 41.3,
+          "pop": 7,
+          "winOdds": 46.9,
+          "bodyWeight": 447,
+          "bodyDelta": 1
+        },
+        {
+          "num": 10,
+          "frame": 7,
+          "horse": {
+            "id": "0001357223",
+            "name": "キーチファイター",
+            "nkId": "2022103748"
+          },
+          "finish": 12,
+          "abnormal": null,
+          "time": "1:33.9",
+          "margin": "1/2",
+          "passing": null,
+          "last3f": 42.5,
+          "pop": 8,
+          "winOdds": 67.2,
+          "bodyWeight": 475,
+          "bodyDelta": 1
+        },
+        {
+          "num": 11,
+          "frame": 8,
+          "horse": {
+            "id": "0001335915",
+            "name": "デンタルフロス",
+            "nkId": "2021102645"
+          },
+          "finish": 9,
+          "abnormal": null,
+          "time": "1:33.0",
+          "margin": "3/4",
+          "passing": null,
+          "last3f": 40.4,
+          "pop": 12,
+          "winOdds": 195.9,
+          "bodyWeight": 439,
+          "bodyDelta": 8
+        },
+        {
+          "num": 12,
+          "frame": 8,
+          "horse": {
+            "id": "0001377947",
+            "name": "オースミサイファー",
+            "nkId": "2023105634"
+          },
+          "finish": 7,
+          "abnormal": null,
+          "time": "1:32.7",
+          "margin": "3.1/2",
+          "passing": null,
+          "last3f": 40.7,
+          "pop": 6,
+          "winOdds": 21.7,
+          "bodyWeight": 472,
+          "bodyDelta": 0
         }
       ]
     }
